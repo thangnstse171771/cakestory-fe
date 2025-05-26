@@ -12,11 +12,11 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import CakeDesign from "./pages/CakeDesign";
 import Marketplace from "./pages/Marketplace";
-
+import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import Events from "./pages/Events";
+import Signup from "./components/Signup";
 import "./App.css";
-import Messages from "./pages/Messages";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -38,6 +38,16 @@ function App() {
             element={
               !isAuthenticated ? (
                 <Login onLogin={handleLogin} />
+              ) : (
+                <Navigate to="/home" replace />
+              )
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              !isAuthenticated ? (
+                <Signup onSignup={handleLogin} />
               ) : (
                 <Navigate to="/home" replace />
               )

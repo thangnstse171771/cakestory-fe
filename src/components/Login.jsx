@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Cake, Eye, EyeOff, User, Users, BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Login = ({ onLogin }) => {
   const [email, setEmail] = useState("");
@@ -198,12 +199,12 @@ const Login = ({ onLogin }) => {
 
                 <p className="text-center text-sm text-gray-600">
                   Don't have an account?{" "}
-                  <a
-                    href="#"
+                  <Link
+                    to="/signup"
                     className="text-pink-500 hover:text-pink-600 font-medium"
                   >
                     Sign Up
-                  </a>
+                  </Link>
                 </p>
               </form>
             </div>
