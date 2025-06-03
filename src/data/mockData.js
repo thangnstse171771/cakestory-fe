@@ -15,10 +15,10 @@ export const generatePosts = (count = 20) => {
 
   const cakeImages = [
     "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwZ-GpTn9xTtYg8AC20UZwI3Qkj8E3UCqvSQ&s",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRdaR-66ZFKXaQLf0ULnXEB-yng2JbR4ijjww&s",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXw&s",
-    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXwXw&s",
+    "https://static01.nyt.com/images/2023/10/27/multimedia/27cakerex-plzm/27cakerex-plzm-superJumbo.jpg",
+    "https://food.fnr.sndimg.com/content/dam/images/food/fullset/2009/4/5/1/IG1C17_30946_s4x3.jpg.rend.hgtvcom.1280.1280.suffix/1433541424559.webp",
+    "https://flouringkitchen.com/wp-content/uploads/2023/07/BW1A4089-2.jpg",
+    "https://stylesweet.com/wp-content/uploads/2022/06/ChocolateCakeForTwo_Featured.jpg",
   ];
 
   const userNames = [
