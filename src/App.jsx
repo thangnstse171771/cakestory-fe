@@ -11,7 +11,7 @@ import Login from "./components/Login";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import CakeDesign from "./pages/CakeDesign";
-import Marketplace from "./pages/Marketplace";
+import Marketplace from "./pages/Marketplace/Marketplace";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import Events from "./pages/Events";
