@@ -16,6 +16,7 @@ import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import Events from "./pages/Events";
 import Signup from "./components/Signup";
+import ShopDetail from "./pages/Marketplace/ShopDetail";
 import "./App.css";
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
             <Route index element={<Navigate to="/home" replace />} />
             <Route path="home" element={<Home />} />
             <Route path="marketplace" element={<Marketplace />} />
+            <Route path="marketplace/shop/:id" element={<ShopDetail />} />
             <Route path="messages" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
             <Route path="cake-design" element={<CakeDesign />} />

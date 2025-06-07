@@ -1,6 +1,8 @@
 import { Star } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ShopsList = () => {
+  const navigate = useNavigate();
   const shops = [
     {
       id: 1,
@@ -80,9 +82,7 @@ const ShopsList = () => {
                 <h3 className="font-semibold text-lg text-gray-800">
                   {shop.name}
                 </h3>
-                <p className="text-sm text-gray-500">
-                  {shop.location}
-                </p>
+                <p className="text-sm text-gray-500">{shop.location}</p>
               </div>
             </div>
 
@@ -105,7 +105,10 @@ const ShopsList = () => {
               ))}
             </div>
 
-            <button className="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition-colors mt-auto">
+            <button
+              className="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition-colors mt-auto"
+              onClick={() => navigate(`/marketplace/shop/${shop.id}`)}
+            >
               View Shop
             </button>
           </div>
