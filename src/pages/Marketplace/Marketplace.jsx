@@ -8,7 +8,7 @@ const Marketplace = () => {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
             Marketplace
