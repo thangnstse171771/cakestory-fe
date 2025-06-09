@@ -61,11 +61,11 @@ const Home = () => {
           <div className="flex gap-6 max-w-6xl w-full">
             {/* Main Content */}
             <div className="flex-1 max-w-xl">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 gap-3">
                 <h1 className="text-2xl font-bold text-pink-600">
                   Community Feed
                 </h1>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 bg-white rounded-xl border px-4 py-2">
                   <Search className="w-5 h-5 text-gray-400" />
                   <span className="text-gray-500">Search posts</span>
                 </div>

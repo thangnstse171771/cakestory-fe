@@ -34,7 +34,7 @@ export const generatePosts = (count = 20) => {
     "BakingPro",
   ];
 
-  const badges = ["Design", "Pro", "Baker", "Artist", "Master"];
+  const badges = ["Design"];
 
   return Array.from({ length: count }, (_, index) => ({
     id: index + 1,
