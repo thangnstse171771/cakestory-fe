@@ -23,7 +23,7 @@ const Sidebar = ({ onLogout }) => {
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
     { icon: MessageCircle, label: "Messages", path: "/messages" },
-    { icon: PlusCircle, label: "New Post", path: "/new-post" },
+    { icon: PlusCircle, label: "My Post", path: "/mypost" },
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
     { icon: Calendar, label: "Events", path: "/events" },
