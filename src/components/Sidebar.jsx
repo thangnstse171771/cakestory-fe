@@ -1,3 +1,4 @@
+// src/components/Sidebar.jsx
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -11,13 +12,17 @@ import {
   MoreHorizontal,
   Shield,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
-const Sidebar = ({ onLogout }) => {
+const Sidebar = () => {
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    onLogout();
-    navigate("/login");
+    // 1. Xóa token & user khỏi storage + context
+    logout();
+    // 2. Điều hướng về /login, thay thế lịch sử để không back lại được
+    navigate("/login", { replace: true });
   };
 
   const menuItems = [
@@ -33,6 +38,7 @@ const Sidebar = ({ onLogout }) => {
 
   return (
     <div className="fixed left-0 top-0 h-full bg-white shadow-lg z-50 transition-all duration-300 w-20 lg:w-64">
+      {/* Logo & Home button */}
       <div className="p-6 border-b border-gray-200">
         <button
           onClick={() => navigate("/home")}
@@ -47,12 +53,13 @@ const Sidebar = ({ onLogout }) => {
         </button>
       </div>
 
+      {/* Menu chính */}
       <nav className="mt-6">
         <div className="px-4 space-y-2">
-          {menuItems.map((item) => (
+          {menuItems.map(({ icon: Icon, label, path }) => (
             <NavLink
-              key={item.path}
-              to={item.path}
+              key={path}
+              to={path}
               className={({ isActive }) =>
                 `flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 rounded-lg transition-colors ${
                   isActive
@@ -61,13 +68,14 @@ const Sidebar = ({ onLogout }) => {
                 }`
               }
             >
-              <item.icon className="w-5 h-5" />
-              <span className="hidden lg:block font-medium">{item.label}</span>
+              <Icon className="w-5 h-5" />
+              <span className="hidden lg:block font-medium">{label}</span>
             </NavLink>
           ))}
         </div>
       </nav>
 
+      {/* Logout & More options */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
         <button
           onClick={() => {}}
