@@ -12,6 +12,7 @@ import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import CakeDesign from "./pages/CakeDesign";
 import Marketplace from "./pages/Marketplace/Marketplace";
+import MyPost from "./pages/MyPost/MyPost";
 import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import Events from "./pages/Events";
@@ -67,6 +68,7 @@ function App() {
             <Route index element={<Navigate to="/home" replace />} />
             <Route path="home" element={<Home />} />
             <Route path="marketplace" element={<Marketplace />} />
+            <Route path="mypost" element={<MyPost />} />
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
             <Route path="messages" element={<Messages />} />
             <Route path="profile" element={<Profile />} />

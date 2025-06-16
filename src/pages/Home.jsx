@@ -56,7 +56,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="flex justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="flex justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div>
           <div className="flex gap-6 max-w-6xl w-full">
             {/* Main Content */}
@@ -71,7 +71,7 @@ const Home = () => {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="min-w-[275px] space-y-4">
                 {posts.map((post) => (
                   <div
                     key={post.id}

@@ -7,7 +7,7 @@ const Marketplace = () => {
   const [view, setView] = useState("products"); // "products" or "shops"
 
   return (
-    <div className="p-6">
+    <div className="px-4 sm:px-6 lg:px-8">
       <div className="flex items-start justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
