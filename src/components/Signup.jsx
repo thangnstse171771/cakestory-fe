@@ -3,16 +3,17 @@
 import { useState } from "react";
 import { Cake, Eye, EyeOff, User, Users, BookOpen } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useAuth } from "../contexts/AuthContext";
 
-const Signup = ({ onSignup }) => {
+const Signup = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
     password: "",
-    full_name: "",
-    avatar: "https://example.com/avatar.jpg", // Default avatar
+    fullName: "",
+    avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix", // Default avatar
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -32,23 +33,8 @@ const Signup = ({ onSignup }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        "https://cakestory-be.onrender.com/api/auth/register",
-        formData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            accept: "application/json",
-          },
-        }
-      );
-
-      if (response.data) {
-        // Store the token or user data if needed
-        localStorage.setItem("token", response.data.token);
-        onSignup(); // Call the onSignup callback
-        navigate("/home"); // Redirect to home page
-      }
+      await register(formData);
+      navigate("/home");
     } catch (err) {
       setError(
         err.response?.data?.message || "Registration failed. Please try again."
@@ -70,7 +56,7 @@ const Signup = ({ onSignup }) => {
                   CakeStory
                 </h1>
                 <p className="text-pink-100 text-lg">
-                  Where Every Slice Tells a Story
+                  Join our baking community
                 </p>
               </div>
 
@@ -81,11 +67,11 @@ const Signup = ({ onSignup }) => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg mb-2">
-                      Personalized Experience
+                      Create Your Profile
                     </h3>
                     <p className="text-pink-100">
-                      Customize your cake preferences and discover recipes
-                      tailored to your taste.
+                      Set up your baking profile and start sharing your
+                      creations.
                     </p>
                   </div>
                 </div>
@@ -96,11 +82,11 @@ const Signup = ({ onSignup }) => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg mb-2">
-                      Community Sharing
+                      Join the Community
                     </h3>
                     <p className="text-pink-100">
-                      Connect with fellow bakers and share your delicious
-                      creations.
+                      Connect with fellow bakers and share your passion for
+                      baking.
                     </p>
                   </div>
                 </div>
@@ -110,12 +96,9 @@ const Signup = ({ onSignup }) => {
                     <BookOpen className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg mb-2">
-                      Baking Tutorials
-                    </h3>
+                    <h3 className="font-semibold text-lg mb-2">Learn & Grow</h3>
                     <p className="text-pink-100">
-                      Access premium step-by-step tutorials from professional
-                      bakers.
+                      Access exclusive tutorials and improve your baking skills.
                     </p>
                   </div>
                 </div>
@@ -131,11 +114,9 @@ const Signup = ({ onSignup }) => {
                   <Cake className="w-8 h-8 text-pink-500" />
                 </div>
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                  Join CakeStory
+                  Create Account
                 </h2>
-                <p className="text-gray-600">
-                  Create your account to start your baking journey
-                </p>
+                <p className="text-gray-600">Join our baking community today</p>
               </div>
 
               {error && (
@@ -145,21 +126,6 @@ const Signup = ({ onSignup }) => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="Enter your full name"
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Username
@@ -172,6 +138,21 @@ const Signup = ({ onSignup }) => {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     placeholder="Choose a username"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Enter your full name"
                   />
                 </div>
 
@@ -227,7 +208,7 @@ const Signup = ({ onSignup }) => {
                       : "bg-pink-500 hover:bg-pink-600"
                   }`}
                 >
-                  {loading ? "Creating Account..." : "Create Account"}
+                  {loading ? "Creating account..." : "Create Account"}
                 </button>
 
                 <p className="text-center text-sm text-gray-600">
