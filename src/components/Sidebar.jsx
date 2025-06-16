@@ -10,6 +10,7 @@ import {
   Calendar,
   LogOut,
   MoreHorizontal,
+  Shield,
 } from "lucide-react";
 
 const Sidebar = ({ onLogout }) => {
@@ -28,6 +29,7 @@ const Sidebar = ({ onLogout }) => {
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
     { icon: Calendar, label: "Events", path: "/events" },
+    { icon: Shield, label: "Admin Dashboard", path: "/admin" },
   ];
 
   return (
