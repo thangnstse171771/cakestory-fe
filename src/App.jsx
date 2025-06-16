@@ -17,6 +17,8 @@ import Messages from "./pages/Messages";
 import Profile from "./pages/Profile";
 import Events from "./pages/Events";
 import Signup from "./components/Signup";
+import AdminDashboard from "./pages/AdminDashboard";
+import AccountDetails from "./pages/AccountDetails";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
 import "./App.css";
 
@@ -74,6 +76,8 @@ function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="events" element={<Events />} />
+            <Route path="admin" element={<AdminDashboard />} />
+            <Route path="admin/account/:id" element={<AccountDetails />} />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
