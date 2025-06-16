@@ -1,74 +1,60 @@
 "use client";
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Cake, Eye, EyeOff, User, Users, BookOpen, Check } from "lucide-react";
+import { Cake, Eye, EyeOff, User, Users, BookOpen } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Signup = ({ onSignup }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    fullName: "",
+    username: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    full_name: "",
+    avatar: "https://example.com/avatar.jpg", // Default avatar
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [agreeTerms, setAgreeTerms] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleInputChange = (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required";
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid";
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-
-    if (!agreeTerms) {
-      newErrors.terms = "You must agree to the terms and conditions";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      // Mock signup - in real app, send data to backend
-      onSignup();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        "https://cakestory-be.onrender.com/api/auth/register",
+        formData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            accept: "application/json",
+          },
+        }
+      );
+
+      if (response.data) {
+        // Store the token or user data if needed
+        localStorage.setItem("token", response.data.token);
+        onSignup(); // Call the onSignup callback
+        navigate("/home"); // Redirect to home page
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -152,49 +138,60 @@ const Signup = ({ onSignup }) => {
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Full Name
                   </label>
                   <input
                     type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
+                    name="full_name"
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     placeholder="Enter your full name"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all ${
-                      errors.fullName ? "border-red-500" : "border-gray-300"
-                    }`}
                   />
-                  {errors.fullName && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.fullName}
-                    </p>
-                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Choose a username"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
                   </label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="Enter your email address"
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all ${
-                      errors.email ? "border-red-500" : "border-gray-300"
-                    }`}
+                    onChange={handleChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                    placeholder="Enter your email"
                   />
-                  {errors.email && (
-                    <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Password
                   </label>
                   <div className="relative">
@@ -202,16 +199,15 @@ const Signup = ({ onSignup }) => {
                       type={showPassword ? "text" : "password"}
                       name="password"
                       value={formData.password}
-                      onChange={handleInputChange}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       placeholder="Create a password"
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all pr-12 ${
-                        errors.password ? "border-red-500" : "border-gray-300"
-                      }`}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
                       {showPassword ? (
                         <EyeOff className="w-5 h-5" />
@@ -220,125 +216,19 @@ const Signup = ({ onSignup }) => {
                       )}
                     </button>
                   </div>
-                  {errors.password && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.password}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Confirm Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      placeholder="Confirm your password"
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all pr-12 ${
-                        errors.confirmPassword
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="w-5 h-5" />
-                      ) : (
-                        <Eye className="w-5 h-5" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.confirmPassword}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="flex items-start space-x-3">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={agreeTerms}
-                        onChange={(e) => setAgreeTerms(e.target.checked)}
-                        className="sr-only"
-                      />
-                      <div
-                        className={`w-5 h-5 border-2 rounded flex items-center justify-center cursor-pointer transition-all ${
-                          agreeTerms
-                            ? "bg-pink-500 border-pink-500"
-                            : errors.terms
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        onClick={() => setAgreeTerms(!agreeTerms)}
-                      >
-                        {agreeTerms && <Check className="w-3 h-3 text-white" />}
-                      </div>
-                    </div>
-                    <span className="text-sm text-gray-600 leading-5">
-                      I agree to the{" "}
-                      <a href="#" className="text-pink-500 hover:text-pink-600">
-                        Terms of Service
-                      </a>{" "}
-                      and{" "}
-                      <a href="#" className="text-pink-500 hover:text-pink-600">
-                        Privacy Policy
-                      </a>
-                    </span>
-                  </label>
-                  {errors.terms && (
-                    <p className="text-red-500 text-xs mt-1">{errors.terms}</p>
-                  )}
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-pink-500 text-white py-3 rounded-lg font-semibold hover:bg-pink-600 transition-colors"
+                  disabled={loading}
+                  className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-colors ${
+                    loading
+                      ? "bg-pink-400 cursor-not-allowed"
+                      : "bg-pink-500 hover:bg-pink-600"
+                  }`}
                 >
-                  Create Account
+                  {loading ? "Creating Account..." : "Create Account"}
                 </button>
-
-                <div className="text-center">
-                  <p className="text-gray-500 text-sm mb-4">or sign up with</p>
-                  <div className="flex justify-center space-x-4">
-                    <button
-                      type="button"
-                      className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
-                    >
-                      G
-                    </button>
-                    <button
-                      type="button"
-                      className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors"
-                    >
-                      f
-                    </button>
-                    <button
-                      type="button"
-                      className="w-12 h-12 bg-blue-400 text-white rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors"
-                    >
-                      t
-                    </button>
-                    <button
-                      type="button"
-                      className="w-12 h-12 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-900 transition-colors"
-                    >
-                      G
-                    </button>
-                  </div>
-                </div>
 
                 <p className="text-center text-sm text-gray-600">
                   Already have an account?{" "}
@@ -346,7 +236,7 @@ const Signup = ({ onSignup }) => {
                     to="/login"
                     className="text-pink-500 hover:text-pink-600 font-medium"
                   >
-                    Sign In
+                    Sign in
                   </Link>
                 </p>
               </form>
