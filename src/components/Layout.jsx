@@ -14,7 +14,7 @@ const Layout = () => {
     <div className="min-h-screen">
       <div className="flex">
         {/* Chỉ hiển thị Sidebar nếu đã login và không ở login/signup */}
-        {user && !isAuthPage && <Sidebar />}
+        <Sidebar />
 
         <main
           className={`flex-1 ${
