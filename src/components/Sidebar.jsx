@@ -11,6 +11,8 @@ import {
   LogOut,
   MoreHorizontal,
   Shield,
+  Wallet,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -34,12 +36,18 @@ const Sidebar = () => {
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
+    { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },
+    {
+      icon: CreditCard,
+      label: "Yêu Cầu Rút Tiền",
+      path: "/admin/withdraw-requests",
+    },
   ];
 
   return (
-    <div className="fixed left-0 top-0 h-full bg-white shadow-lg z-50 transition-all duration-300 w-20 lg:w-64">
+    <div className="fixed left-0 top-0 h-full bg-white shadow-lg z-50 transition-all duration-300 w-20 lg:w-64 flex flex-col">
       {/* Logo & Home button */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6 border-b border-gray-200 flex-shrink-0">
         <button
           onClick={() => navigate("/home")}
           className="flex items-center justify-center lg:justify-start lg:space-x-3 w-full hover:opacity-80 transition-opacity"
@@ -54,7 +62,7 @@ const Sidebar = () => {
       </div>
 
       {/* Menu chính */}
-      <nav className="mt-6">
+      <nav className="flex-grow overflow-y-auto py-6">
         <div className="px-4 space-y-2">
           {menuItems.map(({ icon: Icon, label, path }) => (
             <NavLink
@@ -76,7 +84,7 @@ const Sidebar = () => {
       </nav>
 
       {/* Logout & More options */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 flex-shrink-0">
         <button
           onClick={() => {}}
           className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg w-full transition-colors"

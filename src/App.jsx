@@ -21,7 +21,10 @@ import ShopDetail from "./pages/Marketplace/ShopDetail";
 import Messages from "./pages/Messages";
 import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
+import WalletManagement from "./pages/Admin/WalletManagement";
+import WithdrawRequests from "./pages/Admin/WithdrawRequests";
 import AccountDetails from "./pages/AccountDetails";
+import WithdrawRequestDetail from "./pages/Admin/WithdrawRequestDetail";
 import "./App.css";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
@@ -96,6 +99,15 @@ export default function App() {
 
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />
+            <Route path="admin/wallet" element={<WalletManagement />} />
+            <Route
+              path="admin/withdraw-requests"
+              element={<WithdrawRequests />}
+            />
+            <Route
+              path="admin/withdraw-requests/:id"
+              element={<WithdrawRequestDetail />}
+            />
           </Route>
 
           {/* Fallback */}
