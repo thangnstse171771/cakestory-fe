@@ -25,6 +25,7 @@ import WalletManagement from "./pages/Admin/WalletManagement";
 import WithdrawRequests from "./pages/Admin/WithdrawRequests";
 import AccountDetails from "./pages/AccountDetails";
 import WithdrawRequestDetail from "./pages/Admin/WithdrawRequestDetail";
+import EditProfile from "./pages/EditProfile";
 import "./App.css";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
@@ -90,6 +91,7 @@ export default function App() {
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="mypost" element={<MyPost />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="edit-profile" element={<EditProfile />} />
 
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
