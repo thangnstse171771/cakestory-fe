@@ -11,11 +11,18 @@ import {
   List,
   MoreVertical,
 } from "lucide-react";
+import CreatePost from "./CreatePost";
+import UpdatePost from "./UpdatePost";
+import DeletePostPopup from "./DeletePostPopup";
 
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [isUpdatePostOpen, setIsUpdatePostOpen] = useState(false);
+  const [isDeletePostOpen, setIsDeletePostOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   // Mock data for posts
   const posts = [
@@ -112,12 +119,17 @@ const MyPost = () => {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">My Posts</h1>
+              <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
+                My Posts
+              </h1>
               <p className="text-gray-600">
                 Manage and share your cake creations
               </p>
             </div>
-            <button className="flex items-center gap-2 px-6 py-3 bg-pink-500 text-white rounded-xl hover:bg-pink-400 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <button
+              onClick={() => setIsCreatePostOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-pink-500 text-white rounded-xl hover:bg-pink-400 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
               <Plus className="w-5 h-5" />
               Create Post
             </button>
@@ -209,9 +221,41 @@ const MyPost = () => {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-2 right-2">
-                  <button className="p-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-300">
-                    <MoreVertical className="w-4 h-4 text-gray-600" />
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() =>
+                        setOpenDropdown(
+                          openDropdown === post.id ? null : post.id
+                        )
+                      }
+                      className="p-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-300"
+                    >
+                      <MoreVertical className="w-4 h-4 text-gray-600" />
+                    </button>
+
+                    {openDropdown === post.id && (
+                      <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
+                        <button
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            setIsUpdatePostOpen(true);
+                          }}
+                          className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            setIsDeletePostOpen(true);
+                          }}
+                          className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className={`p-4 ${viewMode === "list" ? "flex-1" : ""}`}>
@@ -254,6 +298,18 @@ const MyPost = () => {
           </div>
         )}
       </div>
+      <CreatePost
+        isOpen={isCreatePostOpen}
+        onClose={() => setIsCreatePostOpen(false)}
+      />
+      <UpdatePost
+        isOpen={isUpdatePostOpen}
+        onClose={() => setIsUpdatePostOpen(false)}
+      />
+      <DeletePostPopup
+        isOpen={isDeletePostOpen}
+        onClose={() => setIsDeletePostOpen(false)}
+      />
     </div>
   );
 };
