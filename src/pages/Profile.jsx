@@ -12,8 +12,11 @@ import {
   Globe,
   Tag,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const navigate = useNavigate();
+
   const userStats = [
     { label: "Posts", value: "127" },
     { label: "Followers", value: "2.4K" },
@@ -140,7 +143,10 @@ const Profile = () => {
                     {personalInfo.username}
                   </p>
                 </div>
-                <button className="mt-4 md:mt-0 bg-pink-400 text-white px-6 py-3 rounded-xl hover:bg-pink-500 transition-colors flex items-center space-x-2 shadow-sm">
+                <button
+                  className="mt-4 md:mt-0 bg-pink-400 text-white px-6 py-3 rounded-xl hover:bg-pink-500 transition-colors flex items-center space-x-2 shadow-sm"
+                  onClick={() => navigate("/edit-profile")}
+                >
                   <Edit className="w-5 h-5" />
                   <span>Edit Profile</span>
                 </button>
