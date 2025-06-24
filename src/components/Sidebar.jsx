@@ -17,24 +17,26 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 
 const Sidebar = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // 1. Xóa token & user khỏi storage + context
     logout();
-    // 2. Điều hướng về /login, thay thế lịch sử để không back lại được
     navigate("/login", { replace: true });
   };
 
-  const menuItems = [
+  // Các mục public cho guest và user
+  const publicMenu = [
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
+    { icon: Cake, label: "Cake Design", path: "/cake-design" },
+    { icon: Calendar, label: "Events", path: "/events" },
+  ];
+  // Các mục chỉ dành cho user đã login
+  const privateMenu = [
     { icon: MessageCircle, label: "Messages", path: "/messages" },
     { icon: PlusCircle, label: "My Post", path: "/mypost" },
     { icon: User, label: "Profile", path: "/profile" },
-    { icon: Cake, label: "Cake Design", path: "/cake-design" },
-    { icon: Calendar, label: "Events", path: "/events" },
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
     { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },
     {
@@ -43,6 +45,7 @@ const Sidebar = () => {
       path: "/admin/withdraw-requests",
     },
   ];
+  const menuItems = user ? [...publicMenu, ...privateMenu] : publicMenu;
 
   return (
     <div className="fixed left-0 top-0 h-full bg-white shadow-lg z-50 transition-all duration-300 w-20 lg:w-64 flex flex-col">
@@ -92,15 +95,23 @@ const Sidebar = () => {
           <MoreHorizontal className="w-5 h-5" />
           <span className="hidden lg:block font-medium">More options</span>
         </button>
-
-        <button
-          onClick={handleLogout}
-          className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg w-full transition-colors mt-2"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="hidden lg:block font-medium">Sign Out</span>
-        </button>
-
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg w-full transition-colors mt-2"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="hidden lg:block font-medium">Sign Out</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate("/login")}
+            className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-pink-600 hover:bg-pink-50 rounded-lg w-full transition-colors mt-2"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="hidden lg:block font-medium">Login</span>
+          </button>
+        )}
         <div className="hidden lg:block text-center text-xs text-gray-500 mt-4">
           © 2025 CakeStory. All rights reserved.
         </div>

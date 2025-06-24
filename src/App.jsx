@@ -77,7 +77,17 @@ export default function App() {
             }
           />
 
-          {/* Protected + Layout */}
+          {/* Public pages (guest xem được) */}
+          <Route element={<Layout />}>
+            <Route index element={<Navigate to="home" replace />} />
+            <Route path="home" element={<Home />} />
+            <Route path="marketplace" element={<Marketplace />} />
+            <Route path="marketplace/shop/:id" element={<ShopDetail />} />
+            <Route path="events" element={<Events />} />
+            <Route path="cake-design" element={<CakeDesign />} />
+          </Route>
+
+          {/* Protected pages (chỉ login mới xem được) */}
           <Route
             element={
               <ProtectedRoute>
@@ -85,20 +95,10 @@ export default function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="home" replace />} />
-
-            <Route path="home" element={<Home />} />
-            <Route path="cake-design" element={<CakeDesign />} />
-            <Route path="mypost" element={<MyPost />} />
             <Route path="profile" element={<Profile />} />
             <Route path="edit-profile" element={<EditProfile />} />
-
-            <Route path="marketplace" element={<Marketplace />} />
-            <Route path="marketplace/shop/:id" element={<ShopDetail />} />
-
+            <Route path="mypost" element={<MyPost />} />
             <Route path="messages" element={<Messages />} />
-            <Route path="events" element={<Events />} />
-
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />
             <Route path="admin/wallet" element={<WalletManagement />} />
