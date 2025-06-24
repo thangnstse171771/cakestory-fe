@@ -237,3 +237,4 @@ const CreatePost = ({ isOpen, onClose }) => {
 };
 
 export default CreatePost;
+
