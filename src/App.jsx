@@ -28,6 +28,8 @@ import WithdrawRequestDetail from "./pages/Admin/WithdrawRequestDetail";
 import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import Report from "./pages/Report";
+import ChallengeList from "./pages/Challenge/ChallengeList";
+import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
 import "./App.css";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
@@ -87,6 +89,8 @@ export default function App() {
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
             <Route path="events" element={<Events />} />
             <Route path="cake-design" element={<CakeDesign />} />
+            <Route path="challenge" element={<ChallengeList />} />
+            <Route path="challenge/:id/group" element={<ChallengeGroup />} />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}
