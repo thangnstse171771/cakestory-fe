@@ -24,4 +24,12 @@ export const authAPI = {
   isAuthenticated: () => {
     return !!localStorage.getItem("token");
   },
+
+  changePassword: async ({ currentPassword, newPassword }) => {
+    const response = await axiosInstance.put("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  },
 };
