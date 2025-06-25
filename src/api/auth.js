@@ -42,4 +42,9 @@ export const authAPI = {
     const response = await axiosInstance.put(`/users/${id}`, data);
     return response.data;
   },
+
+  createMemoryPost: async (memoryPostData) => { 
+    const response = await axiosInstance.post("/api/memory-posts", memoryPostData);
+    return response.data;
+  }
 };

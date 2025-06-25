@@ -14,6 +14,7 @@ import {
 import CreatePost from "./CreatePost";
 import UpdatePost from "./UpdatePost";
 import DeletePostPopup from "./DeletePostPopup";
+import PostDetail from "./PostDetail";
 
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,6 +24,8 @@ const MyPost = () => {
   const [isUpdatePostOpen, setIsUpdatePostOpen] = useState(false);
   const [isDeletePostOpen, setIsDeletePostOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
 
   // Mock data for posts
   const posts = [
@@ -219,6 +222,11 @@ const MyPost = () => {
                   src={post.image}
                   alt={post.title}
                   className="w-full h-full object-cover"
+                  onClick={() => {
+                    setSelectedPost(post);
+                    setIsPostDetailOpen(true);
+                  }}
+                  style={{ cursor: "pointer" }}
                 />
                 <div className="absolute top-2 right-2">
                   <div className="relative">
@@ -309,6 +317,11 @@ const MyPost = () => {
       <DeletePostPopup
         isOpen={isDeletePostOpen}
         onClose={() => setIsDeletePostOpen(false)}
+      />
+      <PostDetail
+        isOpen={isPostDetailOpen}
+        post={selectedPost}
+        onClose={() => setIsPostDetailOpen(false)}
       />
     </div>
   );
