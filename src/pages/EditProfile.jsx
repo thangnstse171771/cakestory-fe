@@ -1,23 +1,50 @@
 import { useState } from "react";
 import { Camera, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const initialData = {
-  name: "Sarah Johnson",
-  username: "@sarahbakes",
-  email: "sarah.johnson@email.com",
-  phone: "+1 (555) 123-4567",
-  website: "www.sarahbakes.com",
-  location: "New York, NY",
-  bio: "Passionate baker sharing delicious recipes and cake decorating tips. Professional pastry chef with 10+ years of experience. 🍰✨",
-  profilePic:
-    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cHJvZmlsZXxlbnwwfHwwfHx8MA%3D%3D",
-};
+import { useAuth } from "../contexts/AuthContext";
+import { authAPI } from "../api/auth";
+import React from "react";
 
 export default function EditProfile() {
-  const [form, setForm] = useState(initialData);
-  const [preview, setPreview] = useState(form.profilePic);
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    name: "",
+    username: "",
+    email: "",
+    phone: "",
+    location: "",
+    profilePic: "",
+  });
+  const [preview, setPreview] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const navigate = useNavigate();
+
+  // Fetch user data from API on mount
+  React.useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      setFetching(true);
+      try {
+        const data = await authAPI.getUserById(user.id);
+        const u = data.user;
+        setForm({
+          name: u.full_name || "",
+          username: u.username || "",
+          email: u.email || "",
+          phone: u.phone_number || "",
+          location: u.address || "",
+          profilePic: u.avatar || "",
+        });
+        setPreview(u.avatar || "");
+      } catch (e) {
+        // handle error
+      } finally {
+        setFetching(false);
+      }
+    };
+    fetchData();
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,12 +60,35 @@ export default function EditProfile() {
     }
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    // Here you would send data to API
-    alert("Profile updated! (fake)");
-    navigate(-1);
+    if (!user) return;
+    setLoading(true);
+    try {
+      await authAPI.updateUserById(user.id, {
+        email: form.email,
+        full_name: form.name,
+        address: form.location,
+        phone_number: form.phone,
+        avatar: preview,
+        is_Baker: true, // hoặc lấy từ form nếu có checkbox
+      });
+      alert("Profile updated!");
+      navigate(-1);
+    } catch (err) {
+      alert("Cập nhật thất bại!");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-pink-50 flex flex-col items-center py-10 px-4">
@@ -171,8 +221,9 @@ export default function EditProfile() {
             <button
               type="submit"
               className="px-6 py-2 rounded-lg bg-pink-400 text-white font-semibold hover:bg-pink-500 transition-colors shadow-md"
+              disabled={loading}
             >
-              Save
+              {loading ? "Saving..." : "Save"}
             </button>
           </div>
         </form>

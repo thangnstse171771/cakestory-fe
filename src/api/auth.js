@@ -32,4 +32,14 @@ export const authAPI = {
     });
     return response.data;
   },
+
+  getUserById: async (id) => {
+    const response = await axiosInstance.get(`/users/${id}`);
+    return response.data;
+  },
+
+  updateUserById: async (id, data) => {
+    const response = await axiosInstance.put(`/users/${id}`, data);
+    return response.data;
+  },
 };
