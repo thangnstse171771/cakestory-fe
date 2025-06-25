@@ -13,6 +13,7 @@ import {
   Shield,
   Wallet,
   CreditCard,
+  Trophy,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -31,6 +32,7 @@ const Sidebar = () => {
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
     { icon: Calendar, label: "Events", path: "/events" },
+    { icon: Trophy, label: "Challenge", path: "/challenge" },
   ];
   // Các mục chỉ dành cho user đã login
   const privateMenu = [
