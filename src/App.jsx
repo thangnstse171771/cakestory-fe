@@ -26,6 +26,8 @@ import WithdrawRequests from "./pages/Admin/WithdrawRequests";
 import AccountDetails from "./pages/AccountDetails";
 import WithdrawRequestDetail from "./pages/Admin/WithdrawRequestDetail";
 import EditProfile from "./pages/EditProfile";
+import Settings from "./pages/Settings";
+import Report from "./pages/Report";
 import "./App.css";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
@@ -110,6 +112,8 @@ export default function App() {
               path="admin/withdraw-requests/:id"
               element={<WithdrawRequestDetail />}
             />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/report" element={<Report />} />
           </Route>
 
           {/* Fallback */}
