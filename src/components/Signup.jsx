@@ -30,8 +30,35 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
+    // Frontend validation
+    if (!formData.username.trim()) {
+      setError("Username is required.");
+      return;
+    }
+    if (!formData.fullName.trim()) {
+      setError("Full name is required.");
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError("Email is required.");
+      return;
+    }
+    // Simple email regex
+    if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!formData.password) {
+      setError("Password is required.");
+      return;
+    }
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    setLoading(true);
     try {
       await register(formData);
       navigate("/home");

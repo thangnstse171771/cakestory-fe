@@ -13,12 +13,12 @@ const Layout = () => {
   return (
     <div className="min-h-screen">
       <div className="flex">
-        {/* Chỉ hiển thị Sidebar nếu đã login và không ở login/signup */}
-        <Sidebar />
+        {/* Luôn hiển thị Sidebar nếu không phải trang login/signup */}
+        {!isAuthPage && <Sidebar />}
 
         <main
           className={`flex-1 ${
-            user && !isAuthPage ? "ml-20 lg:ml-64" : ""
+            !isAuthPage ? "ml-20 lg:ml-64" : ""
           } p-6 transition-all duration-300`}
         >
           <Outlet />

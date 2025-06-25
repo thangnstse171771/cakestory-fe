@@ -25,6 +25,24 @@ export const authAPI = {
     return !!localStorage.getItem("token");
   },
 
+  changePassword: async ({ currentPassword, newPassword }) => {
+    const response = await axiosInstance.put("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  },
+
+  getUserById: async (id) => {
+    const response = await axiosInstance.get(`/users/${id}`);
+    return response.data;
+  },
+
+  updateUserById: async (id, data) => {
+    const response = await axiosInstance.put(`/users/${id}`, data);
+    return response.data;
+  },
+
   createMemoryPost: async (memoryPostData) => { 
     const response = await axiosInstance.post("/api/memory-posts", memoryPostData);
     return response.data;
