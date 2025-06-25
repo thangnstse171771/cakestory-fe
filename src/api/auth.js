@@ -24,4 +24,9 @@ export const authAPI = {
   isAuthenticated: () => {
     return !!localStorage.getItem("token");
   },
+
+  createMemoryPost: async (memoryPostData) => { 
+    const response = await axiosInstance.post("/api/memory-posts", memoryPostData);
+    return response.data;
+  }
 };
