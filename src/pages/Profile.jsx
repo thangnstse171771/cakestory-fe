@@ -13,9 +13,15 @@ import {
   Tag,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { authAPI } from "../api/auth";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const userStats = [
     { label: "Posts", value: "127" },
@@ -105,16 +111,37 @@ const Profile = () => {
     },
   ];
 
-  const personalInfo = {
-    name: "Sarah Johnson",
-    username: "@sarahbakes",
-    email: "sarah.johnson@email.com",
-    phone: "+1 (555) 123-4567",
-    website: "www.sarahbakes.com",
-    location: "New York, NY",
-    joined: "March 2020",
-    bio: "Passionate baker sharing delicious recipes and cake decorating tips. Professional pastry chef with 10+ years of experience. 🍰✨",
-  };
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const data = await authAPI.getUserById(user.id);
+        setProfile(data.user);
+      } catch (e) {
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        Không tìm thấy thông tin người dùng.
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-pink-50">
@@ -124,7 +151,10 @@ const Profile = () => {
           <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-8">
             <div className="relative flex-shrink-0">
               <img
-                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cHJvZmlsZXxlbnwwfHwwfHx8MA%3D%3D"
+                src={
+                  profile.avatar ||
+                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cHJvZmlsZXxlbnwwfHwwfHx8MA%3D%3D"
+                }
                 alt="Profile"
                 className="w-40 h-40 rounded-full object-cover border-4 border-pink-100"
               />
@@ -137,11 +167,9 @@ const Profile = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800">
-                    {personalInfo.name}
+                    {profile.full_name || profile.username}
                   </h1>
-                  <p className="text-gray-600 text-lg">
-                    {personalInfo.username}
-                  </p>
+                  <p className="text-gray-600 text-lg">@{profile.username}</p>
                 </div>
                 <button
                   className="mt-4 md:mt-0 bg-pink-400 text-white px-6 py-3 rounded-xl hover:bg-pink-500 transition-colors flex items-center space-x-2 shadow-sm"
@@ -152,24 +180,28 @@ const Profile = () => {
                 </button>
               </div>
 
-              <p className="text-gray-700 text-lg mb-6">{personalInfo.bio}</p>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-center space-x-3 text-gray-600">
                   <Mail className="w-5 h-5 text-pink-400" />
-                  <span className="text-lg">{personalInfo.email}</span>
+                  <span className="text-lg">{profile.email}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-gray-600">
                   <Phone className="w-5 h-5 text-pink-400" />
-                  <span className="text-lg">{personalInfo.phone}</span>
+                  <span className="text-lg">
+                    {profile.phone_number || "Chưa cập nhật"}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3 text-gray-600">
                   <Globe className="w-5 h-5 text-pink-400" />
-                  <span className="text-lg">{personalInfo.website}</span>
+                  <span className="text-lg">
+                    {profile.address || "Chưa cập nhật"}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3 text-gray-600">
                   <MapPin className="w-5 h-5 text-pink-400" />
-                  <span className="text-lg">{personalInfo.location}</span>
+                  <span className="text-lg">
+                    {profile.is_Baker ? "Baker" : "User"}
+                  </span>
                 </div>
               </div>
 
