@@ -16,10 +16,12 @@ import {
   Trophy,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useState } from "react";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [showMore, setShowMore] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -90,13 +92,45 @@ const Sidebar = () => {
 
       {/* Logout & More options */}
       <div className="p-4 border-t border-gray-200 flex-shrink-0">
-        <button
-          onClick={() => {}}
-          className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg w-full transition-colors"
-        >
-          <MoreHorizontal className="w-5 h-5" />
-          <span className="hidden lg:block font-medium">More options</span>
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowMore((v) => !v)}
+            className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg w-full transition-colors"
+          >
+            <MoreHorizontal className="w-5 h-5" />
+            <span className="hidden lg:block font-medium">My options</span>
+          </button>
+          {showMore && (
+            <div className="absolute left-0 w-48 bg-white shadow-lg rounded-lg mb-2 bottom-full z-50 border border-gray-100">
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  navigate("/settings");
+                }}
+                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 rounded-t-lg"
+              >
+                <span className="mr-2">⚙️</span> Setting
+              </button>
+              <button
+                onClick={() => {
+                  setShowMore(false); /* handle theme toggle here */
+                }}
+                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50"
+              >
+                <span className="mr-2">🌗</span> Chuyển chế độ sáng tối
+              </button>
+              <button
+                onClick={() => {
+                  setShowMore(false);
+                  navigate("/report");
+                }}
+                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 rounded-b-lg"
+              >
+                <span className="mr-2">🚩</span> Report
+              </button>
+            </div>
+          )}
+        </div>
         {user ? (
           <button
             onClick={handleLogout}
