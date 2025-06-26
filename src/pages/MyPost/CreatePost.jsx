@@ -2,18 +2,22 @@
 
 import { useState } from "react";
 import { X, Upload } from "lucide-react";
+import { authAPI } from "../../api/auth";
 
 const CreatePost = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState({
     eventTitle: "",
     eventDate: "",
-    cakeType: "Birthday Cake",
+    eventType: "Birthday",
     story: "",
-    tags: "",
+    // tags: "",
     images: [],
   });
 
   const [dragActive, setDragActive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -58,11 +62,42 @@ const CreatePost = ({ isOpen, onClose }) => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log(formData);
-    onClose();
+    setLoading(true);
+    setError("");
+    setSuccess(false);
+    try {
+      // For now, use placeholder URLs for images
+      const media = formData.images.map((file) => ({
+        image_url: "https://placehold.co/600x400?text=Cake+Image",
+        video_url: null,
+      }));
+      const payload = {
+        title: formData.eventTitle,
+        description: formData.story,
+        event_date: formData.eventDate,
+        event_type: formData.eventType,
+        is_public: true,
+        media,
+      };
+      await authAPI.createMemoryPost(payload);
+      setSuccess(true);
+      // Optionally reset form
+      setFormData({
+        eventTitle: "",
+        eventDate: "",
+        eventType: "Birthday",
+        story: "",
+        // tags: "",
+        images: [],
+      });
+      onClose();
+    } catch (err) {
+      setError("Failed to create post. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -169,18 +204,18 @@ const CreatePost = ({ isOpen, onClose }) => {
           {/* Cake Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cake Type
+              Event Type
             </label>
             <select
-              name="cakeType"
-              value={formData.cakeType}
+              name="eventType"
+              value={formData.eventType}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             >
-              <option value="Birthday Cake">Birthday Cake</option>
-              <option value="Wedding Cake">Wedding Cake</option>
-              <option value="Anniversary Cake">Anniversary Cake</option>
-              <option value="Custom Cake">Custom Cake</option>
+              <option value="Birthday Cake">Birthday</option>
+              <option value="Wedding Cake">Wedding</option>
+              <option value="Anniversary Cake">Anniversary</option>
+              <option value="Custom Cake">Reunion</option>
             </select>
           </div>
 
@@ -200,7 +235,7 @@ const CreatePost = ({ isOpen, onClose }) => {
           </div>
 
           {/* Tags */}
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Tags
             </label>
@@ -212,7 +247,14 @@ const CreatePost = ({ isOpen, onClose }) => {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             />
-          </div>
+          </div> */}
+
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          {success && (
+            <div className="text-green-600 text-sm">
+              Post created successfully!
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4">
@@ -220,14 +262,16 @@ const CreatePost = ({ isOpen, onClose }) => {
               type="button"
               onClick={onClose}
               className="px-6 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-colors"
+              disabled={loading}
             >
               Save Draft
             </button>
             <button
               type="submit"
               className="px-6 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
+              disabled={loading}
             >
-              Share Story
+              {loading ? "Sharing..." : "Share Story"}
             </button>
           </div>
         </form>
@@ -237,4 +281,3 @@ const CreatePost = ({ isOpen, onClose }) => {
 };
 
 export default CreatePost;
-

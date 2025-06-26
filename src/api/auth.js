@@ -44,7 +44,7 @@ export const authAPI = {
   },
 
   createMemoryPost: async (memoryPostData) => { 
-    const response = await axiosInstance.post("/api/memory-posts", memoryPostData);
+    const response = await axiosInstance.post("/memory-posts", memoryPostData);
     return response.data;
   }
 };
