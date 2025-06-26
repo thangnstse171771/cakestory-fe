@@ -48,6 +48,7 @@ const Sidebar = () => {
       label: "Yêu Cầu Rút Tiền",
       path: "/admin/withdraw-requests",
     },
+    { icon: Trophy, label: "Admin Challenge", path: "/admin/challenge" },
   ];
   const menuItems = user ? [...publicMenu, ...privateMenu] : publicMenu;
 

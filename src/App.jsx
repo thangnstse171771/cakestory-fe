@@ -30,6 +30,7 @@ import Settings from "./pages/Settings";
 import Report from "./pages/Report";
 import ChallengeList from "./pages/Challenge/ChallengeList";
 import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
+import AdminChallengeDashboard from "./pages/AdminChallenge/AdminDashboard";
 import "./App.css";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
@@ -118,6 +119,10 @@ export default function App() {
             />
             <Route path="/settings" element={<Settings />} />
             <Route path="/report" element={<Report />} />
+            <Route
+              path="admin/challenge"
+              element={<AdminChallengeDashboard />}
+            />
           </Route>
 
           {/* Fallback */}
