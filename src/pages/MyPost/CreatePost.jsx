@@ -6,7 +6,7 @@ import { authAPI } from "../../api/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../firebase";
 
-const CreatePost = ({ isOpen, onClose }) => {
+const CreatePost = ({ isOpen, onClose, onCreate }) => {
   const [formData, setFormData] = useState({
     eventTitle: "",
     eventDate: "",
@@ -103,6 +103,7 @@ const CreatePost = ({ isOpen, onClose }) => {
       };
 
       await authAPI.createMemoryPost(payload);
+      if (onCreate) await onCreate();
       setSuccess(true);
       setFormData({
         eventTitle: "",
@@ -244,10 +245,10 @@ const CreatePost = ({ isOpen, onClose }) => {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             >
-              <option value="Birthday Cake">Birthday</option>
-              <option value="Wedding Cake">Wedding</option>
-              <option value="Anniversary Cake">Anniversary</option>
-              <option value="Custom Cake">Reunion</option>
+              <option value="Birthday">Birthday</option>
+              <option value="Wedding">Wedding</option>
+              <option value="Anniversary">Anniversary</option>
+              <option value="Reunion">Reunion</option>
             </select>
           </div>
 

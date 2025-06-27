@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import {
   Search,
   Heart,
@@ -27,92 +27,136 @@ const MyPost = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // Mock data for posts
-  const posts = [
-    {
-      id: 1,
-      image:
-        "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&h=500&fit=crop",
-      title: "Chocolate Cake",
-      description: "A rich and decadent chocolate cake with ganache frosting",
-      likes: 245,
-      comments: 32,
-      date: "2024-03-15",
-      category: "Birthday",
-    },
-    {
-      id: 2,
-      image:
-        "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=500&h=500&fit=crop",
-      title: "Wedding Cake",
-      description: "Elegant three-tier wedding cake with floral decorations",
-      likes: 189,
-      comments: 24,
-      date: "2024-03-14",
-      category: "Wedding",
-    },
-    {
-      id: 3,
-      image:
-        "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=500&h=500&fit=crop",
-      title: "Birthday Special",
-      description: "Colorful birthday cake with custom decorations",
-      likes: 156,
-      comments: 18,
-      date: "2024-03-13",
-      category: "Birthday",
-    },
-    {
-      id: 4,
-      image:
-        "https://images.unsplash.com/photo-1551106652-a5bcf4b29ab6?w=500&h=500&fit=crop",
-      title: "Cupcake Collection",
-      description: "Assorted cupcakes with various flavors and toppings",
-      likes: 98,
-      comments: 12,
-      date: "2024-03-12",
-      category: "Cupcakes",
-    },
-    {
-      id: 5,
-      image:
-        "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=500&h=500&fit=crop",
-      title: "Red Velvet",
-      description: "Classic red velvet cake with cream cheese frosting",
-      likes: 167,
-      comments: 21,
-      date: "2024-03-11",
-      category: "Classic",
-    },
-    {
-      id: 6,
-      image:
-        "https://images.unsplash.com/photo-1562440499-64c9a111f713?w=500&h=500&fit=crop",
-      title: "Fruit Cake",
-      description: "Traditional fruit cake with mixed dried fruits",
-      likes: 134,
-      comments: 15,
-      date: "2024-03-10",
-      category: "Traditional",
-    },
-  ];
+  // const posts = [
+  //   {
+  //     id: 1,
+  //     image:
+  //       "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&h=500&fit=crop",
+  //     title: "Chocolate Cake",
+  //     description: "A rich and decadent chocolate cake with ganache frosting",
+  //     likes: 245,
+  //     comments: 32,
+  //     date: "2024-03-15",
+  //     category: "Birthday",
+  //   },
+  //   {
+  //     id: 2,
+  //     image:
+  //       "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=500&h=500&fit=crop",
+  //     title: "Wedding Cake",
+  //     description: "Elegant three-tier wedding cake with floral decorations",
+  //     likes: 189,
+  //     comments: 24,
+  //     date: "2024-03-14",
+  //     category: "Wedding",
+  //   },
+  //   {
+  //     id: 3,
+  //     image:
+  //       "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=500&h=500&fit=crop",
+  //     title: "Birthday Special",
+  //     description: "Colorful birthday cake with custom decorations",
+  //     likes: 156,
+  //     comments: 18,
+  //     date: "2024-03-13",
+  //     category: "Birthday",
+  //   },
+  //   {
+  //     id: 4,
+  //     image:
+  //       "https://images.unsplash.com/photo-1551106652-a5bcf4b29ab6?w=500&h=500&fit=crop",
+  //     title: "Cupcake Collection",
+  //     description: "Assorted cupcakes with various flavors and toppings",
+  //     likes: 98,
+  //     comments: 12,
+  //     date: "2024-03-12",
+  //     category: "Cupcakes",
+  //   },
+  //   {
+  //     id: 5,
+  //     image:
+  //       "https://images.unsplash.com/photo-1571115764595-644a1f56a55c?w=500&h=500&fit=crop",
+  //     title: "Red Velvet",
+  //     description: "Classic red velvet cake with cream cheese frosting",
+  //     likes: 167,
+  //     comments: 21,
+  //     date: "2024-03-11",
+  //     category: "Classic",
+  //   },
+  //   {
+  //     id: 6,
+  //     image:
+  //       "https://images.unsplash.com/photo-1562440499-64c9a111f713?w=500&h=500&fit=crop",
+  //     title: "Fruit Cake",
+  //     description: "Traditional fruit cake with mixed dried fruits",
+  //     likes: 134,
+  //     comments: 15,
+  //     date: "2024-03-10",
+  //     category: "Traditional",
+  //   },
+  // ];
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const user = authAPI.getCurrentUser();
+      if (!user) {
+        setError("User not logged in");
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+      const data = await authAPI.getMemoryPostByUserId(user.id);
+      const mappedPosts = (data.posts || []).map((item) => ({
+        id: item.Post.id,
+        title: item.Post.title,
+        description: item.Post.description,
+        date: item.event_date,
+        category: item.event_type,
+        media: item.Post.media,
+        user: item.Post.user,
+        created_at: item.Post.created_at,
+        is_public: item.Post.is_public,
+      }));
+      setPosts(mappedPosts);
+    } catch (err) {
+      setError("Failed to fetch posts");
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   const filters = [
     { id: "all", label: "All Posts" },
     { id: "birthday", label: "Birthday" },
     { id: "wedding", label: "Wedding" },
-    { id: "cupcakes", label: "Cupcakes" },
-    { id: "classic", label: "Classic" },
+    { id: "anniversary", label: "Anniversary" },
+    { id: "reunion", label: "Reunion" },
   ];
 
   const filteredPosts = posts.filter((post) => {
+    const title = post.title || "";
+    const description = post.description || "";
+    const category = post.category || "";
+
     const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.description.toLowerCase().includes(searchQuery.toLowerCase());
+      title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      description.toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesFilter =
-      selectedFilter === "all" ||
-      post.category.toLowerCase() === selectedFilter;
+      selectedFilter === "all" || category.toLowerCase() === selectedFilter;
+
     return matchesSearch && matchesFilter;
   });
 
@@ -200,100 +244,116 @@ const MyPost = () => {
         </div>
 
         {/* Posts Grid/List */}
-        <div
-          className={
-            viewMode === "grid"
-              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              : "space-y-4"
-          }
-        >
-          {filteredPosts.map((post) => (
-            <div
-              key={post.id}
-              className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 ${
-                viewMode === "list" ? "flex" : ""
-              }`}
-            >
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">Loading...</p>
+          </div>
+        ) : error ? (
+          <div className="min-h-screen flex items-center justify-center text-red-500">
+            {error}
+          </div>
+        ) : (
+          <div
+            className={
+              viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }
+          >
+            {filteredPosts.map((post) => (
               <div
-                className={`relative ${
-                  viewMode === "list" ? "w-48" : "aspect-square"
+                key={post.id}
+                className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 ${
+                  viewMode === "list" ? "flex" : ""
                 }`}
               >
-                <img
-                  src={post.image}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                  onClick={() => {
-                    setSelectedPost(post);
-                    setIsPostDetailOpen(true);
-                  }}
-                  style={{ cursor: "pointer" }}
-                />
-                <div className="absolute top-2 right-2">
-                  <div className="relative">
-                    <button
-                      onClick={() =>
-                        setOpenDropdown(
-                          openDropdown === post.id ? null : post.id
-                        )
-                      }
-                      className="p-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-300"
-                    >
-                      <MoreVertical className="w-4 h-4 text-gray-600" />
-                    </button>
+                <div
+                  className={`relative ${
+                    viewMode === "list" ? "w-48" : "aspect-square"
+                  }`}
+                >
+                  <img
+                    src={
+                      post.media?.find((m) => m.image_url)?.image_url ||
+                      post.media?.find((m) => m.video_url)?.video_url ||
+                      "https://placehold.co/600x400?text=No+Image"
+                    }
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                    onClick={() => {
+                      setSelectedPost(post);
+                      setIsPostDetailOpen(true);
+                    }}
+                    style={{ cursor: "pointer" }}
+                  />
+                  <div className="absolute top-2 right-2">
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setOpenDropdown(
+                            openDropdown === post.id ? null : post.id
+                          )
+                        }
+                        className="p-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-300"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-600" />
+                      </button>
 
-                    {openDropdown === post.id && (
-                      <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
-                        <button
-                          onClick={() => {
-                            setOpenDropdown(null);
-                            setIsUpdatePostOpen(true);
-                          }}
-                          className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => {
-                            setOpenDropdown(null);
-                            setIsDeletePostOpen(true);
-                          }}
-                          className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
-                        >
-                          Delete
-                        </button>
+                      {openDropdown === post.id && (
+                        <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
+                          <button
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              setIsUpdatePostOpen(true);
+                            }}
+                            className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              setIsDeletePostOpen(true);
+                            }}
+                            className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className={`p-4 ${viewMode === "list" ? "flex-1" : ""}`}>
+                  <h3 className="font-semibold text-gray-800 mb-1">
+                    {post.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">
+                    {post.description}
+                  </p>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1 text-pink-500">
+                        <Heart className="w-4 h-4" />
+                        <span>{post.likes}</span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-1 text-gray-500">
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{post.comments}</span>
+                      </div>
+                    </div>
+                    <span className="text-gray-400">
+                      {new Date(post.date).toLocaleDateString("en-GB")}
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className={`p-4 ${viewMode === "list" ? "flex-1" : ""}`}>
-                <h3 className="font-semibold text-gray-800 mb-1">
-                  {post.title}
-                </h3>
-                <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                  {post.description}
-                </p>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-pink-500">
-                      <Heart className="w-4 h-4" />
-                      <span>{post.likes}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-gray-500">
-                      <MessageCircle className="w-4 h-4" />
-                      <span>{post.comments}</span>
-                    </div>
-                  </div>
-                  <span className="text-gray-400">{post.date}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
-        {filteredPosts.length === 0 && (
+        {!loading && filteredPosts.length === 0 && (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-pink-500" />
@@ -310,6 +370,7 @@ const MyPost = () => {
       <CreatePost
         isOpen={isCreatePostOpen}
         onClose={() => setIsCreatePostOpen(false)}
+        onCreate={fetchPosts} // Fetch posts after creating a new one
       />
       <UpdatePost
         isOpen={isUpdatePostOpen}
