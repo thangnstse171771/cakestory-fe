@@ -1,7 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { fetchAllUsers } from "../api/axios";
 
 // Fake data for accounts and their associated shops
+// const fakeAccounts = [
+//   ... (toàn bộ mock data cũ được comment lại)
+// ];z
+
+/*
 const fakeAccounts = [
   {
     id: 1,
@@ -96,9 +102,11 @@ const fakeAccounts = [
   },
 ];
 
+*/
+
 const AdminDashboard = () => {
-  const [accounts, setAccounts] = useState(fakeAccounts);
-  const [view, setView] = useState("all"); // all, premium, shops
+  const [accounts, setAccounts] = useState([]);
+  const [view, setView] = useState("all"); // all, premium, shops, admin
   const [showModal, setShowModal] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -111,6 +119,20 @@ const AdminDashboard = () => {
     premium: "",
     shop: "",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  // Fetch real data from API
+  useEffect(() => {
+    fetchAllUsers()
+      .then((data) => {
+        setAccounts(data.users || []);
+        console.log("All accounts data:", data.users || []);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch users:", err);
+      });
+  }, []);
 
   const handleRemoveAccount = (id) => {
     setAccounts(accounts.filter((account) => account.id !== id));
@@ -135,7 +157,6 @@ const AdminDashboard = () => {
   const handleViewDetails = (account) => {
     setShowModal(true);
     setModalLoading(true);
-    // Giả lập fetch dữ liệu chi tiết (delay 600ms)
     setTimeout(() => {
       setSelectedAccount(account);
       setModalLoading(false);
@@ -147,35 +168,51 @@ const AdminDashboard = () => {
     setSelectedAccount(null);
   };
 
-  // Lọc theo search
+  // Lọc theo search và view
   const filteredAccounts = accounts.filter((account) => {
-    if (view === "premium" && !account.isPremium) return false;
-    if (view === "shops" && !account.shop) return false;
+    const isBaker = account.is_baker ?? account.isBaker;
+    const isAdmin = account.is_admin ?? account.isAdmin;
+    if (view === "premium" && !isBaker) return false;
+    if (view === "shops" && !isBaker) return false;
+    if (view === "admin" && !isAdmin) return false;
     if (
       search.username &&
-      !account.username.toLowerCase().includes(search.username.toLowerCase())
+      !account.full_name?.toLowerCase().includes(search.username.toLowerCase())
     )
       return false;
     if (
       search.email &&
-      !account.email.toLowerCase().includes(search.email.toLowerCase())
+      !account.email?.toLowerCase().includes(search.email.toLowerCase())
     )
       return false;
-    if (search.status && account.status !== search.status) return false;
+    const statusValue = account.status
+      ? account.status
+      : account.is_active
+      ? "active"
+      : "restricted";
+    if (search.status && statusValue !== search.status) return false;
     if (
       search.premium &&
-      ((search.premium === "premium" && !account.isPremium) ||
-        (search.premium === "regular" && account.isPremium))
+      ((search.premium === "premium" && !isBaker) ||
+        (search.premium === "regular" && isBaker))
     )
       return false;
     if (
       search.shop &&
-      (!account.shop ||
-        !account.shop.name.toLowerCase().includes(search.shop.toLowerCase()))
+      !(account.shop_name || "")
+        .toLowerCase()
+        .includes(search.shop.toLowerCase())
     )
       return false;
     return true;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAccounts.length / itemsPerPage);
+  const paginatedAccounts = filteredAccounts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
@@ -292,12 +329,25 @@ const AdminDashboard = () => {
           >
             Shop Accounts
           </button>
+          <button
+            onClick={() => setView("admin")}
+            className={`px-6 py-3 rounded-lg font-semibold transition-all ${
+              view === "admin"
+                ? "bg-pink-500 text-white shadow-md"
+                : "bg-white text-pink-500 hover:bg-pink-50"
+            }`}
+          >
+            Admin Accounts
+          </button>
         </div>
         {/* Accounts Table */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <table className="min-w-full text-sm">
             <thead className="bg-pink-100">
               <tr>
+                <th className="px-6 py-4 text-center font-bold text-pink-600 uppercase tracking-wider">
+                  ID
+                </th>
                 <th className="px-6 py-4 text-center font-bold text-pink-600 uppercase tracking-wider">
                   User Account
                 </th>
@@ -319,8 +369,11 @@ const AdminDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredAccounts.map((account) => (
-                <tr key={account.id} className="even:bg-pink-50">
+              {paginatedAccounts.map((account) => (
+                <tr key={account.id}>
+                  <td className="px-6 py-4 align-middle font-medium text-gray-900 whitespace-nowrap text-center">
+                    {account.id}
+                  </td>
                   <td className="px-6 py-4 align-middle font-medium text-gray-900 whitespace-nowrap text-center">
                     {account.username}
                   </td>
@@ -330,29 +383,41 @@ const AdminDashboard = () => {
                   <td className="px-6 py-4 align-middle whitespace-nowrap text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        account.status === "active"
+                        (account.status
+                          ? account.status
+                          : account.is_active
+                          ? "active"
+                          : "restricted") === "active"
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {account.status}
+                      {account.status
+                        ? account.status
+                        : account.is_active
+                        ? "active"
+                        : "restricted"}
                     </span>
                   </td>
                   <td className="px-6 py-4 align-middle whitespace-nowrap text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        account.isPremium
+                        account.is_baker
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-gray-100 text-gray-800"
                       }`}
                     >
-                      {account.isPremium ? "Premium" : "Regular"}
+                      {account.is_baker ? "Premium" : "Regular"}
                     </span>
                   </td>
                   <td className="px-6 py-4 align-middle whitespace-nowrap text-center">
-                    {account.shop ? (
+                    {account.is_baker ? (
                       <span className="font-medium text-gray-900">
-                        {account.shop.name}
+                        {account.shop_name || (
+                          <span className="italic text-gray-400">
+                            No shop name
+                          </span>
+                        )}
                       </span>
                     ) : (
                       <span className="italic text-gray-400">No shop page</span>
@@ -360,7 +425,7 @@ const AdminDashboard = () => {
                   </td>
                   <td className="px-6 py-4 align-middle whitespace-nowrap space-x-2 text-center">
                     <button
-                      onClick={() => navigate(`/admin/account/${account.id}`)}
+                      onClick={() => handleViewDetails(account)}
                       className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
                     >
                       View Details
@@ -368,12 +433,22 @@ const AdminDashboard = () => {
                     <button
                       onClick={() => handleToggleRestriction(account.id)}
                       className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                        account.status === "active"
+                        (account.status
+                          ? account.status
+                          : account.is_active
+                          ? "active"
+                          : "restricted") === "active"
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-green-100 text-green-600 hover:bg-green-200"
                       }`}
                     >
-                      {account.status === "active" ? "Restrict" : "Activate"}
+                      {(account.status
+                        ? account.status
+                        : account.is_active
+                        ? "active"
+                        : "restricted") === "active"
+                        ? "Restrict"
+                        : "Activate"}
                     </button>
                     <button
                       onClick={() => handleRemoveAccount(account.id)}
@@ -387,9 +462,41 @@ const AdminDashboard = () => {
             </tbody>
           </table>
         </div>
+        {/* Pagination controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center mt-6 gap-2">
+            <button
+              className="px-3 py-1 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i + 1}
+                className={`px-3 py-1 rounded border border-gray-300 mx-1 ${
+                  currentPage === i + 1
+                    ? "bg-pink-500 text-white"
+                    : "bg-white text-gray-700"
+                }`}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              className="px-3 py-1 rounded border border-gray-300 bg-white text-gray-700 disabled:opacity-50"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        )}
 
         {/* Modal View Details */}
-        {showModal && (
+        {showModal && selectedAccount && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
             <div className="bg-white rounded-2xl shadow-2xl p-0 w-full max-w-xl relative animate-fadeIn">
               <button
@@ -414,6 +521,12 @@ const AdminDashboard = () => {
                   {/* Account Info Card */}
                   <div className="bg-pink-50 rounded-xl shadow p-6 mb-6">
                     <div className="flex items-center justify-between mb-4">
+                      <span className="font-semibold text-gray-700">ID:</span>
+                      <span className="text-gray-900">
+                        {selectedAccount.id}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
                       <span className="font-semibold text-gray-700">
                         Username:
                       </span>
@@ -434,31 +547,31 @@ const AdminDashboard = () => {
                         Full Name:
                       </span>
                       <span className="text-gray-900">
-                        {selectedAccount.details.fullName}
+                        {selectedAccount.full_name}
                       </span>
                     </div>
                     <div className="flex items-center justify-between mb-4">
                       <span className="font-semibold text-gray-700">
-                        Phone:
+                        Firebase UID:
                       </span>
                       <span className="text-gray-900">
-                        {selectedAccount.details.phone}
+                        {selectedAccount.firebase_uid}
                       </span>
                     </div>
                     <div className="flex items-center justify-between mb-4">
                       <span className="font-semibold text-gray-700">
-                        Address:
-                      </span>
-                      <span className="text-gray-900 text-right max-w-[60%]">
-                        {selectedAccount.details.address}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="font-semibold text-gray-700">
-                        Account Created:
+                        Created At:
                       </span>
                       <span className="text-gray-900">
-                        {selectedAccount.details.createdAt}
+                        {selectedAccount.createdAt}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="font-semibold text-gray-700">
+                        Updated At:
+                      </span>
+                      <span className="text-gray-900">
+                        {selectedAccount.updatedAt}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -468,27 +581,35 @@ const AdminDashboard = () => {
                       <span>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold mr-2 ${
-                            selectedAccount.status === "active"
+                            (selectedAccount.status
+                              ? selectedAccount.status
+                              : selectedAccount.is_active
+                              ? "active"
+                              : "restricted") === "active"
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {selectedAccount.status}
+                          {selectedAccount.status
+                            ? selectedAccount.status
+                            : selectedAccount.is_active
+                            ? "active"
+                            : "restricted"}
                         </span>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            selectedAccount.isPremium
+                            selectedAccount.is_baker
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {selectedAccount.isPremium ? "Premium" : "Regular"}
+                          {selectedAccount.is_baker ? "Premium" : "Regular"}
                         </span>
                       </span>
                     </div>
                   </div>
                   {/* Shop Info Card */}
-                  {selectedAccount.shop && (
+                  {selectedAccount.is_baker && (
                     <div className="bg-white border border-pink-200 rounded-xl shadow p-6">
                       <h3 className="text-xl font-bold text-pink-500 mb-4 text-center">
                         Shop Information
@@ -498,41 +619,14 @@ const AdminDashboard = () => {
                           Shop Name:
                         </span>
                         <span className="text-gray-900">
-                          {selectedAccount.shop.name}
+                          {selectedAccount.shop_name || (
+                            <span className="italic text-gray-400">
+                              No shop name
+                            </span>
+                          )}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="font-semibold text-gray-700">
-                          Description:
-                        </span>
-                        <span className="text-gray-900 text-right max-w-[60%]">
-                          {selectedAccount.shop.description}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="font-semibold text-gray-700">
-                          Address:
-                        </span>
-                        <span className="text-gray-900 text-right max-w-[60%]">
-                          {selectedAccount.shop.address}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="font-semibold text-gray-700">
-                          Shop Created:
-                        </span>
-                        <span className="text-gray-900">
-                          {selectedAccount.shop.createdAt}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-gray-700">
-                          Owner:
-                        </span>
-                        <span className="text-gray-900">
-                          {selectedAccount.shop.owner}
-                        </span>
-                      </div>
+                      {/* Nếu có thêm thông tin shop khác, bổ sung ở đây */}
                     </div>
                   )}
                 </div>

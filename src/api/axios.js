@@ -39,3 +39,8 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+
+export const fetchAllUsers = async () => {
+  const response = await axiosInstance.get("/admin/users");
+  return response.data;
+};
