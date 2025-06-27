@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAllUsers } from "../api/axios";
+import { fetchAllUsers, deleteUser } from "../api/axios";
+import toast, { Toaster } from "react-hot-toast";
 
 // Fake data for accounts and their associated shops
 // const fakeAccounts = [
@@ -121,6 +122,9 @@ const AdminDashboard = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  const [removeLoading, setRemoveLoading] = useState({});
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState(null);
 
   // Fetch real data from API
   useEffect(() => {
@@ -134,8 +138,35 @@ const AdminDashboard = () => {
       });
   }, []);
 
-  const handleRemoveAccount = (id) => {
-    setAccounts(accounts.filter((account) => account.id !== id));
+  const handleRemoveAccount = async (id) => {
+    const account = accounts.find((acc) => acc.id === id);
+    setAccountToDelete(account);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!accountToDelete) return;
+
+    const toastId = toast.loading("Đang xóa tài khoản...");
+    try {
+      await deleteUser(accountToDelete.id);
+      setAccounts(
+        accounts.filter((account) => account.id !== accountToDelete.id)
+      );
+      toast.success("Xóa tài khoản thành công!", { id: toastId });
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      toast.error("Xóa tài khoản thất bại!", { id: toastId });
+    } finally {
+      setRemoveLoading((prev) => ({ ...prev, [accountToDelete.id]: false }));
+      setShowConfirmModal(false);
+      setAccountToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowConfirmModal(false);
+    setAccountToDelete(null);
   };
 
   const handleToggleRestriction = (id) => {
@@ -168,11 +199,25 @@ const AdminDashboard = () => {
     setSelectedAccount(null);
   };
 
+  const getIsPremium = (account) =>
+    account.isPremium ?? account.is_premium ?? account.ispremium ?? false;
+  const getIsBaker = (account) =>
+    account.is_baker ?? account.isBaker ?? account.is_Baker ?? false;
+  const getStatusValue = (account) => {
+    if (account.status) return account.status;
+    if (typeof account.is_active === "boolean")
+      return account.is_active ? "active" : "restricted";
+    if (typeof account.isActive === "boolean")
+      return account.isActive ? "active" : "restricted";
+    return "restricted";
+  };
+
   // Lọc theo search và view
   const filteredAccounts = accounts.filter((account) => {
-    const isBaker = account.is_baker ?? account.isBaker;
+    const isPremium = getIsPremium(account);
+    const isBaker = getIsBaker(account);
     const isAdmin = account.is_admin ?? account.isAdmin;
-    if (view === "premium" && !isBaker) return false;
+    if (view === "premium" && !isPremium) return false;
     if (view === "shops" && !isBaker) return false;
     if (view === "admin" && !isAdmin) return false;
     if (
@@ -185,16 +230,12 @@ const AdminDashboard = () => {
       !account.email?.toLowerCase().includes(search.email.toLowerCase())
     )
       return false;
-    const statusValue = account.status
-      ? account.status
-      : account.is_active
-      ? "active"
-      : "restricted";
+    const statusValue = getStatusValue(account);
     if (search.status && statusValue !== search.status) return false;
     if (
       search.premium &&
-      ((search.premium === "premium" && !isBaker) ||
-        (search.premium === "regular" && isBaker))
+      ((search.premium === "premium" && !isPremium) ||
+        (search.premium === "regular" && isPremium))
     )
       return false;
     if (
@@ -216,6 +257,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
+      <Toaster position="top-right" />
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold text-pink-600 mb-8">
           Admin Dashboard
@@ -383,35 +425,27 @@ const AdminDashboard = () => {
                   <td className="px-6 py-4 align-middle whitespace-nowrap text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        (account.status
-                          ? account.status
-                          : account.is_active
-                          ? "active"
-                          : "restricted") === "active"
+                        getStatusValue(account) === "active"
                           ? "bg-green-100 text-green-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {account.status
-                        ? account.status
-                        : account.is_active
-                        ? "active"
-                        : "restricted"}
+                      {getStatusValue(account)}
                     </span>
                   </td>
                   <td className="px-6 py-4 align-middle whitespace-nowrap text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        account.is_baker
+                        getIsPremium(account)
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-gray-100 text-gray-800"
                       }`}
                     >
-                      {account.is_baker ? "Premium" : "Regular"}
+                      {getIsPremium(account) ? "Premium" : "Regular"}
                     </span>
                   </td>
                   <td className="px-6 py-4 align-middle whitespace-nowrap text-center">
-                    {account.is_baker ? (
+                    {getIsBaker(account) ? (
                       <span className="font-medium text-gray-900">
                         {account.shop_name || (
                           <span className="italic text-gray-400">
@@ -433,28 +467,21 @@ const AdminDashboard = () => {
                     <button
                       onClick={() => handleToggleRestriction(account.id)}
                       className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                        (account.status
-                          ? account.status
-                          : account.is_active
-                          ? "active"
-                          : "restricted") === "active"
+                        getStatusValue(account) === "active"
                           ? "bg-red-100 text-red-600 hover:bg-red-200"
                           : "bg-green-100 text-green-600 hover:bg-green-200"
                       }`}
                     >
-                      {(account.status
-                        ? account.status
-                        : account.is_active
-                        ? "active"
-                        : "restricted") === "active"
+                      {getStatusValue(account) === "active"
                         ? "Restrict"
                         : "Activate"}
                     </button>
                     <button
                       onClick={() => handleRemoveAccount(account.id)}
-                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                      disabled={removeLoading[account.id]}
+                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-red-100 text-red-600 hover:bg-red-200 transition-colors disabled:opacity-50"
                     >
-                      Remove
+                      {removeLoading[account.id] ? "Removing..." : "Remove"}
                     </button>
                   </td>
                 </tr>
@@ -581,35 +608,29 @@ const AdminDashboard = () => {
                       <span>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold mr-2 ${
-                            (selectedAccount.status
-                              ? selectedAccount.status
-                              : selectedAccount.is_active
-                              ? "active"
-                              : "restricted") === "active"
+                            getStatusValue(selectedAccount) === "active"
                               ? "bg-green-100 text-green-800"
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {selectedAccount.status
-                            ? selectedAccount.status
-                            : selectedAccount.is_active
-                            ? "active"
-                            : "restricted"}
+                          {getStatusValue(selectedAccount)}
                         </span>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            selectedAccount.is_baker
+                            getIsPremium(selectedAccount)
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-gray-100 text-gray-800"
                           }`}
                         >
-                          {selectedAccount.is_baker ? "Premium" : "Regular"}
+                          {getIsPremium(selectedAccount)
+                            ? "Premium"
+                            : "Regular"}
                         </span>
                       </span>
                     </div>
                   </div>
                   {/* Shop Info Card */}
-                  {selectedAccount.is_baker && (
+                  {getIsBaker(selectedAccount) && (
                     <div className="bg-white border border-pink-200 rounded-xl shadow p-6">
                       <h3 className="text-xl font-bold text-pink-500 mb-4 text-center">
                         Shop Information
@@ -631,6 +652,59 @@ const AdminDashboard = () => {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Confirm Delete Modal */}
+        {showConfirmModal && accountToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md mx-4">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Xác nhận xóa tài khoản
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Bạn có chắc chắn muốn xóa tài khoản{" "}
+                  <span className="font-semibold text-gray-900">
+                    {accountToDelete.username}
+                  </span>
+                  ?
+                  <br />
+                  <span className="text-sm text-red-600">
+                    Hành động này không thể hoàn tác.
+                  </span>
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={cancelDelete}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Xóa
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
