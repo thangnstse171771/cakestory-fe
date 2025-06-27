@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import {
   Search,
   Heart,
@@ -15,6 +15,7 @@ import CreatePost from "./CreatePost";
 import UpdatePost from "./UpdatePost";
 import DeletePostPopup from "./DeletePostPopup";
 import PostDetail from "./PostDetail";
+import { authAPI } from "../../api/auth";
 
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");

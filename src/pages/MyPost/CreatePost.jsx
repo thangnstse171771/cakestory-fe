@@ -112,6 +112,7 @@ const CreatePost = ({ isOpen, onClose }) => {
         media: [],
       });
       onClose();
+      alert("Post created!");
     } catch (err) {
       setError("Failed to create post. Please try again.");
     } finally {
@@ -265,11 +266,11 @@ const CreatePost = ({ isOpen, onClose }) => {
           </div>
 
           {error && <div className="text-red-500 text-sm">{error}</div>}
-          {success && (
+          {/* {success && (
             <div className="text-green-600 text-sm">
               Post created successfully!
             </div>
-          )}
+          )} */}
 
           <div className="flex justify-end space-x-4">
             <button
