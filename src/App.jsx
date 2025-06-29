@@ -31,6 +31,7 @@ import Report from "./pages/Report";
 import ChallengeList from "./pages/Challenge/ChallengeList";
 import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
 import AdminChallengeDashboard from "./pages/AdminChallenge/AdminDashboard";
+import UserProfile from "./pages/UserProfile";
 import "./App.css";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="challenge" element={<ChallengeList />} />
             <Route path="challenge/:id/group" element={<ChallengeGroup />} />
+            <Route path="user/:id" element={<UserProfile />} />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}
