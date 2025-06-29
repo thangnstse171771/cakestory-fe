@@ -49,3 +49,8 @@ export const deleteUser = async (userId) => {
   const response = await axiosInstance.delete(`/admin/users/${userId}`);
   return response.data;
 };
+
+export const fetchAllShops = async () => {
+  const response = await axiosInstance.get("/shops");
+  return response.data;
+};
