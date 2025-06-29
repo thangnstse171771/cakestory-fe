@@ -120,19 +120,23 @@ const PostDetail = ({ isOpen, post, onClose }) => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 py-12">
       <button
         onClick={onClose}
         className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-gray-100 z-10"
       >
         <X className="w-6 h-6 text-gray-500" />
       </button>
-      <div className="bg-white rounded-md shadow-2xl max-w-[1220px]  w-full flex flex-col md:flex-row overflow-hidden relative">
+      <div className="bg-white rounded-md shadow-2xl max-w-[1220px] max-h-[650px] w-full flex flex-col md:flex-row overflow-hidden relative">
         {/* Image Section */}
 
         <div className="md:w-1/2 w-full bg-black flex items-center justify-center">
           <img
-            src={post.image}
+            src={
+              post.media?.find((m) => m.image_url)?.image_url ||
+              post.media?.find((m) => m.video_url)?.video_url ||
+              "https://placehold.co/600x400?text=No+Image"
+            }
             alt={post.title}
             className="object-cover w-full h-80 md:h-full"
           />
@@ -149,7 +153,9 @@ const PostDetail = ({ isOpen, post, onClose }) => {
               />
               <div className="text-left">
                 <div className="font-semibold text-gray-800">Cake Lover</div>
-                <div className="text-gray-500 text-sm">{post.date}</div>
+                <div className="text-gray-500 text-sm">
+                  {new Date(post.date).toLocaleDateString("en-GB")}
+                </div>
               </div>
             </div>
             <button className="text-gray-400 hover:text-gray-600">
@@ -160,7 +166,9 @@ const PostDetail = ({ isOpen, post, onClose }) => {
           <h2 className="text-lg md:text-2xl font-bold text-pink-600 mb-2">
             {post.title}
           </h2>
-          <p className="text-gray-600 mb-4">{post.description}</p>
+          <p className="text-gray-600 mb-4 text-sm md:text-base">
+            {post.description}
+          </p>
 
           <div className="flex items-center gap-4 mb-4">
             <div className="flex items-center gap-1 text-pink-500">
@@ -181,9 +189,9 @@ const PostDetail = ({ isOpen, post, onClose }) => {
 
           {/* 🗨 Comments Section */}
           {/* 🗨 Scrollable Comments Section */}
-          <div className="flex-1 mb-4">
+          <div className="mb-4">
             <div className="text-gray-500 text-sm mb-2">Comments</div>
-            <div className="space-y-2 max-h-32 md:max-h-72 overflow-y-auto pr-2">
+            <div className="space-y-2 max-h-48 md:max-h-72 overflow-y-auto pr-2 ">
               {mockComments.map((comment) => (
                 <div
                   key={comment.id}
@@ -219,7 +227,7 @@ const PostDetail = ({ isOpen, post, onClose }) => {
           </div>
 
           {/* ➕ Add Comment (mock input) */}
-          <form className="flex gap-2">
+          <form className="flex gap-2 sticky bottom-0 bg-white py-2">
             <input
               type="text"
               placeholder="Add a comment..."

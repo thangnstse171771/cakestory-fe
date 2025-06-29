@@ -1,6 +1,6 @@
 import React from "react";
 
-const DeletePostPopup = ({ isOpen, onClose }) => {
+const DeletePostPopup = ({ isOpen, onClose, onDelete, loading }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-10">
@@ -10,15 +10,17 @@ const DeletePostPopup = ({ isOpen, onClose }) => {
         <div className="flex justify-end mt-4">
           <button
             onClick={onClose}
+            disabled={loading}
             className="bg-gray-300 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg mr-2"
           >
             Cancel
           </button>
           <button
-            onClick={onClose}
+            onClick={onDelete}
+            disabled={loading}
             className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg"
           >
-            Delete
+            {loading ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>

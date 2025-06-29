@@ -43,7 +43,7 @@ export const authAPI = {
     return response.data;
   },
 
-  createMemoryPost: async (memoryPostData) => { 
+  createMemoryPost: async (memoryPostData) => {
     const response = await axiosInstance.post("/memory-posts", memoryPostData);
     return response.data;
   },
@@ -51,5 +51,15 @@ export const authAPI = {
   getMemoryPostByUserId: async (userId) => {
     const response = await axiosInstance.get(`/memory-posts/user/${userId}`);
     return response.data;
-   }
+  },
+
+  updateMemoryPost: async (postId, data) => {
+    const response = await axiosInstance.put(`/memory-posts/${postId}`, data);
+    return response.data;
+  },
+
+  deleteMemoryPost: async (postId) => {
+    const response = await axiosInstance.delete(`/memory-posts/${postId}`);
+    return response.data;
+  },
 };

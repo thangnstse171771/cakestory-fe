@@ -132,7 +132,25 @@ const MyPost = () => {
       setLoading(false);
     }
   };
-  
+
+  const handleDeletePost = async () => {
+    if (!selectedPost) return;
+    setLoading(true);
+    try {
+      await authAPI.deleteMemoryPost(selectedPost.id);
+      setIsDeletePostOpen(false); // close popup
+      setPosts((prevPosts) =>
+        prevPosts.filter((p) => p.id !== selectedPost.id)
+      );
+      setSelectedPost(null);
+    } catch (error) {
+      console.error("Delete post failed:", error);
+      setError("Failed to delete post");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
   }, []);
@@ -305,6 +323,7 @@ const MyPost = () => {
                             onClick={() => {
                               setOpenDropdown(null);
                               setIsUpdatePostOpen(true);
+                              setSelectedPost(post);
                             }}
                             className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
                           >
@@ -314,6 +333,7 @@ const MyPost = () => {
                             onClick={() => {
                               setOpenDropdown(null);
                               setIsDeletePostOpen(true);
+                              setSelectedPost(post);
                             }}
                             className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
                           >
@@ -375,10 +395,14 @@ const MyPost = () => {
       <UpdatePost
         isOpen={isUpdatePostOpen}
         onClose={() => setIsUpdatePostOpen(false)}
+        post={selectedPost}
+        onUpdate={fetchPosts}
       />
       <DeletePostPopup
         isOpen={isDeletePostOpen}
         onClose={() => setIsDeletePostOpen(false)}
+        onDelete={handleDeletePost}
+        loading={loading}
       />
       <PostDetail
         isOpen={isPostDetailOpen}
