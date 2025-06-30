@@ -278,19 +278,22 @@ const MyPost = () => {
                 : "space-y-4"
             }
           >
-            {filteredPosts.map((post) => (
-              <div
-                key={post.id}
-                className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 ${
-                  viewMode === "list" ? "flex" : ""
-                }`}
-              >
+            {filteredPosts.map((post) => {
+              const firstImage = post.media?.find((m) => m.image_url);
+              const firstVideo = post.media?.find((m) => m.video_url);
+              return (
                 <div
-                  className={`relative ${
-                    viewMode === "list" ? "w-48" : "aspect-square"
+                  key={post.id}
+                  className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 ${
+                    viewMode === "list" ? "flex h-48" : ""
                   }`}
                 >
-                  <img
+                  <div
+                    className={`relative ${
+                      viewMode === "list" ? "w-48" : "aspect-square"
+                    }`}
+                  >
+                    {/* <img
                     src={
                       post.media?.find((m) => m.image_url)?.image_url ||
                       post.media?.find((m) => m.video_url)?.video_url ||
@@ -303,72 +306,133 @@ const MyPost = () => {
                       setIsPostDetailOpen(true);
                     }}
                     style={{ cursor: "pointer" }}
-                  />
-                  <div className="absolute top-2 right-2">
-                    <div className="relative">
-                      <button
-                        onClick={() =>
-                          setOpenDropdown(
-                            openDropdown === post.id ? null : post.id
-                          )
-                        }
-                        className="p-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-300"
-                      >
-                        <MoreVertical className="w-4 h-4 text-gray-600" />
-                      </button>
+                  /> */}
 
-                      {openDropdown === post.id && (
-                        <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
-                          <button
-                            onClick={() => {
-                              setOpenDropdown(null);
-                              setIsUpdatePostOpen(true);
-                              setSelectedPost(post);
-                            }}
-                            className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              setOpenDropdown(null);
-                              setIsDeletePostOpen(true);
-                              setSelectedPost(post);
-                            }}
-                            className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
-                          >
-                            Delete
-                          </button>
+                    {firstImage ? (
+                      <img
+                        src={firstImage.image_url}
+                        alt={post.title}
+                        className="w-full h-full object-cover"
+                        onClick={() => {
+                          setSelectedPost(post);
+                          setIsPostDetailOpen(true);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                    ) : firstVideo ? (
+                      <video
+                        src={firstVideo.video_url}
+                        className="w-full h-full object-cover"
+                        muted
+                        onClick={() => {
+                          setSelectedPost(post);
+                          setIsPostDetailOpen(true);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                    ) : (
+                      <img
+                        src="https://placehold.co/600x400?text=No+Image"
+                        alt={post.title}
+                        className="w-full h-full object-cover"
+                        onClick={() => {
+                          setSelectedPost(post);
+                          setIsPostDetailOpen(true);
+                        }}
+                        style={{ cursor: "pointer" }}
+                      />
+                    )}
+
+                    <div className="absolute top-2 right-2">
+                      <div className="relative">
+                        <button
+                          onClick={() =>
+                            setOpenDropdown(
+                              openDropdown === post.id ? null : post.id
+                            )
+                          }
+                          className="p-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-300"
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-600" />
+                        </button>
+
+                        {openDropdown === post.id && (
+                          <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
+                            <button
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                setIsUpdatePostOpen(true);
+                                setSelectedPost(post);
+                              }}
+                              className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                setIsDeletePostOpen(true);
+                                setSelectedPost(post);
+                              }}
+                              className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className={`p-4 flex flex-col ${
+                      viewMode === "list" ? "flex-1" : ""
+                    }`}
+                  >
+                    <h3
+                      className={`font-semibold text-gray-800 mb-1 ${
+                        viewMode === "list" ? "text-xl" : "text-base"
+                      }`}
+                    >
+                      {post.title}
+                    </h3>
+                    <p
+                      className={`text-gray-500 mb-3 line-clamp-2 ${
+                        viewMode === "list" ? "text-base" : "text-sm"
+                      }`}
+                    >
+                      {post.description}
+                    </p>
+                    <div className="mt-auto flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1 text-pink-500">
+                          <Heart
+                            className={` ${
+                              viewMode === "list" ? "w-6 h-6" : "w-4 h-4"
+                            }`}
+                          />
+                          <span>{post.likes}</span>
                         </div>
-                      )}
+                        <div className="flex items-center gap-1 text-gray-500">
+                          <MessageCircle
+                            className={` ${
+                              viewMode === "list" ? "w-6 h-6" : "w-4 h-4"
+                            }`}
+                          />
+                          <span>{post.comments}</span>
+                        </div>
+                      </div>
+                      <span
+                        className={` text-gray-400 ${
+                          viewMode === "list" ? "text-lg" : ""
+                        }`}
+                      >
+                        {new Date(post.date).toLocaleDateString("en-GB")}
+                      </span>
                     </div>
                   </div>
                 </div>
-                <div className={`p-4 ${viewMode === "list" ? "flex-1" : ""}`}>
-                  <h3 className="font-semibold text-gray-800 mb-1">
-                    {post.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-                    {post.description}
-                  </p>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1 text-pink-500">
-                        <Heart className="w-4 h-4" />
-                        <span>{post.likes}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-gray-500">
-                        <MessageCircle className="w-4 h-4" />
-                        <span>{post.comments}</span>
-                      </div>
-                    </div>
-                    <span className="text-gray-400">
-                      {new Date(post.date).toLocaleDateString("en-GB")}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
