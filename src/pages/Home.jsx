@@ -13,6 +13,7 @@ import {
   generateSuggestionGroups,
   generateUpcomingEvents,
 } from "../data/mockData";
+import { Link } from "react-router-dom";
 
 const POSTS_PER_LOAD = 10;
 
@@ -80,16 +81,21 @@ const Home = () => {
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-3">
-                          <img
-                            src={post.user.avatar || "/placeholder.svg"}
-                            alt={post.user.name}
-                            className="w-11 h-11 rounded-full"
-                          />
+                          <Link to={`/user/${post.user.id}`}>
+                            <img
+                              src={post.user.avatar || "/placeholder.svg"}
+                              alt={post.user.name}
+                              className="w-11 h-11 rounded-full hover:opacity-80 transition"
+                            />
+                          </Link>
                           <div className="text-left">
                             <div className="flex items-center space-x-2">
-                              <span className="font-semibold text-gray-800">
+                              <Link
+                                to={`/user/${post.user.id}`}
+                                className="font-semibold text-gray-800 hover:text-pink-500 transition"
+                              >
                                 {post.user.name}
-                              </span>
+                              </Link>
                               {post.user.badge && (
                                 <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
                                   {post.user.badge}

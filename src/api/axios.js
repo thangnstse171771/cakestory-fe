@@ -39,3 +39,18 @@ axiosInstance.interceptors.response.use(
 );
 
 export default axiosInstance;
+
+export const fetchAllUsers = async () => {
+  const response = await axiosInstance.get("/admin/users");
+  return response.data;
+};
+
+export const deleteUser = async (userId) => {
+  const response = await axiosInstance.delete(`/admin/users/${userId}`);
+  return response.data;
+};
+
+export const fetchAllShops = async () => {
+  const response = await axiosInstance.get("/shops");
+  return response.data;
+};
