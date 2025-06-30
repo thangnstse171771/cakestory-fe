@@ -14,17 +14,17 @@ const PostDetail = ({ isOpen, post, onClose }) => {
   const videoRefs = useRef([]);
 
   useEffect(() => {
-  videoRefs.current.forEach((video, idx) => {
-    if (video) {
-      if (idx === activeIndex) {
-        video.play().catch(() => {}); // try to play, ignore errors
-      } else {
-        video.pause();
-        // video.currentTime = 0; // optionally reset time
+    videoRefs.current.forEach((video, idx) => {
+      if (video) {
+        if (idx === activeIndex) {
+          video.play().catch(() => {}); // try to play, ignore errors
+        } else {
+          video.pause();
+          // video.currentTime = 0; // optionally reset time
+        }
       }
-    }
-  });
-}, [activeIndex]);
+    });
+  }, [activeIndex]);
 
   useEffect(() => {
     if (isOpen && post?.id) {
