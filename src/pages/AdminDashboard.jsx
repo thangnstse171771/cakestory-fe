@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAllUsers, deleteUser, fetchAllShops } from "../api/axios";
+import {
+  fetchAllUsers,
+  deleteUser,
+  fetchAllShops,
+  deactivateShop,
+} from "../api/axios";
 import toast, { Toaster } from "react-hot-toast";
 import CakeLoader from "../cake-loader";
 import useAdminLoader from "../hooks/useAdminLoader";
@@ -88,16 +93,38 @@ const AdminDashboard = () => {
     if (!accountToDelete) return;
 
     await withDeleteLoading(accountToDelete.id, async () => {
-      const toastId = toast.loading("Đang xóa tài khoản...");
+      const toastId = toast.loading(
+        view === "shops"
+          ? "Đang vô hiệu hóa cửa hàng..."
+          : "Đang xóa tài khoản..."
+      );
       try {
-        await deleteUser(accountToDelete.id);
-        setAccounts(
-          accounts.filter((account) => account.id !== accountToDelete.id)
-        );
-        toast.success("Xóa tài khoản thành công!", { id: toastId });
+        if (view === "shops") {
+          await deactivateShop(accountToDelete.id);
+          setAccounts(
+            accounts.filter((account) => account.id !== accountToDelete.id)
+          );
+          toast.success("Vô hiệu hóa cửa hàng thành công!", { id: toastId });
+        } else {
+          await deleteUser(accountToDelete.id);
+          setAccounts(
+            accounts.filter((account) => account.id !== accountToDelete.id)
+          );
+          toast.success("Xóa tài khoản thành công!", { id: toastId });
+        }
       } catch (error) {
-        console.error("Failed to delete user:", error);
-        toast.error("Xóa tài khoản thất bại!", { id: toastId });
+        console.error(
+          view === "shops"
+            ? "Failed to deactivate shop:"
+            : "Failed to delete user:",
+          error
+        );
+        toast.error(
+          view === "shops"
+            ? "Vô hiệu hóa cửa hàng thất bại!"
+            : "Xóa tài khoản thất bại!",
+          { id: toastId }
+        );
       } finally {
         setShowConfirmModal(false);
         setAccountToDelete(null);
@@ -157,9 +184,7 @@ const AdminDashboard = () => {
   );
 
   return (
-    <div className="p-8 bg-pink-50 min-h-screen">
-      <Toaster position="top-right" />
-
+    <>
       {/* Cake Loader */}
       <CakeLoader
         isVisible={isLoading}
@@ -167,58 +192,60 @@ const AdminDashboard = () => {
         externalProgress={progress}
         autoStart={false}
       />
+      <div className="p-8 bg-pink-50 min-h-screen">
+        <Toaster position="top-right" />
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold text-pink-600 mb-8">
+            Bảng điều khiển Admin
+          </h1>
 
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-pink-600 mb-8">
-          Bảng điều khiển Admin
-        </h1>
+          {/* Search Form */}
+          <SearchForm search={search} setSearch={setSearch} />
 
-        {/* Search Form */}
-        <SearchForm search={search} setSearch={setSearch} />
+          {/* View Controls */}
+          <ViewControls view={view} setView={setView} />
 
-        {/* View Controls */}
-        <ViewControls view={view} setView={setView} />
+          {/* Accounts Table */}
+          <AccountsTable
+            paginatedAccounts={paginatedAccounts}
+            view={view}
+            getStatusValue={getStatusValue}
+            getIsPremium={getIsPremium}
+            getIsBaker={getIsBaker}
+            handleViewDetails={handleViewDetails}
+            handleToggleRestriction={handleToggleRestriction}
+            handleRemoveAccount={handleRemoveAccount}
+            removeLoading={deleteLoading}
+          />
 
-        {/* Accounts Table */}
-        <AccountsTable
-          paginatedAccounts={paginatedAccounts}
-          view={view}
-          getStatusValue={getStatusValue}
-          getIsPremium={getIsPremium}
-          getIsBaker={getIsBaker}
-          handleViewDetails={handleViewDetails}
-          handleToggleRestriction={handleToggleRestriction}
-          handleRemoveAccount={handleRemoveAccount}
-          removeLoading={deleteLoading}
-        />
+          {/* Pagination controls */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            setCurrentPage={setCurrentPage}
+          />
 
-        {/* Pagination controls */}
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          setCurrentPage={setCurrentPage}
-        />
+          {/* Modal View Details */}
+          <AccountDetailModal
+            showModal={showModal}
+            selectedAccount={selectedAccount}
+            modalLoading={modalLoading}
+            onClose={handleCloseModal}
+            getStatusValue={getStatusValue}
+            getIsPremium={getIsPremium}
+            getIsBaker={getIsBaker}
+          />
 
-        {/* Modal View Details */}
-        <AccountDetailModal
-          showModal={showModal}
-          selectedAccount={selectedAccount}
-          modalLoading={modalLoading}
-          onClose={handleCloseModal}
-          getStatusValue={getStatusValue}
-          getIsPremium={getIsPremium}
-          getIsBaker={getIsBaker}
-        />
-
-        {/* Confirm Delete Modal */}
-        <ConfirmDeleteModal
-          showConfirmModal={showConfirmModal}
-          accountToDelete={accountToDelete}
-          onCancel={cancelDelete}
-          onConfirm={confirmDelete}
-        />
+          {/* Confirm Delete Modal */}
+          <ConfirmDeleteModal
+            showConfirmModal={showConfirmModal}
+            accountToDelete={accountToDelete}
+            onCancel={cancelDelete}
+            onConfirm={confirmDelete}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

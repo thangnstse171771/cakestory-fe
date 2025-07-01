@@ -54,3 +54,8 @@ export const fetchAllShops = async () => {
   const response = await axiosInstance.get("/shops");
   return response.data;
 };
+
+export const deactivateShop = async (userId) => {
+  const response = await axiosInstance.delete(`/shops/${userId}`);
+  return response.data;
+};
