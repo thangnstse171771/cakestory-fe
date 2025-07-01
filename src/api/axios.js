@@ -65,4 +65,10 @@ export const createShop = async (shopData) => {
 
 export const fetchShopByUserId = async (userId) => {
   const response = await axiosInstance.get(`/shops/${userId}`);
+  return response.data;
+};
+
+export const updateShopByUserId = async (userId, data) => {
+  const response = await axiosInstance.put(`/shops/${userId}`, data);
+  return response.data;
 };
