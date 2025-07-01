@@ -39,6 +39,7 @@ export const generatePosts = (count = 20) => {
   return Array.from({ length: count }, (_, index) => ({
     id: index + 1,
     user: {
+      id: index % 2 === 0 ? "1" : "2",
       name: userNames[Math.floor(Math.random() * userNames.length)],
       avatar: `https://i.pravatar.cc/150?img=${index + 1}`,
       badge:

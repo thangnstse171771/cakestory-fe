@@ -1,10 +1,25 @@
-import { ShoppingCart, Star, Heart, Search } from "lucide-react";
-import { useState } from "react";
+import { ShoppingCart, Star, Heart, Search, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
 import ProductsList from "./ProductsList";
 import ShopsList from "./ShopsList";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { fetchAllShops } from "../../api/axios";
 
 const Marketplace = () => {
   const [view, setView] = useState("products"); // "products" or "shops"
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [hasShop, setHasShop] = useState(false);
+
+  useEffect(() => {
+    const checkUserShop = async () => {
+      if (!user) return;
+      const data = await fetchAllShops();
+      setHasShop((data.shops || []).some((shop) => shop.user_id === user.id));
+    };
+    checkUserShop();
+  }, [user]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
@@ -46,6 +61,15 @@ const Marketplace = () => {
         >
           Shops
         </button>
+        {view === "shops" && !hasShop && (
+          <button
+            onClick={() => navigate("/marketplace/create-shop")}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md ml-auto"
+          >
+            <Plus className="w-5 h-5" />
+            Create Shop
+          </button>
+        )}
       </div>
 
       {view === "products" ? <ProductsList /> : <ShopsList />}
