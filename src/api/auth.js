@@ -1,4 +1,6 @@
 import axiosInstance from "./axios";
+import { storage } from "../firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export const authAPI = {
   login: async (credentials) => {
@@ -66,5 +68,13 @@ export const authAPI = {
   deleteMemoryPost: async (postId) => {
     const response = await axiosInstance.delete(`/memory-posts/${postId}`);
     return response.data;
+  },
+
+  uploadAvatarToFirebase: async (file, userId) => {
+    if (!file) throw new Error("No file provided");
+    const ext = file.name.split(".").pop();
+    const avatarRef = ref(storage, `avatars/${userId}_${Date.now()}.${ext}`);
+    await uploadBytes(avatarRef, file);
+    return await getDownloadURL(avatarRef);
   },
 };
