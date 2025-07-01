@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { useParams } from "react-router-dom";
+import { fetchShopByUserId } from "../../api/axios";
 
-const shop = {
+const mockShop = {
   id: 1,
   avatar:
     "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
@@ -59,6 +61,41 @@ const shop = {
 };
 
 const ShopDetail = () => {
+  const { id } = useParams();
+  const [shop, setShop] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchShopByUserId(id);
+        // Map API về format UI cũ, phần nào chưa có thì dùng mock
+        setShop({
+          id: data.shop.shop_id,
+          avatar: data.shop.image_url || mockShop.avatar,
+          name: data.shop.business_name,
+          tagline: mockShop.tagline,
+          rating: 4.9,
+          reviews: 500,
+          since: 2018,
+          location: data.shop.business_address,
+          businessHours: mockShop.businessHours,
+          delivery: mockShop.delivery,
+          gallery: mockShop.gallery,
+          services: mockShop.services,
+        });
+      } catch (err) {
+        setShop(mockShop);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [id]);
+
+  if (loading || !shop) return <div>Loading...</div>;
+
   return (
     <div>
       {/* Header */}
@@ -83,11 +120,11 @@ const ShopDetail = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span class="text-2xl font-bold">·</span>
+                <span className="text-2xl font-bold">·</span>
                 <span>{shop.reviews}+ Orders</span>
               </div>
               <div className="flex items-center gap-2">
-                <span class="text-2xl font-bold">·</span>
+                <span className="text-2xl font-bold">·</span>
                 <span>Since {shop.since}</span>
               </div>
             </div>

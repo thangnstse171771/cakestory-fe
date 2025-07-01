@@ -1,58 +1,43 @@
 import { Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { fetchAllShops } from "../../api/axios";
 
 const ShopsList = () => {
   const navigate = useNavigate();
-  const shops = [
-    {
-      id: 1,
-      avatar:
-        "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-      name: "Sweet Dreams Bakery",
-      rating: 4.8,
-      reviews: 124,
-      image:
-        "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-      location: "Downtown",
-      specialties: ["Birthday Cakes", "Wedding Cakes", "Cupcakes"],
-    },
-    {
-      id: 2,
-      avatar:
-        "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-      name: "Elite Cakes",
-      rating: 4.9,
-      reviews: 89,
-      image:
-        "https://static01.nyt.com/images/2023/10/27/multimedia/27cakerex-plzm/27cakerex-plzm-superJumbo.jpg",
-      location: "Westside",
-      specialties: ["Wedding Cakes", "Custom Designs"],
-    },
-    {
-      id: 3,
-      avatar:
-        "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-      name: "Cupcake Corner",
-      rating: 4.7,
-      reviews: 156,
-      image:
-        "https://food.fnr.sndimg.com/content/dam/images/food/fullset/2009/4/5/1/IG1C17_30946_s4x3.jpg.rend.hgtvcom.1280.1280.suffix/1433541424559.webp",
-      location: "Eastside",
-      specialties: ["Cupcakes", "Cookies"],
-    },
-    {
-      id: 4,
-      avatar:
-        "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-      name: "Artisan Cakes",
-      rating: 5.0,
-      reviews: 67,
-      image:
-        "https://flouringkitchen.com/wp-content/uploads/2023/07/BW1A4089-2.jpg",
-      location: "Northside",
-      specialties: ["Custom Designs", "Wedding Cakes"],
-    },
-  ];
+  const [shops, setShops] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchShops = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchAllShops();
+        setShops(
+          (data.shops || []).map((shop) => ({
+            id: shop.shop_id,
+            user_id: shop.user_id,
+            name: shop.business_name,
+            location: shop.business_address,
+            specialties: shop.specialty ? shop.specialty.split(",") : [],
+            avatar: undefined, // Không có avatar trong API, có thể dùng placeholder
+            image: undefined, // Không có image trong API, có thể dùng placeholder
+            rating: 5.0, // API chưa có rating, gán mặc định
+            reviews: 0, // API chưa có reviews, gán mặc định
+          }))
+        );
+      } catch (err) {
+        setShops([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchShops();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -63,7 +48,7 @@ const ShopsList = () => {
         >
           <div className="relative">
             <img
-              src={shop.image}
+              src={shop.image || "/placeholder.svg"}
               alt={shop.name}
               className="w-full h-48 object-cover"
             />
@@ -107,7 +92,7 @@ const ShopsList = () => {
 
             <button
               className="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition-colors mt-auto"
-              onClick={() => navigate(`/marketplace/shop/${shop.id}`)}
+              onClick={() => navigate(`/marketplace/shop/${shop.user_id}`)}
             >
               View Shop
             </button>
