@@ -72,3 +72,13 @@ export const updateShopByUserId = async (userId, data) => {
   const response = await axiosInstance.put(`/shops/${userId}`, data);
   return response.data;
 };
+
+export const fetchMarketplacePosts = async () => {
+  const response = await axiosInstance.get("/marketplace-posts");
+  return response.data;
+};
+
+export const createMarketplacePost = async (data) => {
+  const response = await axiosInstance.post("/marketplace-posts", data);
+  return response.data;
+};
