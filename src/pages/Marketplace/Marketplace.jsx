@@ -4,13 +4,18 @@ import ProductsList from "./ProductsList";
 import ShopsList from "./ShopsList";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-import { fetchAllShops } from "../../api/axios";
+import { fetchAllShops, fetchMarketplacePosts } from "../../api/axios";
+import CreateMarketplacePost from "./CreateMarketplacePost";
 
 const Marketplace = () => {
   const [view, setView] = useState("products"); // "products" or "shops"
   const navigate = useNavigate();
   const { user } = useAuth();
   const [hasShop, setHasShop] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [errorProducts, setErrorProducts] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
 
   useEffect(() => {
     const checkUserShop = async () => {
@@ -20,6 +25,16 @@ const Marketplace = () => {
     };
     checkUserShop();
   }, [user]);
+
+  useEffect(() => {
+    if (view !== "products") return;
+    setLoadingProducts(true);
+    setErrorProducts("");
+    fetchMarketplacePosts()
+      .then((data) => setProducts(data.posts || []))
+      .catch(() => setErrorProducts("Failed to load marketplace products."))
+      .finally(() => setLoadingProducts(false));
+  }, [view]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8">
@@ -72,7 +87,45 @@ const Marketplace = () => {
         )}
       </div>
 
-      {view === "products" ? <ProductsList /> : <ShopsList />}
+      {view === "products" && (
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
+          >
+            <Plus className="w-5 h-5" />
+            Create Marketplace Post
+          </button>
+        </div>
+      )}
+
+      {view === "products" ? (
+        loadingProducts ? (
+          <div className="text-center py-12">Loading...</div>
+        ) : errorProducts ? (
+          <div className="text-center text-red-500 py-12">{errorProducts}</div>
+        ) : (
+          <ProductsList products={products} />
+        )
+      ) : (
+        <ShopsList />
+      )}
+
+      <CreateMarketplacePost
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreate={() => {
+          setShowCreate(false);
+          setLoadingProducts(true);
+          setErrorProducts("");
+          fetchMarketplacePosts()
+            .then((data) => setProducts(data.posts || []))
+            .catch(() =>
+              setErrorProducts("Failed to load marketplace products.")
+            )
+            .finally(() => setLoadingProducts(false));
+        }}
+      />
     </div>
   );
 };
