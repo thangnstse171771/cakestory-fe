@@ -18,6 +18,7 @@ export default function EditProfile() {
   const [preview, setPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [avatarFile, setAvatarFile] = useState(null);
   const navigate = useNavigate();
 
   // Fetch user data from API on mount
@@ -54,6 +55,7 @@ export default function EditProfile() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setPreview(reader.result);
       reader.readAsDataURL(file);
@@ -65,12 +67,16 @@ export default function EditProfile() {
     if (!user) return;
     setLoading(true);
     try {
+      let avatarUrl = form.profilePic;
+      if (avatarFile) {
+        avatarUrl = await authAPI.uploadAvatarToFirebase(avatarFile, user.id);
+      }
       await authAPI.updateUserById(user.id, {
         email: form.email,
         full_name: form.name,
         address: form.location,
         phone_number: form.phone,
-        avatar: preview,
+        avatar: avatarUrl,
         is_Baker: true, // hoặc lấy từ form nếu có checkbox
       });
       alert("Profile updated!");
