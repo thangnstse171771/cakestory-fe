@@ -50,6 +50,11 @@ export const authAPI = {
     return response.data;
   },
 
+  getAllMemoryPosts: async () => {
+    const response = await axiosInstance.get("/memory-posts");
+    return response.data;
+  },
+
   getMemoryPostByUserId: async (userId) => {
     const response = await axiosInstance.get(`/memory-posts/user/${userId}`);
     return response.data;

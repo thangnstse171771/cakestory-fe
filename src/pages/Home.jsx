@@ -8,48 +8,63 @@ import {
   Search,
 } from "lucide-react";
 import {
-  generatePosts,
   generateTrendingTopics,
   generateSuggestionGroups,
   generateUpcomingEvents,
 } from "../data/mockData";
 import { Link } from "react-router-dom";
-
-const POSTS_PER_LOAD = 10;
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
+import { authAPI } from "../api/auth";
 
 const Home = () => {
-  const [postCount, setPostCount] = useState(POSTS_PER_LOAD);
-  const [posts, setPosts] = useState(() => generatePosts(postCount));
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const observerTarget = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const videoRefs = useRef([]);
 
-  // Tự động tải thêm bài viết khi cuộn xuống cuối trang
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loading) {
-          setLoading(true);
-          setTimeout(() => {
-            const newCount = postCount + POSTS_PER_LOAD;
-            setPostCount(newCount);
-            setPosts(generatePosts(newCount));
-            setLoading(false);
-          }, 500); // Thêm delay nhỏ để tránh tải quá nhanh
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
+    const fetchPosts = async () => {
+      try {
+        setLoading(true);
+        const response = await authAPI.getAllMemoryPosts();
+        const data = response.posts
+          .map((item) =>
+            item && item.Post
+              ? {
+                  ...item.Post,
+                  media: item.Post.media || [],
+                  user: item.Post.user || {},
+                  event_date: item.event_date,
+                  event_type: item.event_type,
+                }
+              : null
+          )
+          .filter(Boolean);
+        setPosts(data);
+      } catch (error) {
+        console.error("Failed to fetch posts:", error);
+      } finally {
+        setLoading(false);
       }
     };
-  }, [postCount, loading]);
+    fetchPosts();
+  }, []);
+
+  useEffect(() => {
+    videoRefs.current.forEach((video, idx) => {
+      if (video) {
+        if (idx === activeIndex) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      }
+    });
+  }, [activeIndex]);
 
   const trendingTopics = generateTrendingTopics(5);
   const suggestionGroups = generateSuggestionGroups(4);
@@ -73,89 +88,165 @@ const Home = () => {
               </div>
 
               <div className="min-w-[275px] space-y-4">
-                {posts.map((post) => (
-                  <div
-                    key={post.id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <Link to={`/user/${post.user.id}`}>
-                            <img
-                              src={post.user.avatar || "/placeholder.svg"}
-                              alt={post.user.name}
-                              className="w-11 h-11 rounded-full hover:opacity-80 transition"
-                            />
-                          </Link>
-                          <div className="text-left">
-                            <div className="flex items-center space-x-2">
-                              <Link
-                                to={`/user/${post.user.id}`}
-                                className="font-semibold text-gray-800 hover:text-pink-500 transition"
-                              >
-                                {post.user.name}
-                              </Link>
-                              {post.user.badge && (
-                                <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                                  {post.user.badge}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-gray-500 text-sm">
-                              {post.timeAgo}
+                {loading ? (
+                  <div className="flex justify-center text-pink-500">
+                    Loading posts...
+                  </div>
+                ) : posts.length === 0 ? (
+                  <div className="flex justify-center text-gray-500">
+                    No posts found.
+                  </div>
+                ) : (
+                  posts.map((post) => (
+                    <div
+                      key={post.id}
+                      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+                    >
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <Link to={`/user/${post.user.id}`}>
+                              <img
+                                src={post.user.avatar || "/placeholder.svg"}
+                                alt={post.user.full_name}
+                                className="w-11 h-11 rounded-full hover:opacity-80 transition"
+                              />
+                            </Link>
+                            <div className="text-left">
+                              <div className="flex items-center space-x-2">
+                                <Link
+                                  to={`/user/${post.user.id}`}
+                                  className="font-semibold text-gray-800 hover:text-pink-500 transition"
+                                >
+                                  {post.user.full_name}
+                                </Link>
+                                {post.user.is_Baker && (
+                                  <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                                    Baker
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <button className="text-gray-400 hover:text-gray-600">
-                          <MoreHorizontal className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      <img
-                        src={post.image || "/placeholder.svg"}
-                        alt="Cake post"
-                        className="w-full h-full object-cover rounded-lg mb-4"
-                      />
-
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-4">
-                          <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
-                            <Heart className="w-5 h-5" />
-                            <span className="text-sm">{post.likes}</span>
-                          </button>
-                          <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500">
-                            <MessageCircle className="w-5 h-5" />
-                            <span className="text-sm">{post.comments}</span>
-                          </button>
-                          <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500">
-                            <Share className="w-5 h-5" />
+                          <button className="text-gray-400 hover:text-gray-600">
+                            <MoreHorizontal className="w-5 h-5" />
                           </button>
                         </div>
-                        <button className="text-gray-600 hover:text-yellow-500">
-                          <Bookmark className="w-5 h-5" />
-                        </button>
-                      </div>
 
-                      <div className="text-left">
-                        <p className="text-black text-sm">{post.description}</p>
-                        <span className="text-gray-500 text-sm">
-                          {post.timeAgo}
-                        </span>
-                      </div>
-                      <div className="text-gray-500 text-sm text-left">
-                        View comments
+                        <div className="relative rounded-lg overflow-hidden">
+                          <Swiper
+                            modules={[Pagination, Navigation]}
+                            spaceBetween={10}
+                            slidesPerView={1}
+                            loop
+                            pagination={{ clickable: true }}
+                            navigation={{
+                              nextEl: ".custom-next",
+                              prevEl: ".custom-prev",
+                            }}
+                            onSlideChange={(swiper) =>
+                              setActiveIndex(swiper.realIndex)
+                            }
+                            className="rounded-lg"
+                          >
+                            {Array.isArray(post.media) &&
+                            post.media.length > 0 ? (
+                              post.media.map((item, index) => (
+                                <SwiperSlide key={item.id}>
+                                  {item.image_url ? (
+                                    <img
+                                      src={item.image_url}
+                                      alt="media"
+                                      className="w-full h-80 object-cover rounded-lg"
+                                    />
+                                  ) : item.video_url ? (
+                                    <video
+                                      ref={(el) =>
+                                        (videoRefs.current[index] = el)
+                                      }
+                                      src={item.video_url}
+                                      autoPlay
+                                      controls
+                                      muted
+                                      className="w-full h-80 object-cover rounded-lg"
+                                    />
+                                  ) : (
+                                    <div className="flex items-center justify-center w-full h-80 bg-gray-200 text-gray-500 rounded-lg">
+                                      No media
+                                    </div>
+                                  )}
+                                </SwiperSlide>
+                              ))
+                            ) : (
+                              <SwiperSlide>
+                                <div className="flex items-center justify-center w-full h-80 bg-gray-200 text-gray-500 rounded-lg">
+                                  No media
+                                </div>
+                              </SwiperSlide>
+                            )}
+
+                            <div className="custom-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                              <svg width="32" height="32" fill="none">
+                                <path
+                                  d="M20 8l-8 8 8 8"
+                                  stroke="#ec4899"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </div>
+                            <div className="custom-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                              <svg width="32" height="32" fill="none">
+                                <path
+                                  d="M12 8l8 8-8 8"
+                                  stroke="#ec4899"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </div>
+                          </Swiper>
+
+                          {/* Custom prev/next buttons */}
+                        </div>
+
+                        <div className="flex items-center justify-between mt-4 mb-3">
+                          <div className="flex items-center space-x-4">
+                            <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
+                              <Heart className="w-5 h-5" />
+                              <span className="text-sm">
+                                {post.total_likes}
+                              </span>
+                            </button>
+                            <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500">
+                              <MessageCircle className="w-5 h-5" />
+                              <span className="text-sm">{post.comments}</span>
+                            </button>
+                            <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500">
+                              <Share className="w-5 h-5" />
+                            </button>
+                          </div>
+                          <button className="text-gray-600 hover:text-yellow-500">
+                            <Bookmark className="w-5 h-5" />
+                          </button>
+                        </div>
+
+                        <div className="text-left">
+                          <p className="text-black text-sm">
+                            {post.description}
+                          </p>
+                          <span className="text-gray-500 text-sm">
+                            {new Date(post.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="text-gray-500 text-sm text-left">
+                          View comments
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-              <div
-                ref={observerTarget}
-                className="h-10 flex items-center justify-center"
-              >
-                {loading && (
-                  <div className="text-pink-500">Đang tải thêm bài viết...</div>
+                  ))
                 )}
               </div>
             </div>
