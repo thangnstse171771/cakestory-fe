@@ -54,3 +54,13 @@ export const fetchAllShops = async () => {
   const response = await axiosInstance.get("/shops");
   return response.data;
 };
+
+export const createShop = async (shopData) => {
+  const response = await axiosInstance.post("/shops", shopData);
+  return response.data;
+};
+
+export const fetchShopByUserId = async (userId) => {
+  const response = await axiosInstance.get(`/shops/${userId}`);
+  return response.data;
+};
