@@ -6,6 +6,8 @@ import {
   Bookmark,
   MoreHorizontal,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   generateTrendingTopics,
@@ -153,63 +155,59 @@ const Home = () => {
                             post.media.length > 0 ? (
                               post.media.map((item, index) => (
                                 <SwiperSlide key={item.id}>
-                                  {item.image_url ? (
-                                    <img
-                                      src={item.image_url}
-                                      alt="media"
-                                      className="w-full h-80 object-cover rounded-lg"
-                                    />
-                                  ) : item.video_url ? (
-                                    <video
-                                      ref={(el) =>
-                                        (videoRefs.current[index] = el)
-                                      }
-                                      src={item.video_url}
-                                      autoPlay
-                                      controls
-                                      muted
-                                      className="w-full h-80 object-cover rounded-lg"
-                                    />
-                                  ) : (
-                                    <div className="flex items-center justify-center w-full h-80 bg-gray-200 text-gray-500 rounded-lg">
-                                      No media
-                                    </div>
-                                  )}
+                                  <div className="w-full aspect-[4/5] rounded-lg overflow-hidden">
+                                    {item.image_url ? (
+                                      <img
+                                        src={item.image_url}
+                                        alt="media"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : item.video_url ? (
+                                      <video
+                                        ref={(el) =>
+                                          (videoRefs.current[index] = el)
+                                        }
+                                        src={item.video_url}
+                                        autoPlay
+                                        controls
+                                        muted
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                                        No media
+                                      </div>
+                                    )}
+                                  </div>
                                 </SwiperSlide>
                               ))
                             ) : (
                               <SwiperSlide>
-                                <div className="flex items-center justify-center w-full h-80 bg-gray-200 text-gray-500 rounded-lg">
+                                <div className="w-full aspect-[4/5] rounded-lg overflow-hidden flex items-center justify-center bg-gray-200 text-gray-500">
                                   No media
                                 </div>
                               </SwiperSlide>
                             )}
 
                             <div className="custom-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                              <svg width="32" height="32" fill="none">
-                                <path
-                                  d="M20 8l-8 8 8 8"
-                                  stroke="#ec4899"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                                <ChevronLeft
+                                  size={20}
+                                  strokeWidth={2}
+                                  className="text-pink-500"
                                 />
-                              </svg>
+                              </div>
                             </div>
                             <div className="custom-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                              <svg width="32" height="32" fill="none">
-                                <path
-                                  d="M12 8l8 8-8 8"
-                                  stroke="#ec4899"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                                <ChevronRight
+                                  size={20}
+                                  strokeWidth={2}
+                                  className="text-pink-500"
                                 />
-                              </svg>
+                              </div>
                             </div>
                           </Swiper>
-
-                          {/* Custom prev/next buttons */}
                         </div>
 
                         <div className="flex items-center justify-between mt-4 mb-3">
