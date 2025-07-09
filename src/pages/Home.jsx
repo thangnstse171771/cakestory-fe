@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, use } from "react";
 import {
   Heart,
   MessageCircle,
@@ -21,12 +21,42 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import { authAPI } from "../api/auth";
+import { useAuth } from "../contexts/AuthContext";
 
 const Home = () => {
+  const { user } = useAuth();
+  const currentUserId = user?.id;
+  const [likesData, setLikesData] = useState({});
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const videoRefs = useRef([]);
+
+  useEffect(() => {
+    const fetchLikesForPosts = async () => {
+      const initialLikes = {};
+      for (const post of posts) {
+        try {
+          const res = await authAPI.getLikesByPostId(post.id);
+          const data = res.likes; 
+          const totalLikes = res.total_likes || data.length;
+          const liked = data.some((like) => like.user_id === currentUserId);
+          initialLikes[post.id] = { liked, count: totalLikes };
+        } catch (error) {
+          console.error("Failed to fetch likes for post", post.id, error);
+          initialLikes[post.id] = {
+            liked: false,
+            count: post.total_likes || 0,
+          };
+        }
+      }
+      setLikesData(initialLikes);
+    };
+
+    if (posts.length > 0) {
+      fetchLikesForPosts();
+    }
+  }, [posts]);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -67,6 +97,27 @@ const Home = () => {
       }
     });
   }, [activeIndex]);
+
+  const handleLike = async (postId) => {
+    try {
+      await authAPI.likePost(postId); // your likePost function that can like/unlike
+      setLikesData((prev) => {
+        const wasLiked = prev[postId]?.liked;
+        const newCount = wasLiked
+          ? prev[postId].count - 1
+          : prev[postId].count + 1;
+        return {
+          ...prev,
+          [postId]: {
+            liked: !wasLiked,
+            count: newCount,
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Failed to toggle like", error);
+    }
+  };
 
   const trendingTopics = generateTrendingTopics(5);
   const suggestionGroups = generateSuggestionGroups(4);
@@ -212,10 +263,19 @@ const Home = () => {
 
                         <div className="flex items-center justify-between mt-4 mb-3">
                           <div className="flex items-center space-x-4">
-                            <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
-                              <Heart className="w-5 h-5" />
+                            <button
+                              onClick={() => handleLike(post.id)}
+                              className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                            >
+                              <Heart
+                                className={`w-5 h-5 ${
+                                  likesData[post.id]?.liked
+                                    ? "fill-pink-500 text-pink-500"
+                                    : ""
+                                }`}
+                              />
                               <span className="text-sm">
-                                {post.total_likes}
+                                {likesData[post.id]?.count ?? post.total_likes}
                               </span>
                             </button>
                             <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500">
