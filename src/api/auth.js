@@ -82,4 +82,14 @@ export const authAPI = {
     await uploadBytes(avatarRef, file);
     return await getDownloadURL(avatarRef);
   },
+
+  likePost: async (postId) => { 
+    const response = await axiosInstance.post(`/likes/post/${postId}`);
+    return response.data;
+  },
+
+  getLikesByPostId: async (postId) => {
+    const response = await axiosInstance.get(`/likes/post/${postId}`);
+    return response.data;
+  }
 };

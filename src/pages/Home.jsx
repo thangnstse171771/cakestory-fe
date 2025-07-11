@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, use } from "react";
 import {
   Heart,
   MessageCircle,
@@ -6,6 +6,8 @@ import {
   Bookmark,
   MoreHorizontal,
   Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   generateTrendingTopics,
@@ -19,12 +21,42 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import { authAPI } from "../api/auth";
+import { useAuth } from "../contexts/AuthContext";
 
 const Home = () => {
+  const { user } = useAuth();
+  const currentUserId = user?.id;
+  const [likesData, setLikesData] = useState({});
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const videoRefs = useRef([]);
+
+  useEffect(() => {
+    const fetchLikesForPosts = async () => {
+      const initialLikes = {};
+      for (const post of posts) {
+        try {
+          const res = await authAPI.getLikesByPostId(post.id);
+          const data = res.likes; 
+          const totalLikes = res.total_likes || data.length;
+          const liked = data.some((like) => like.user_id === currentUserId);
+          initialLikes[post.id] = { liked, count: totalLikes };
+        } catch (error) {
+          console.error("Failed to fetch likes for post", post.id, error);
+          initialLikes[post.id] = {
+            liked: false,
+            count: post.total_likes || 0,
+          };
+        }
+      }
+      setLikesData(initialLikes);
+    };
+
+    if (posts.length > 0) {
+      fetchLikesForPosts();
+    }
+  }, [posts]);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -65,6 +97,27 @@ const Home = () => {
       }
     });
   }, [activeIndex]);
+
+  const handleLike = async (postId) => {
+    try {
+      await authAPI.likePost(postId); // your likePost function that can like/unlike
+      setLikesData((prev) => {
+        const wasLiked = prev[postId]?.liked;
+        const newCount = wasLiked
+          ? prev[postId].count - 1
+          : prev[postId].count + 1;
+        return {
+          ...prev,
+          [postId]: {
+            liked: !wasLiked,
+            count: newCount,
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Failed to toggle like", error);
+    }
+  };
 
   const trendingTopics = generateTrendingTopics(5);
   const suggestionGroups = generateSuggestionGroups(4);
@@ -153,71 +206,76 @@ const Home = () => {
                             post.media.length > 0 ? (
                               post.media.map((item, index) => (
                                 <SwiperSlide key={item.id}>
-                                  {item.image_url ? (
-                                    <img
-                                      src={item.image_url}
-                                      alt="media"
-                                      className="w-full h-80 object-cover rounded-lg"
-                                    />
-                                  ) : item.video_url ? (
-                                    <video
-                                      ref={(el) =>
-                                        (videoRefs.current[index] = el)
-                                      }
-                                      src={item.video_url}
-                                      autoPlay
-                                      controls
-                                      muted
-                                      className="w-full h-80 object-cover rounded-lg"
-                                    />
-                                  ) : (
-                                    <div className="flex items-center justify-center w-full h-80 bg-gray-200 text-gray-500 rounded-lg">
-                                      No media
-                                    </div>
-                                  )}
+                                  <div className="w-full aspect-[4/5] rounded-lg overflow-hidden">
+                                    {item.image_url ? (
+                                      <img
+                                        src={item.image_url}
+                                        alt="media"
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : item.video_url ? (
+                                      <video
+                                        ref={(el) =>
+                                          (videoRefs.current[index] = el)
+                                        }
+                                        src={item.video_url}
+                                        autoPlay
+                                        controls
+                                        muted
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                                        No media
+                                      </div>
+                                    )}
+                                  </div>
                                 </SwiperSlide>
                               ))
                             ) : (
                               <SwiperSlide>
-                                <div className="flex items-center justify-center w-full h-80 bg-gray-200 text-gray-500 rounded-lg">
+                                <div className="w-full aspect-[4/5] rounded-lg overflow-hidden flex items-center justify-center bg-gray-200 text-gray-500">
                                   No media
                                 </div>
                               </SwiperSlide>
                             )}
 
                             <div className="custom-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                              <svg width="32" height="32" fill="none">
-                                <path
-                                  d="M20 8l-8 8 8 8"
-                                  stroke="#ec4899"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                                <ChevronLeft
+                                  size={20}
+                                  strokeWidth={2}
+                                  className="text-pink-500"
                                 />
-                              </svg>
+                              </div>
                             </div>
                             <div className="custom-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                              <svg width="32" height="32" fill="none">
-                                <path
-                                  d="M12 8l8 8-8 8"
-                                  stroke="#ec4899"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                                <ChevronRight
+                                  size={20}
+                                  strokeWidth={2}
+                                  className="text-pink-500"
                                 />
-                              </svg>
+                              </div>
                             </div>
                           </Swiper>
-
-                          {/* Custom prev/next buttons */}
                         </div>
 
                         <div className="flex items-center justify-between mt-4 mb-3">
                           <div className="flex items-center space-x-4">
-                            <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
-                              <Heart className="w-5 h-5" />
+                            <button
+                              onClick={() => handleLike(post.id)}
+                              className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                            >
+                              <Heart
+                                className={`w-5 h-5 ${
+                                  likesData[post.id]?.liked
+                                    ? "fill-pink-500 text-pink-500"
+                                    : ""
+                                }`}
+                              />
                               <span className="text-sm">
-                                {post.total_likes}
+                                {likesData[post.id]?.count ?? post.total_likes}
                               </span>
                             </button>
                             <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500">
