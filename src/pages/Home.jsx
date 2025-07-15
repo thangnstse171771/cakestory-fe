@@ -22,6 +22,7 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 import { authAPI } from "../api/auth";
 import { useAuth } from "../contexts/AuthContext";
+import PostDetail from "./MyPost/PostDetail";
 
 const Home = () => {
   const { user } = useAuth();
@@ -31,6 +32,8 @@ const Home = () => {
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const videoRefs = useRef([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
 
   useEffect(() => {
     const fetchLikesForPosts = async () => {
@@ -38,7 +41,7 @@ const Home = () => {
       for (const post of posts) {
         try {
           const res = await authAPI.getLikesByPostId(post.id);
-          const data = res.likes; 
+          const data = res.likes;
           const totalLikes = res.total_likes || data.length;
           const liked = data.some((like) => like.user_id === currentUserId);
           initialLikes[post.id] = { liked, count: totalLikes };
@@ -278,11 +281,13 @@ const Home = () => {
                                 {likesData[post.id]?.count ?? post.total_likes}
                               </span>
                             </button>
-                            <button className="flex items-center space-x-2 text-gray-600 hover:text-blue-500">
+                            <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
                               <MessageCircle className="w-5 h-5" />
-                              <span className="text-sm">{post.comments}</span>
+                              <span className="text-sm">
+                                {post.total_comments}
+                              </span>
                             </button>
-                            <button className="flex items-center space-x-2 text-gray-600 hover:text-green-500">
+                            <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
                               <Share className="w-5 h-5" />
                             </button>
                           </div>
@@ -299,7 +304,13 @@ const Home = () => {
                             {new Date(post.created_at).toLocaleDateString()}
                           </span>
                         </div>
-                        <div className="text-gray-500 text-sm text-left">
+                        <div
+                          onClick={() => {
+                            setSelectedPost(post);
+                            setIsPostDetailOpen(true);
+                          }}
+                          className="text-gray-500 text-sm text-left"
+                        >
                           View comments
                         </div>
                       </div>
@@ -391,6 +402,13 @@ const Home = () => {
           </div>
         </div>
       </div>
+      <PostDetail
+        isOpen={isPostDetailOpen}
+        post={selectedPost}
+        likesData={likesData}
+        handleLike={handleLike}
+        onClose={() => setIsPostDetailOpen(false)}
+      />
     </div>
   );
 };

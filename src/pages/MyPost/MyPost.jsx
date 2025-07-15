@@ -16,6 +16,7 @@ import UpdatePost from "./UpdatePost";
 import DeletePostPopup from "./DeletePostPopup";
 import PostDetail from "./PostDetail";
 import { authAPI } from "../../api/auth";
+import { useAuth } from "../../contexts/AuthContext";
 
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,6 +31,57 @@ const MyPost = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const { user } = useAuth();
+  const currentUserId = user?.id;
+  const [likesData, setLikesData] = useState({});
+
+  useEffect(() => {
+    const fetchLikesForPosts = async () => {
+      const initialLikes = {};
+      for (const post of posts) {
+        try {
+          const res = await authAPI.getLikesByPostId(post.id);
+          const data = res.likes;
+          const totalLikes = res.total_likes || data.length;
+          const liked = data.some((like) => like.user_id === currentUserId);
+          initialLikes[post.id] = { liked, count: totalLikes };
+        } catch (error) {
+          console.error("Failed to fetch likes for post", post.id, error);
+          initialLikes[post.id] = {
+            liked: false,
+            count: post.total_likes || 0,
+          };
+        }
+      }
+      setLikesData(initialLikes);
+    };
+
+    if (posts.length > 0) {
+      fetchLikesForPosts();
+    }
+  }, [posts]);
+
+  const handleLike = async (postId) => {
+    try {
+      await authAPI.likePost(postId); // your likePost function that can like/unlike
+      setLikesData((prev) => {
+        const wasLiked = prev[postId]?.liked;
+        const newCount = wasLiked
+          ? prev[postId].count - 1
+          : prev[postId].count + 1;
+        return {
+          ...prev,
+          [postId]: {
+            liked: !wasLiked,
+            count: newCount,
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Failed to toggle like", error);
+    }
+  };
 
   // Mock data for posts
   // const posts = [
@@ -410,7 +462,7 @@ const MyPost = () => {
                               viewMode === "list" ? "w-6 h-6" : "w-4 h-4"
                             }`}
                           />
-                          <span>{post.likes}</span>
+                          {likesData[post.id]?.count ?? post.total_likes}
                         </div>
                         <div className="flex items-center gap-1 text-gray-500">
                           <MessageCircle
@@ -471,6 +523,8 @@ const MyPost = () => {
       <PostDetail
         isOpen={isPostDetailOpen}
         post={selectedPost}
+        likesData={likesData}
+        handleLike={handleLike}
         onClose={() => setIsPostDetailOpen(false)}
       />
     </div>
