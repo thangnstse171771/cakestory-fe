@@ -4,7 +4,7 @@ import {
   Home,
   ShoppingBag,
   MessageCircle,
-  PlusCircle,
+  BookImage,
   User,
   Cake,
   Calendar,
@@ -39,7 +39,7 @@ const Sidebar = () => {
   // Các mục chỉ dành cho user đã login
   const privateMenu = [
     { icon: MessageCircle, label: "Messages", path: "/messages" },
-    { icon: PlusCircle, label: "My Post", path: "/mypost" },
+    { icon: BookImage, label: "My Post", path: "/mypost" },
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
     { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },

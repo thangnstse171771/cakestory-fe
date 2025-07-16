@@ -2,25 +2,28 @@ import React, { useEffect, useState, useRef } from "react";
 import { X, Heart, MessageCircle, MoreHorizontal } from "lucide-react";
 import { authAPI } from "../../api/auth";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Navigation, Autoplay } from "swiper/modules";
+import { Pagination, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
+import { useAuth } from "../../contexts/AuthContext";
 
-const PostDetail = ({ isOpen, post, onClose }) => {
+const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
   const [postDetail, setPostDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const videoRefs = useRef([]);
+  const { user: currentUser } = useAuth();
+
+  const likeInfo = likesData?.[post?.id] || { liked: false, count: 0 };
 
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
       if (video) {
         if (idx === activeIndex) {
-          video.play().catch(() => {}); // try to play, ignore errors
+          video.play().catch(() => {});
         } else {
           video.pause();
-          // video.currentTime = 0; // optionally reset time
         }
       }
     });
@@ -284,9 +287,16 @@ const PostDetail = ({ isOpen, post, onClose }) => {
           </p>
 
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex items-center gap-1 text-pink-500">
-              <Heart className="w-5 h-5" />
-              <span className="font-semibold">{postDetail.likes || 0}</span>
+            <div
+              className="flex items-center gap-1 text-pink-500 cursor-pointer"
+              onClick={() => handleLike(post.id)}
+            >
+              <Heart
+                className={`w-5 h-5 ${likeInfo.liked ? "fill-pink-500" : ""}`}
+              />
+              <span className="font-semibold">
+                {likeInfo.count || postDetail.total_likes}
+              </span>
             </div>
             <div className="flex items-center gap-1 text-gray-500">
               <MessageCircle className="w-5 h-5" />

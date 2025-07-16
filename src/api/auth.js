@@ -50,6 +50,11 @@ export const authAPI = {
     return response.data;
   },
 
+  getAllMemoryPosts: async () => {
+    const response = await axiosInstance.get("/memory-posts");
+    return response.data;
+  },
+
   getMemoryPostByUserId: async (userId) => {
     const response = await axiosInstance.get(`/memory-posts/user/${userId}`);
     return response.data;
@@ -77,4 +82,14 @@ export const authAPI = {
     await uploadBytes(avatarRef, file);
     return await getDownloadURL(avatarRef);
   },
+
+  likePost: async (postId) => { 
+    const response = await axiosInstance.post(`/likes/post/${postId}`);
+    return response.data;
+  },
+
+  getLikesByPostId: async (postId) => {
+    const response = await axiosInstance.get(`/likes/post/${postId}`);
+    return response.data;
+  }
 };
