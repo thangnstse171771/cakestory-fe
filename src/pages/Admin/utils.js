@@ -19,11 +19,23 @@ export const filterAccounts = (accountsWithShop, view, search) => {
   return accountsWithShop.filter((account) => {
     const isPremium = getIsPremium(account);
     const isBaker = getIsBaker(account);
-    const isAdmin = account.is_admin ?? account.isAdmin;
+    // Lấy role ưu tiên trường role, nếu không có thì fallback sang flag
+    const role =
+      account.role ||
+      (account.is_admin || account.isAdmin
+        ? "admin"
+        : account.is_account_staff
+        ? "account_staff"
+        : account.is_complaint_handler
+        ? "complaint_handler"
+        : "user");
 
     if (view === "premium" && !isPremium) return false;
     if (view === "shops" && !account.shopInfo) return false;
-    if (view === "admin" && !isAdmin) return false;
+    if (view === "admin" && role !== "admin") return false;
+    if (view === "account_staff" && role !== "account_staff") return false;
+    if (view === "complaint_handler" && role !== "complaint_handler")
+      return false;
 
     if (
       search.username &&
