@@ -107,14 +107,16 @@ export const authAPI = {
   },
 
   editComment: async (commentId, commentData) => {
-    const response = await axiosInstance.put(`/comments/${commentId}`, commentData);
+    const response = await axiosInstance.put(
+      `/comments/${commentId}`,
+      commentData
+    );
     return response.data;
   },
 
   deleteComment: async (commentId) => {
     const response = await axiosInstance.delete(`/comments/${commentId}`);
     return response.data;
-  },
   },
 
   followUserById: async (id) => {
