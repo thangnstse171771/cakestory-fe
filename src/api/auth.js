@@ -91,5 +91,15 @@ export const authAPI = {
   getLikesByPostId: async (postId) => {
     const response = await axiosInstance.get(`/likes/post/${postId}`);
     return response.data;
+  },
+
+  createComment: async (postId, commentData) => {
+    const response = await axiosInstance.post(`/comments/post/${postId}`, commentData);
+    return response.data;
+  },
+
+  getCommentsByPostId: async (postId) => {
+    const response = await axiosInstance.get(`/comments/post/${postId}`);
+    return response.data;
   }
 };
