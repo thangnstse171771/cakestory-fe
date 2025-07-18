@@ -23,6 +23,9 @@ import "swiper/css/navigation";
 import { authAPI } from "../api/auth";
 import { useAuth } from "../contexts/AuthContext";
 import PostDetail from "./MyPost/PostDetail";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const Home = () => {
   const { user } = useAuth();
@@ -281,7 +284,13 @@ const Home = () => {
                                 {likesData[post.id]?.count ?? post.total_likes}
                               </span>
                             </button>
-                            <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
+                            <button
+                              onClick={() => {
+                                setSelectedPost(post);
+                                setIsPostDetailOpen(true);
+                              }}
+                              className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                            >
                               <MessageCircle className="w-5 h-5" />
                               <span className="text-sm">
                                 {post.total_comments}
@@ -301,7 +310,7 @@ const Home = () => {
                             {post.description}
                           </p>
                           <span className="text-gray-500 text-sm">
-                            {new Date(post.created_at).toLocaleDateString()}
+                            {dayjs(post.created_at).fromNow()}
                           </span>
                         </div>
                         <div

@@ -17,6 +17,9 @@ import DeletePostPopup from "./DeletePostPopup";
 import PostDetail from "./PostDetail";
 import { authAPI } from "../../api/auth";
 import { useAuth } from "../../contexts/AuthContext";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -478,7 +481,7 @@ const MyPost = () => {
                           viewMode === "list" ? "text-lg" : ""
                         }`}
                       >
-                        {new Date(post.date).toLocaleDateString("en-GB")}
+                        {dayjs(post.created_at).fromNow()}
                       </span>
                     </div>
                   </div>

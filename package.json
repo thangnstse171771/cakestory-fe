@@ -14,6 +14,7 @@
     "cakestory_fe": "file:",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "firebase": "^11.9.1",
     "formik": "^2.4.6",
     "framer-motion": "^12.19.2",
@@ -23,6 +24,7 @@
     "react-dom": "^19.1.0",
     "react-hot-toast": "^2.5.2",
     "react-router-dom": "^7.6.1",
+    "relative-time": "^1.0.0",
     "swiper": "^11.2.10",
     "toastify": "^2.0.1",
     "yup": "^1.6.1"

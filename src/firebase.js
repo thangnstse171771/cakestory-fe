@@ -7,11 +7,11 @@ import { getStorage } from "firebase/storage";
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: "mern-blog-b3bb7.firebaseapp.com",
-  projectId: "mern-blog-b3bb7",
-  storageBucket: "mern-blog-b3bb7.appspot.com",
-  messagingSenderId: "487857685902",
-  appId: "1:487857685902:web:33a3a38b0bea9a201010df"
+  authDomain: "reactchat-be688.firebaseapp.com",
+  projectId: "reactchat-be688",
+  storageBucket: "reactchat-be688.firebasestorage.app",
+  messagingSenderId: "1080867005274",
+  appId: "1:1080867005274:web:b2c32b102a178ae4c74963"
 };
 
 // Initialize Firebase
