@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { useParams } from "react-router-dom";
-import { fetchShopByUserId, updateShopByUserId } from "../../api/axios";
+import {
+  fetchShopByUserId,
+  updateShopByUserId,
+  fetchMarketplacePosts,
+} from "../../api/axios";
 import { useAuth } from "../../contexts/AuthContext";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { storage } from "../../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import CreateMarketplacePost from "./CreateMarketplacePost";
+import DeletePostPopup from "../MyPost/DeletePostPopup";
+import { updateMarketplacePost, deleteMarketplacePost } from "../../api/axios";
 
 const mockShop = {
   id: 1,
@@ -297,17 +304,16 @@ function UpdateShopModal({ open, onClose, shop, userId, onUpdated }) {
 }
 
 const ShopDetail = ({ id: propId }) => {
-  // Nếu propId không có thì fallback về useParams (dùng cho route cũ)
-  let id = propId;
-  if (!id) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const { useParams } = require("react-router-dom");
-    id = useParams().id;
-  }
+  const params = useParams();
+  const id = propId || params.id;
   const { user } = useAuth();
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showUpdate, setShowUpdate] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [editProduct, setEditProduct] = useState(null);
+  const [deleteProduct, setDeleteProduct] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -335,8 +341,14 @@ const ShopDetail = ({ id: propId }) => {
           gallery: mockShop.gallery,
           services: mockShop.services,
         });
+        // Lấy sản phẩm của shop này
+        const postsData = await fetchMarketplacePosts();
+        setProducts(
+          (postsData.posts || []).filter((p) => p.shop_id === data.shop.shop_id)
+        );
       } catch (err) {
         setShop(mockShop);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -445,33 +457,85 @@ const ShopDetail = ({ id: propId }) => {
             Show all
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {shop.services.map((service, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-100 rounded-lg overflow-hidden flex flex-col"
-            >
-              <div className="bg-gray-200 flex-1 flex items-center justify-center min-h-[180px]">
-                <img
-                  src={service.img}
-                  alt={service.title}
-                  className="object-cover w-full h-full opacity-60"
-                />
-              </div>
-              <div className="p-4 flex flex-col flex-1">
-                <div className="font-semibold mb-1">{service.title}</div>
-                <div className="text-sm text-gray-500 mb-2">{service.desc}</div>
-                <div className="flex items-center justify-between mt-auto">
-                  <span className="text-pink-600 font-bold">
-                    {service.price}
-                  </span>
-                  <button className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg text-sm">
-                    Inquire Now
-                  </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {isOwner && products.length > 0
+            ? products.map((product, idx) => (
+                <div
+                  key={product.post_id}
+                  className="bg-white rounded-xl shadow-md border border-gray-100 flex flex-col hover:shadow-lg transition-shadow group relative"
+                >
+                  <div className="relative">
+                    <img
+                      src={
+                        product.Post?.media?.[0]?.image_url ||
+                        "/placeholder.svg"
+                      }
+                      alt={product.Post?.title}
+                      className="w-full h-48 object-cover rounded-t-xl"
+                    />
+                    {isOwner && (
+                      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow"
+                          onClick={() => setEditProduct(product)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow"
+                          onClick={() => setDeleteProduct(product)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="font-bold text-lg text-pink-600 mb-1 truncate">
+                      {product.Post?.title}
+                    </div>
+                    <div className="text-gray-500 text-sm mb-2 line-clamp-2">
+                      {product.Post?.description}
+                    </div>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-pink-600 font-bold text-xl">
+                        ${product.price}
+                      </span>
+                      <button className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-4 py-2 rounded-lg shadow transition">
+                        Inquire Now
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              ))
+            : shop.services.map((service, idx) => (
+                <div
+                  key={idx}
+                  className="bg-gray-100 rounded-lg overflow-hidden flex flex-col"
+                >
+                  <div className="bg-gray-200 flex-1 flex items-center justify-center min-h-[180px]">
+                    <img
+                      src={service.img}
+                      alt={service.title}
+                      className="object-cover w-full h-full opacity-60"
+                    />
+                  </div>
+                  <div className="p-4 flex flex-col flex-1">
+                    <div className="font-semibold mb-1">{service.title}</div>
+                    <div className="text-sm text-gray-500 mb-2">
+                      {service.desc}
+                    </div>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-pink-600 font-bold">
+                        {service.price}
+                      </span>
+                      <button className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg text-sm">
+                        Inquire Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
         </div>
       </div>
       <UpdateShopModal
@@ -480,6 +544,45 @@ const ShopDetail = ({ id: propId }) => {
         shop={shop}
         userId={id}
         onUpdated={() => setShowUpdate(false)}
+      />
+      {/* Popup sửa sản phẩm */}
+      {editProduct && (
+        <CreateMarketplacePost
+          isOpen={!!editProduct}
+          onClose={() => setEditProduct(null)}
+          onCreate={async () => {
+            setEditProduct(null);
+            // reload lại sản phẩm
+            const postsData = await fetchMarketplacePosts();
+            setProducts(
+              (postsData.posts || []).filter((p) => p.shop_id === shop.id)
+            );
+          }}
+          initialData={editProduct}
+          isEdit={true}
+        />
+      )}
+      {/* Popup xác nhận xóa */}
+      <DeletePostPopup
+        isOpen={!!deleteProduct}
+        onClose={() => setDeleteProduct(null)}
+        onDelete={async () => {
+          setDeleteLoading(true);
+          try {
+            await deleteMarketplacePost(deleteProduct.post_id);
+            setDeleteProduct(null);
+            // reload lại sản phẩm
+            const postsData = await fetchMarketplacePosts();
+            setProducts(
+              (postsData.posts || []).filter((p) => p.shop_id === shop.id)
+            );
+          } catch (err) {
+            alert("Xóa sản phẩm thất bại!");
+          } finally {
+            setDeleteLoading(false);
+          }
+        }}
+        loading={deleteLoading}
       />
     </div>
   );
