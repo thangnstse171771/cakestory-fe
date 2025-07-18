@@ -6,9 +6,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { fetchAllShops, fetchMarketplacePosts } from "../../api/axios";
 import CreateMarketplacePost from "./CreateMarketplacePost";
+import ShopDetail from "./ShopDetail";
 
 const Marketplace = () => {
-  const [view, setView] = useState("products"); // "products" or "shops"
+  const [view, setView] = useState("products"); // "products" or "shops" or "myshop"
   const navigate = useNavigate();
   const { user } = useAuth();
   const [hasShop, setHasShop] = useState(false);
@@ -76,6 +77,18 @@ const Marketplace = () => {
         >
           Shops
         </button>
+        {user && hasShop && (
+          <button
+            onClick={() => setView("myshop")}
+            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+              view === "myshop"
+                ? "bg-pink-500 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            My Shop
+          </button>
+        )}
         {view === "shops" && !hasShop && (
           <button
             onClick={() => navigate("/marketplace/create-shop")}
@@ -107,9 +120,11 @@ const Marketplace = () => {
         ) : (
           <ProductsList products={products} />
         )
-      ) : (
+      ) : view === "shops" ? (
         <ShopsList />
-      )}
+      ) : view === "myshop" && user && hasShop ? (
+        <ShopDetail id={user.id} />
+      ) : null}
 
       <CreateMarketplacePost
         isOpen={showCreate}

@@ -106,6 +106,17 @@ export const authAPI = {
     return response.data;
   },
 
+  editComment: async (commentId, commentData) => {
+    const response = await axiosInstance.put(`/comments/${commentId}`, commentData);
+    return response.data;
+  },
+
+  deleteComment: async (commentId) => {
+    const response = await axiosInstance.delete(`/comments/${commentId}`);
+    return response.data;
+  },
+  },
+
   followUserById: async (id) => {
     const response = await axiosInstance.post(`/users/follow/${id}`);
     return response.data;

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Upload } from "lucide-react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { createMarketplacePost } from "../../api/axios";
+import { createMarketplacePost, updateMarketplacePost } from "../../api/axios";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../firebase";
 
@@ -20,9 +20,32 @@ const CreateMarketplacePostSchema = Yup.object().shape({
   media: Yup.array().min(1, "Please add at least one media file"),
 });
 
-const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
+const CreateMarketplacePost = ({
+  isOpen,
+  onClose,
+  onCreate,
+  initialData,
+  isEdit,
+}) => {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Chuẩn hóa media cho edit
+  const convertExistingMediaToFiles = () => {
+    if (!initialData || !initialData.Post?.media) return [];
+    return initialData.Post.media.map((media, index) => {
+      const url = media.image_url || media.video_url;
+      const isVideo = !!media.video_url;
+      return {
+        id: `existing-${index}`,
+        url: url,
+        isVideo: isVideo,
+        isExisting: true,
+        name: `existing-media-${index}`,
+        type: isVideo ? "video/mp4" : "image/jpeg",
+      };
+    });
+  };
 
   const uploadMediaToFirebase = async (file) => {
     const mediaRef = ref(
@@ -50,7 +73,7 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 m-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">
-            Create Marketplace Post
+            {isEdit ? "Edit Marketplace Product" : "Create Marketplace Post"}
           </h2>
           <button
             onClick={onClose}
@@ -61,14 +84,15 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
         </div>
 
         <Formik
+          enableReinitialize={true}
           initialValues={{
-            title: "",
-            description: "",
-            price: 0,
-            available: true,
-            expiry_date: "",
+            title: initialData?.Post?.title || "",
+            description: initialData?.Post?.description || "",
+            price: initialData?.price ?? 0,
+            available: initialData?.available ?? true,
+            expiry_date: initialData?.expiry_date || "",
             is_public: true,
-            media: [],
+            media: isEdit ? convertExistingMediaToFiles() : [],
           }}
           validationSchema={CreateMarketplacePostSchema}
           onSubmit={async (
@@ -77,16 +101,26 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
           ) => {
             setLoading(true);
             try {
-              // Upload each file and get URLs
+              // Tách media cũ và mới
+              const existingMedia = values.media.filter(
+                (item) => item.isExisting
+              );
+              const newFiles = values.media.filter((item) => !item.isExisting);
+              // Upload media mới
               const uploadedMedia = await Promise.all(
-                values.media.map(async (file) => {
+                newFiles.map(async (file) => {
                   const url = await uploadMediaToFirebase(file);
                   return file.type.startsWith("video")
                     ? { video_url: url, image_url: null }
                     : { image_url: url, video_url: null };
                 })
               );
-
+              // Media cũ giữ nguyên
+              const existingMediaFormatted = existingMedia.map((item) => ({
+                image_url: item.isVideo ? null : item.url,
+                video_url: item.isVideo ? item.url : null,
+              }));
+              const finalMedia = [...existingMediaFormatted, ...uploadedMedia];
               const payload = {
                 title: values.title,
                 description: values.description,
@@ -94,18 +128,26 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
                 available: values.available,
                 expiry_date: values.expiry_date,
                 is_public: true,
-                media: uploadedMedia,
+                media: finalMedia,
               };
-
-              await createMarketplacePost(payload);
-              if (onCreate) await onCreate();
-              resetForm();
-              onClose();
-              alert("Marketplace post created!");
+              if (isEdit && initialData) {
+                await updateMarketplacePost(initialData.post_id, payload);
+                if (onCreate) await onCreate();
+                onClose();
+                alert("Marketplace product updated!");
+              } else {
+                await createMarketplacePost(payload);
+                if (onCreate) await onCreate();
+                resetForm();
+                onClose();
+                alert("Marketplace post created!");
+              }
             } catch (err) {
               setFieldError(
                 "general",
-                "Failed to create marketplace post. Please try again."
+                isEdit
+                  ? "Failed to update marketplace product. Please try again."
+                  : "Failed to create marketplace post. Please try again."
               );
             } finally {
               setLoading(false);
@@ -130,7 +172,14 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
                   if (e.dataTransfer.files) {
                     setFieldValue("media", [
                       ...values.media,
-                      ...Array.from(e.dataTransfer.files),
+                      ...Array.from(e.dataTransfer.files).map((file) => ({
+                        id: `new-${Date.now()}-${file.name}`,
+                        url: URL.createObjectURL(file),
+                        isVideo: file.type.startsWith("video"),
+                        isExisting: false,
+                        name: file.name,
+                        type: file.type,
+                      })),
                     ]);
                   }
                 }}
@@ -150,7 +199,14 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
                       onChange={(e) => {
                         setFieldValue("media", [
                           ...values.media,
-                          ...Array.from(e.target.files),
+                          ...Array.from(e.target.files).map((file) => ({
+                            id: `new-${Date.now()}-${file.name}`,
+                            url: URL.createObjectURL(file),
+                            isVideo: file.type.startsWith("video"),
+                            isExisting: false,
+                            name: file.name,
+                            type: file.type,
+                          })),
                         ]);
                         e.target.value = "";
                       }}
@@ -170,11 +226,11 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
               {/* Preview thumbnails */}
               <div className="flex flex-wrap gap-4">
                 {values.media.map((file, index) => {
-                  const url = URL.createObjectURL(file);
-                  const isVideo = file.type.startsWith("video");
+                  const url = file.url;
+                  const isVideo = file.isVideo;
 
                   return (
-                    <div key={index} className="relative w-24 h-24">
+                    <div key={file.id} className="relative w-24 h-24">
                       {isVideo ? (
                         <video
                           src={url}
@@ -268,21 +324,23 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
                 </label>
               </div>
               {/* Expiry Date */}
-              <div>
-                <label className="block text-pink-500 font-semibold mb-1">
-                  Expiry Date
-                </label>
-                <Field
-                  name="expiry_date"
-                  type="date"
-                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                />
-                <ErrorMessage
-                  name="expiry_date"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
+              {!isEdit && (
+                <div>
+                  <label className="block text-pink-500 font-semibold mb-1">
+                    Expiry Date
+                  </label>
+                  <Field
+                    name="expiry_date"
+                    type="date"
+                    className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  />
+                  <ErrorMessage
+                    name="expiry_date"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
+              )}
               {errors.general && (
                 <div className="text-red-500 text-sm">{errors.general}</div>
               )}
@@ -291,7 +349,13 @@ const CreateMarketplacePost = ({ isOpen, onClose, onCreate }) => {
                 disabled={isSubmitting || loading}
                 className="w-full bg-pink-500 text-white py-3 rounded-lg font-semibold hover:bg-pink-600 transition-colors shadow-lg mt-4 disabled:opacity-60"
               >
-                {loading ? "Creating..." : "Create Post"}
+                {loading
+                  ? isEdit
+                    ? "Saving..."
+                    : "Creating..."
+                  : isEdit
+                  ? "Save Changes"
+                  : "Create Post"}
               </button>
             </Form>
           )}
