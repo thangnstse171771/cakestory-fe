@@ -473,7 +473,7 @@ const MyPost = () => {
                               viewMode === "list" ? "w-6 h-6" : "w-4 h-4"
                             }`}
                           />
-                          <span>{post.comments}</span>
+                          <span>{post.total_comments}</span>
                         </div>
                       </div>
                       <span
