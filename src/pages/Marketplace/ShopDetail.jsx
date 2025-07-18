@@ -296,8 +296,14 @@ function UpdateShopModal({ open, onClose, shop, userId, onUpdated }) {
   );
 }
 
-const ShopDetail = () => {
-  const { id } = useParams();
+const ShopDetail = ({ id: propId }) => {
+  // Nếu propId không có thì fallback về useParams (dùng cho route cũ)
+  let id = propId;
+  if (!id) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { useParams } = require("react-router-dom");
+    id = useParams().id;
+  }
   const { user } = useAuth();
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
