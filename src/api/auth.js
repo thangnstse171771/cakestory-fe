@@ -101,5 +101,15 @@ export const authAPI = {
   getCommentsByPostId: async (postId) => {
     const response = await axiosInstance.get(`/comments/post/${postId}`);
     return response.data;
-  }
+  },
+
+  editComment: async (commentId, commentData) => {
+    const response = await axiosInstance.put(`/comments/${commentId}`, commentData);
+    return response.data;
+  },
+
+  deleteComment: async (commentId) => {
+    const response = await axiosInstance.delete(`/comments/${commentId}`);
+    return response.data;
+  },
 };
