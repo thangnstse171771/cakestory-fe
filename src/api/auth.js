@@ -83,7 +83,7 @@ export const authAPI = {
     return await getDownloadURL(avatarRef);
   },
 
-  likePost: async (postId) => { 
+  likePost: async (postId) => {
     const response = await axiosInstance.post(`/likes/post/${postId}`);
     return response.data;
   },
@@ -94,12 +94,25 @@ export const authAPI = {
   },
 
   createComment: async (postId, commentData) => {
-    const response = await axiosInstance.post(`/comments/post/${postId}`, commentData);
+    const response = await axiosInstance.post(
+      `/comments/post/${postId}`,
+      commentData
+    );
     return response.data;
   },
 
   getCommentsByPostId: async (postId) => {
     const response = await axiosInstance.get(`/comments/post/${postId}`);
     return response.data;
-  }
+  },
+
+  followUserById: async (id) => {
+    const response = await axiosInstance.post(`/users/follow/${id}`);
+    return response.data;
+  },
+
+  unfollowUserById: async (id) => {
+    const response = await axiosInstance.delete(`/users/follow/${id}`);
+    return response.data;
+  },
 };
