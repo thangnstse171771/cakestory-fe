@@ -2,9 +2,11 @@ import { Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { fetchAllShops } from "../../api/axios";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ShopsList = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,17 +16,19 @@ const ShopsList = () => {
       try {
         const data = await fetchAllShops();
         setShops(
-          (data.shops || []).map((shop) => ({
-            id: shop.shop_id,
-            user_id: shop.user_id,
-            name: shop.business_name,
-            location: shop.business_address,
-            specialties: shop.specialty ? shop.specialty.split(",") : [],
-            avatar: undefined, // Không có avatar trong API, có thể dùng placeholder
-            image: undefined, // Không có image trong API, có thể dùng placeholder
-            rating: 5.0, // API chưa có rating, gán mặc định
-            reviews: 0, // API chưa có reviews, gán mặc định
-          }))
+          (data.shops || [])
+            .filter((shop) => !user || shop.user_id !== user.id)
+            .map((shop) => ({
+              id: shop.shop_id,
+              user_id: shop.user_id,
+              name: shop.business_name,
+              location: shop.business_address,
+              specialties: shop.specialty ? shop.specialty.split(",") : [],
+              avatar: undefined, // Không có avatar trong API, có thể dùng placeholder
+              image: undefined, // Không có image trong API, có thể dùng placeholder
+              rating: 5.0, // API chưa có rating, gán mặc định
+              reviews: 0, // API chưa có reviews, gán mặc định
+            }))
         );
       } catch (err) {
         setShops([]);
@@ -33,7 +37,7 @@ const ShopsList = () => {
       }
     };
     fetchShops();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return <div>Loading...</div>;

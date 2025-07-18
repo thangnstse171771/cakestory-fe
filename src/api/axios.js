@@ -82,3 +82,16 @@ export const createMarketplacePost = async (data) => {
   const response = await axiosInstance.post("/marketplace-posts", data);
   return response.data;
 };
+
+export const updateMarketplacePost = async (postId, data) => {
+  const response = await axiosInstance.put(
+    `/marketplace-posts/${postId}`,
+    data
+  );
+  return response.data;
+};
+
+export const deleteMarketplacePost = async (postId) => {
+  const response = await axiosInstance.delete(`/marketplace-posts/${postId}`);
+  return response.data;
+};
