@@ -17,6 +17,9 @@ import DeletePostPopup from "./DeletePostPopup";
 import PostDetail from "./PostDetail";
 import { authAPI } from "../../api/auth";
 import { useAuth } from "../../contexts/AuthContext";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -470,7 +473,7 @@ const MyPost = () => {
                               viewMode === "list" ? "w-6 h-6" : "w-4 h-4"
                             }`}
                           />
-                          <span>{post.comments}</span>
+                          <span>{post.total_comments}</span>
                         </div>
                       </div>
                       <span
@@ -478,7 +481,7 @@ const MyPost = () => {
                           viewMode === "list" ? "text-lg" : ""
                         }`}
                       >
-                        {new Date(post.date).toLocaleDateString("en-GB")}
+                        {dayjs(post.created_at).fromNow()}
                       </span>
                     </div>
                   </div>

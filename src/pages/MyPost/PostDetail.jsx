@@ -7,6 +7,10 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import CommentsSection from "./CommentsSection";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
   const [postDetail, setPostDetail] = useState(null);
@@ -61,121 +65,6 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
     ? new Date(MemoryPost.event_date).toLocaleDateString("en-GB")
     : "";
   const eventType = MemoryPost?.event_type || "";
-
-  const mockComments = [
-    {
-      id: 1,
-      username: "bakerQueen",
-      content: "This cake is stunning!",
-      time: "2 hours ago",
-      likes: 12,
-      replies: 3,
-    },
-    {
-      id: 2,
-      username: "sweetTooth42",
-      content: "Would love to order this!",
-      time: "5 hours ago",
-      likes: 7,
-      replies: 0,
-    },
-    {
-      id: 3,
-      username: "frostingFan",
-      content: "That frosting looks perfect 😍",
-      time: "1 day ago",
-      likes: 19,
-      replies: 2,
-    },
-    {
-      id: 4,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 5,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 6,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 7,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 8,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 9,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 10,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 11,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 12,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 13,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-    {
-      id: 14,
-      username: "cakeLover99",
-      content: "Absolutely love the design!",
-      time: "2 days ago",
-      likes: 15,
-      replies: 1,
-    },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 py-12">
@@ -271,7 +160,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
                 <div className="font-semibold text-gray-800">
                   {user?.full_name || user?.username}
                 </div>
-                <div className="text-gray-500 text-sm">{eventDate}</div>
+                <div className="text-gray-500 text-sm">{dayjs(post.created_at).fromNow()}</div>
               </div>
             </div>
             <button className="text-gray-400 hover:text-gray-600">
@@ -300,7 +189,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
             </div>
             <div className="flex items-center gap-1 text-gray-500">
               <MessageCircle className="w-5 h-5" />
-              <span>{postDetail.comments || 0}</span>
+              <span>{postDetail.total_comments || 0}</span>
             </div>
           </div>
 
@@ -312,57 +201,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
 
           {/* 🗨 Comments Section */}
           {/* 🗨 Scrollable Comments Section */}
-          <div className="mb-4">
-            <div className="text-gray-500 text-sm mb-2">Comments</div>
-            <div className="space-y-2 max-h-48 md:max-h-72 overflow-y-auto pr-2 ">
-              {mockComments.map((comment) => (
-                <div
-                  key={comment.id}
-                  className="py-1 border-b border-gray-100 pb-3"
-                >
-                  {/* Comment Header */}
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-gray-800 pr-1">
-                      {comment.username}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {comment.time}
-                    </span>
-                  </div>
-
-                  {/* Comment Body */}
-                  <p className="text-gray-700 text-sm">{comment.content}</p>
-
-                  {/* Actions: Likes + Replies */}
-                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
-                    <div className="flex items-center gap-1 hover:text-pink-500 cursor-pointer">
-                      <Heart className="w-4 h-4" />
-                      <span>{comment.likes}</span>
-                    </div>
-                    <div className="hover:underline cursor-pointer">
-                      {comment.replies}{" "}
-                      {comment.replies === 1 ? "reply" : "replies"}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ➕ Add Comment (mock input) */}
-          <form className="flex gap-2 sticky bottom-0 bg-white py-2">
-            <input
-              type="text"
-              placeholder="Add a comment..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
-            >
-              Post
-            </button>
-          </form>
+          <CommentsSection postId={post.id} />
         </div>
       </div>
     </div>
