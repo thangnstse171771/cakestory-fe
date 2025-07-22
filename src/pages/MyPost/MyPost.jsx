@@ -178,6 +178,8 @@ const MyPost = () => {
         user: item.Post.user,
         created_at: item.Post.created_at,
         is_public: item.Post.is_public,
+        total_likes: item.Post.total_likes,
+        total_comments: item.Post.total_comments,
       }));
       setPosts(mappedPosts);
     } catch (err) {
@@ -467,13 +469,13 @@ const MyPost = () => {
                           />
                           {likesData[post.id]?.count ?? post.total_likes}
                         </div>
-                        <div className="flex items-center gap-1 text-gray-500">
+                        <div className="flex items-center gap-1 text-pink-500">
                           <MessageCircle
                             className={` ${
                               viewMode === "list" ? "w-6 h-6" : "w-4 h-4"
                             }`}
                           />
-                          <span>{post.total_comments}</span>
+                          {post.total_comments}
                         </div>
                       </div>
                       <span
