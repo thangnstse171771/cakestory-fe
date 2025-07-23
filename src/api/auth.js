@@ -55,6 +55,19 @@ export const authAPI = {
     return response.data;
   },
 
+  getPaginatedMemoryPosts: async (page, limit) => {
+    const response = await axiosInstance.get(
+      "/memory-posts/paginatedPosts",
+      {
+        params: {
+          page,
+          limit,
+        },
+      }
+    );
+    return response.data;
+  },
+
   getMemoryPostByUserId: async (userId) => {
     const response = await axiosInstance.get(`/memory-posts/user/${userId}`);
     return response.data;
@@ -83,7 +96,7 @@ export const authAPI = {
     return await getDownloadURL(avatarRef);
   },
 
-  likePost: async (postId) => { 
+  likePost: async (postId) => {
     const response = await axiosInstance.post(`/likes/post/${postId}`);
     return response.data;
   },
@@ -94,7 +107,10 @@ export const authAPI = {
   },
 
   createComment: async (postId, commentData) => {
-    const response = await axiosInstance.post(`/comments/post/${postId}`, commentData);
+    const response = await axiosInstance.post(
+      `/comments/post/${postId}`,
+      commentData
+    );
     return response.data;
   },
 
@@ -104,7 +120,10 @@ export const authAPI = {
   },
 
   editComment: async (commentId, commentData) => {
-    const response = await axiosInstance.put(`/comments/${commentId}`, commentData);
+    const response = await axiosInstance.put(
+      `/comments/${commentId}`,
+      commentData
+    );
     return response.data;
   },
 
