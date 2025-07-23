@@ -55,6 +55,19 @@ export const authAPI = {
     return response.data;
   },
 
+  getPaginatedMemoryPosts: async (page, limit) => {
+    const response = await axiosInstance.get(
+      "/memory-posts/paginatedPosts",
+      {
+        params: {
+          page,
+          limit,
+        },
+      }
+    );
+    return response.data;
+  },
+
   getMemoryPostByUserId: async (userId) => {
     const response = await axiosInstance.get(`/memory-posts/user/${userId}`);
     return response.data;

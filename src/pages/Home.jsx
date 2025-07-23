@@ -8,6 +8,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  BadgeCheck,
 } from "lucide-react";
 import {
   generateTrendingTopics,
@@ -34,9 +35,13 @@ const Home = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const videoRefs = useRef([]);
+  const loader = useRef(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
+  const hasLoaded = useRef(false);
 
   useEffect(() => {
     const fetchLikesForPosts = async () => {
@@ -68,29 +73,43 @@ const Home = () => {
     const fetchPosts = async () => {
       try {
         setLoading(true);
-        const response = await authAPI.getAllMemoryPosts();
-        const data = response.posts
-          .map((item) =>
-            item && item.Post
-              ? {
-                  ...item.Post,
-                  media: item.Post.media || [],
-                  user: item.Post.user || {},
-                  event_date: item.event_date,
-                  event_type: item.event_type,
-                }
-              : null
-          )
-          .filter(Boolean);
-        setPosts(data);
+        const response = await authAPI.getPaginatedMemoryPosts(page, 5);
+        console.log("Paginated response:", response);
+        const newPosts = response.posts || [];
+        setPosts((prev) => {
+          const allPosts = [...prev, ...newPosts];
+          const uniquePosts = Array.from(
+            new Map(allPosts.map((post) => [post.id, post])).values()
+          );
+          return uniquePosts;
+        });
+        setHasMore(page < response.totalPages);
       } catch (error) {
-        console.error("Failed to fetch posts:", error);
+        console.error("Failed to fetch paginated posts:", error);
       } finally {
         setLoading(false);
       }
     };
     fetchPosts();
-  }, []);
+  }, [page]);
+
+  useEffect(() => {
+    if (loading || !hasMore) return;
+    hasLoaded.current = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && !hasLoaded.current) {
+          hasLoaded.current = true;
+          setPage((prev) => prev + 1);
+        }
+      },
+      { threshold: 1.0 }
+    );
+    if (loader.current) observer.observe(loader.current);
+    return () => {
+      if (loader.current) observer.unobserve(loader.current);
+    };
+  }, [loading, hasMore]);
 
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
@@ -106,7 +125,7 @@ const Home = () => {
 
   const handleLike = async (postId) => {
     try {
-      await authAPI.likePost(postId); // your likePost function that can like/unlike
+      await authAPI.likePost(postId);
       setLikesData((prev) => {
         const wasLiked = prev[postId]?.liked;
         const newCount = wasLiked
@@ -128,7 +147,6 @@ const Home = () => {
   const trendingTopics = generateTrendingTopics(5);
   const suggestionGroups = generateSuggestionGroups(4);
   const upcomingEvents = generateUpcomingEvents(4);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -179,11 +197,9 @@ const Home = () => {
                                 >
                                   {post.user.full_name}
                                 </Link>
-                                {post.user.is_Baker && (
-                                  <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                                    Baker
-                                  </span>
-                                )}
+                                <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                                  {post.MemoryPost.event_type}
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -410,6 +426,17 @@ const Home = () => {
             </div>
           </div>
         </div>
+      </div>
+      <div ref={loader} className="flex justify-center py-4">
+        {loading && <span className="text-pink-500">Loading...</span>}
+        {!hasMore && (
+          <div className=" flex flex-col items-center justify-center mt-12 px-4 pt-2">
+            <BadgeCheck size={90} className="text-pink-400 mb-2" />
+            <span className="text-gray-500 text-md italic whitespace-nowrap">
+              No more posts.
+            </span>
+          </div>
+        )}
       </div>
       <PostDetail
         isOpen={isPostDetailOpen}
