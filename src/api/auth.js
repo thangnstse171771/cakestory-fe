@@ -131,4 +131,14 @@ export const authAPI = {
     const response = await axiosInstance.delete(`/comments/${commentId}`);
     return response.data;
   },
+
+  followUserById: async (id) => {
+    const response = await axiosInstance.post(`/users/follow/${id}`);
+    return response.data;
+  },
+
+  unfollowUserById: async (id) => {
+    const response = await axiosInstance.delete(`/users/follow/${id}`);
+    return response.data;
+  },
 };

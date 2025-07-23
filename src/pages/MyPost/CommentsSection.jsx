@@ -89,7 +89,7 @@ const CommentsSection = ({ postId }) => {
       <div className="text-gray-500 text-sm mb-2">Comments</div>
 
       {/* Scrollable Comments */}
-      <div className="space-y-2 flex-1 overflow-y-auto pr-2">
+      <div className="space-y-2 flex-1 max-h-[310px] overflow-y-auto pr-2">
         {comments.map((comment) => (
           <div key={comment.id} className="py-1 border-b border-gray-100 pb-3">
             <div className="flex items-start justify-between">
@@ -117,7 +117,7 @@ const CommentsSection = ({ postId }) => {
                         type="text"
                         value={editingContent}
                         onChange={(e) => setEditingContent(e.target.value)}
-                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-gray-700 text-sm"
+                        className="flex-1 px-3 py-1 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       />
                       <button
                         type="button"
