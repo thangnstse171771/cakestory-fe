@@ -1,185 +1,110 @@
 // src/components/Sidebar.jsx
-import { NavLink, useNavigate } from "react-router-dom";
-import {
-  Home,
-  ShoppingBag,
-  MessageCircle,
-  BookImage,
-  User,
-  Cake,
-  Calendar,
-  LogOut,
-  MoreHorizontal,
-  Shield,
-  Wallet,
-  CreditCard,
-  Trophy,
-  Menu,
-} from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { useState } from "react";
 
 const Sidebar = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [showMore, setShowMore] = useState(false);
-  const [collapsed, setCollapsed] = useState(false); // Thêm state thu gọn
+  const { user } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login", { replace: true });
-  };
-
-  // Các mục public cho guest và user
-  const publicMenu = [
-    { icon: Home, label: "Home", path: "/home" },
-    { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
-    { icon: Cake, label: "Cake Design", path: "/cake-design" },
-    { icon: Calendar, label: "Events", path: "/events" },
-    { icon: Trophy, label: "Challenge", path: "/challenge" },
-  ];
-  // Các mục chỉ dành cho user đã login
-  const privateMenu = [
-    { icon: MessageCircle, label: "Messages", path: "/messages" },
-    { icon: BookImage, label: "My Post", path: "/mypost" },
-    { icon: User, label: "Profile", path: "/profile" },
-    { icon: Shield, label: "Admin Dashboard", path: "/admin" },
-    { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },
+  // Menu chuẩn hóa roles
+  const menu = [
     {
-      icon: CreditCard,
-      label: "Yêu Cầu Rút Tiền",
-      path: "/admin/withdraw-requests",
+      label: "Home",
+      path: "/",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
     },
-    { icon: Trophy, label: "Admin Challenge", path: "/admin/challenge" },
+    {
+      label: "About",
+      path: "/about",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
+    },
+    { label: "Manage Koi", path: "/manage-koi", roles: ["Customer"] },
+    { label: "My Koi", path: "/manage-koi/my-koi", roles: ["Customer"] },
+    {
+      label: "My Koi Profile",
+      path: "/manage-koi/my-koi/:id",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
+    },
+    {
+      label: "My Pond",
+      path: "/manage-koi/my-pond",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
+    },
+    {
+      label: "Water Parameters",
+      path: "/manage-koi/water-parameters",
+      roles: ["Customer", "Admin", "Manager"],
+    },
+    {
+      label: "Profile",
+      path: "/profile",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
+    },
+    {
+      label: "Shop Center",
+      path: "/ShopCenter",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
+    },
+    {
+      label: "Pond Profile",
+      path: "/pond-profile/:id",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
+    },
+    {
+      label: "Manage Workplace",
+      path: "/ManageWorkplace",
+      roles: ["Admin", "Manager", "Staff"],
+    },
+    {
+      label: "Recommendations",
+      path: "/manage-koi/recommendations",
+      roles: ["Customer", "Manager", "Staff"],
+    },
+    {
+      label: "Recommendations Detail",
+      path: "/manage-koi/recommendations/:id",
+      roles: ["Customer", "Manager", "Staff"],
+    },
+    {
+      label: "Blog Management",
+      path: "/BlogManagement",
+      roles: ["Admin", "Manager", "Staff"],
+    },
+    {
+      label: "Blog",
+      path: "/blog",
+      roles: ["Customer", "Admin", "Manager", "Staff"],
+    },
+    {
+      label: "Product Details",
+      path: "/productDetails/:id",
+      roles: ["Manager", "Staff"],
+    },
   ];
-  const menuItems = user ? [...publicMenu, ...privateMenu] : publicMenu;
+
+  // Menu public cho guest
+  const publicMenu = [
+    { label: "Home", path: "/" },
+    { label: "About", path: "/about" },
+    { label: "Blog", path: "/blog" },
+  ];
+
+  let filteredMenu = publicMenu;
+  if (user) {
+    filteredMenu = menu.filter((item) => item.roles.includes(user.role));
+  }
 
   return (
-    <div
-      className={`fixed left-0 top-0 h-full bg-white shadow-lg z-50 transition-all duration-300 ${
-        collapsed ? "w-20" : "w-20 lg:w-64"
-      } flex flex-col`}
-    >
-      {/* Nút toggle ẩn/hiện sidebar */}
-      <button
-        className="absolute top-4 left-4 z-50 bg-pink-100 hover:bg-pink-200 rounded-full p-2 focus:outline-none lg:hidden"
-        onClick={() => setCollapsed((v) => !v)}
-        aria-label="Ẩn/hiện menu"
-      >
-        <Menu className="w-6 h-6 text-pink-600" />
-      </button>
-      {/* Logo & Home button */}
-      <div className="p-6 border-b border-gray-200 flex-shrink-0">
-        <button
-          onClick={() => navigate("/home")}
-          className="flex items-center justify-center lg:justify-start lg:space-x-3 w-full hover:opacity-80 transition-opacity"
+    <nav className="sidebar-menu">
+      {filteredMenu.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.path === "/" ? true : undefined}
         >
-          <div className="bg-pink-500 p-2 rounded-lg">
-            <Cake className="w-6 h-6 text-white" />
-          </div>
-          {!collapsed && (
-            <span className="hidden lg:block text-xl font-bold text-gray-800">
-              Cake Story
-            </span>
-          )}
-        </button>
-      </div>
-      {/* Menu chính */}
-      <nav className="flex-grow overflow-y-auto py-6">
-        <div className="px-4 space-y-2">
-          {menuItems.map(({ icon: Icon, label, path }) => (
-            <NavLink
-              key={path}
-              to={path}
-              className={({ isActive }) =>
-                `flex items-center justify-center ${
-                  !collapsed ? "lg:justify-start lg:space-x-3" : ""
-                } px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-pink-50 text-pink-600 border-r-2 border-pink-500"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
-                }`
-              }
-            >
-              <Icon className="w-5 h-5" />
-              {!collapsed && (
-                <span className="hidden lg:block font-medium">{label}</span>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-      {/* Logout & More options */}
-      <div className="p-4 border-t border-gray-200 flex-shrink-0">
-        <div className="relative">
-          <button
-            onClick={() => setShowMore((v) => !v)}
-            className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg w-full transition-colors"
-          >
-            <MoreHorizontal className="w-5 h-5" />
-            {!collapsed && (
-              <span className="hidden lg:block font-medium">My options</span>
-            )}
-          </button>
-          {showMore && (
-            <div className="absolute left-0 w-48 bg-white shadow-lg rounded-lg mb-2 bottom-full z-50 border border-gray-100">
-              <button
-                onClick={() => {
-                  setShowMore(false);
-                  navigate("/settings");
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 rounded-t-lg"
-              >
-                <span className="mr-2">⚙️</span> Setting
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false); /* handle theme toggle here */
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50"
-              >
-                <span className="mr-2">🌗</span> Chuyển chế độ sáng tối
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false);
-                  navigate("/report");
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 rounded-b-lg"
-              >
-                <span className="mr-2">🚩</span> Report
-              </button>
-            </div>
-          )}
-        </div>
-        {user ? (
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg w-full transition-colors mt-2"
-          >
-            <LogOut className="w-5 h-5" />
-            {!collapsed && (
-              <span className="hidden lg:block font-medium">Sign Out</span>
-            )}
-          </button>
-        ) : (
-          <button
-            onClick={() => navigate("/login")}
-            className="flex items-center justify-center lg:justify-start lg:space-x-3 px-4 py-3 text-pink-600 hover:bg-pink-50 rounded-lg w-full transition-colors mt-2"
-          >
-            <LogOut className="w-5 h-5" />
-            {!collapsed && (
-              <span className="hidden lg:block font-medium">Login</span>
-            )}
-          </button>
-        )}
-        {!collapsed && (
-          <div className="hidden lg:block text-center text-xs text-gray-500 mt-4">
-            © 2025 CakeStory. All rights reserved.
-          </div>
-        )}
-      </div>
-    </div>
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
   );
 };
 
