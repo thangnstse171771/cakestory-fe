@@ -15,7 +15,7 @@ import {
   generateSuggestionGroups,
   generateUpcomingEvents,
 } from "../data/mockData";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation } from "swiper/modules";
 import "swiper/css";
@@ -26,10 +26,12 @@ import { useAuth } from "../contexts/AuthContext";
 import PostDetail from "./MyPost/PostDetail";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import InfiniteScroll from "react-infinite-scroll-component";
 dayjs.extend(relativeTime);
 
 const Home = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const currentUserId = user?.id;
   const [likesData, setLikesData] = useState({});
   const [posts, setPosts] = useState([]);
@@ -38,11 +40,18 @@ const Home = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const videoRefs = useRef([]);
-  const loader = useRef(null);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
-  const hasLoaded = useRef(false);
-  const fetchedPages = useRef(new Set());
+  const [firstLoaded, setFirstLoaded] = useState(false);
+
+  // Reset pagination state when navigating to Home
+  useEffect(() => {
+    if (location.pathname === "/home") {
+      setPosts([]);
+      setPage(1);
+      setHasMore(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const fetchLikesForPosts = async () => {
@@ -72,14 +81,11 @@ const Home = () => {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      if (!hasMore || loading || fetchedPages.current.has(page)) return;
-      fetchedPages.current.add(page);
-
       try {
         setLoading(true);
         const response = await authAPI.getPaginatedMemoryPosts(page, 5);
+        console.log("Paginated response:", response);
         const newPosts = response.posts || [];
-
         setPosts((prev) => {
           const allPosts = [...prev, ...newPosts];
           const uniquePosts = Array.from(
@@ -87,46 +93,16 @@ const Home = () => {
           );
           return uniquePosts;
         });
-
         setHasMore(page < response.totalPages);
+        if (page === 1) setFirstLoaded(true);
       } catch (error) {
         console.error("Failed to fetch paginated posts:", error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchPosts();
   }, [page]);
-
-  useEffect(() => {
-    // Only reset if you want to force refresh on first mount
-    setPage(1);
-    setPosts([]);
-    fetchedPages.current.clear();
-  }, []);
-
-  useEffect(() => {
-    if (loading || !hasMore) return;
-
-    let timeoutId = null;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !hasLoaded.current) {
-          hasLoaded.current = true;
-          timeoutId = setTimeout(() => setPage((prev) => prev + 1), 200); // debounce
-        }
-      },
-      { threshold: 1.0 }
-    );
-
-    if (loader.current) observer.observe(loader.current);
-
-    return () => {
-      if (loader.current) observer.unobserve(loader.current);
-      clearTimeout(timeoutId);
-    };
-  }, [loading, hasMore]);
 
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
@@ -182,182 +158,206 @@ const Home = () => {
               </div>
 
               <div className="min-w-[275px] space-y-4">
-                {loading ? (
-                  <div className="flex justify-center text-pink-500">
-                    Loading posts...
-                  </div>
-                ) : posts.length === 0 ? (
-                  <div className="flex justify-center text-gray-500">
-                    No posts found.
-                  </div>
-                ) : (
-                  posts.map((post) => (
-                    <div
-                      key={post.id}
-                      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
-                    >
-                      <div className="p-4">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <Link to={`/user/${post.user.id}`}>
-                              <img
-                                src={post.user.avatar || "/placeholder.svg"}
-                                alt={post.user.full_name}
-                                className="w-11 h-11 rounded-full hover:opacity-80 transition"
-                              />
-                            </Link>
-                            <div className="text-left">
-                              <div className="flex items-center space-x-2">
-                                <Link
-                                  to={`/user/${post.user.id}`}
-                                  className="font-semibold text-gray-800 hover:text-pink-500 transition"
-                                >
-                                  {post.user.full_name}
+                {firstLoaded ? (
+                  <InfiniteScroll
+                    dataLength={posts.length}
+                    next={() => {
+                      if (!loading && hasMore) setPage((prev) => prev + 1);
+                    }}
+                    hasMore={hasMore}
+                    loader={
+                      <div className="flex justify-center text-pink-500">
+                        Loading posts...
+                      </div>
+                    }
+                    endMessage={
+                      <div className=" flex flex-col items-center justify-center mt-12 px-4 pt-2">
+                        <BadgeCheck size={90} className="text-pink-400 mb-2" />
+                        <span className="text-gray-500 text-md italic whitespace-nowrap">
+                          No more posts.
+                        </span>
+                      </div>
+                    }
+                  >
+                    {posts.length === 0 ? (
+                      <div className="flex justify-center text-gray-500">
+                        No posts found.
+                      </div>
+                    ) : (
+                      posts.map((post) => (
+                        <div
+                          key={post.id}
+                          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+                        >
+                          <div className="p-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="flex items-center space-x-3">
+                                <Link to={`/user/${post.user.id}`}>
+                                  <img
+                                    src={post.user.avatar || "/placeholder.svg"}
+                                    alt={post.user.full_name}
+                                    className="w-11 h-11 rounded-full hover:opacity-80 transition"
+                                  />
                                 </Link>
-                                <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                                  {post.MemoryPost.event_type}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <button className="text-gray-400 hover:text-gray-600">
-                            <MoreHorizontal className="w-5 h-5" />
-                          </button>
-                        </div>
-
-                        <div className="relative rounded-lg overflow-hidden">
-                          <Swiper
-                            modules={[Pagination, Navigation]}
-                            spaceBetween={10}
-                            slidesPerView={1}
-                            loop
-                            pagination={{ clickable: true }}
-                            navigation={{
-                              nextEl: ".custom-next",
-                              prevEl: ".custom-prev",
-                            }}
-                            onSlideChange={(swiper) =>
-                              setActiveIndex(swiper.realIndex)
-                            }
-                            className="rounded-lg"
-                          >
-                            {Array.isArray(post.media) &&
-                            post.media.length > 0 ? (
-                              post.media.map((item, index) => (
-                                <SwiperSlide key={item.id}>
-                                  <div className="w-full aspect-[4/5] rounded-lg overflow-hidden">
-                                    {item.image_url ? (
-                                      <img
-                                        src={item.image_url}
-                                        alt="media"
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : item.video_url ? (
-                                      <video
-                                        ref={(el) =>
-                                          (videoRefs.current[index] = el)
-                                        }
-                                        src={item.video_url}
-                                        autoPlay
-                                        controls
-                                        muted
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
-                                        No media
-                                      </div>
-                                    )}
+                                <div className="text-left">
+                                  <div className="flex items-center space-x-2">
+                                    <Link
+                                      to={`/user/${post.user.id}`}
+                                      className="font-semibold text-gray-800 hover:text-pink-500 transition"
+                                    >
+                                      {post.user.full_name}
+                                    </Link>
+                                    <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                                      {post.MemoryPost.event_type}
+                                    </span>
                                   </div>
-                                </SwiperSlide>
-                              ))
-                            ) : (
-                              <SwiperSlide>
-                                <div className="w-full aspect-[4/5] rounded-lg overflow-hidden flex items-center justify-center bg-gray-200 text-gray-500">
-                                  No media
                                 </div>
-                              </SwiperSlide>
-                            )}
-
-                            <div className="custom-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
-                                <ChevronLeft
-                                  size={20}
-                                  strokeWidth={2}
-                                  className="text-pink-500"
-                                />
                               </div>
+                              <button className="text-gray-400 hover:text-gray-600">
+                                <MoreHorizontal className="w-5 h-5" />
+                              </button>
                             </div>
-                            <div className="custom-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
-                                <ChevronRight
-                                  size={20}
-                                  strokeWidth={2}
-                                  className="text-pink-500"
-                                />
-                              </div>
-                            </div>
-                          </Swiper>
-                        </div>
 
-                        <div className="flex items-center justify-between mt-4 mb-3">
-                          <div className="flex items-center space-x-4">
-                            <button
-                              onClick={() => handleLike(post.id)}
-                              className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
-                            >
-                              <Heart
-                                className={`w-5 h-5 ${
-                                  likesData[post.id]?.liked
-                                    ? "fill-pink-500 text-pink-500"
-                                    : ""
-                                }`}
-                              />
-                              <span className="text-sm">
-                                {likesData[post.id]?.count ?? post.total_likes}
+                            <div className="relative rounded-lg overflow-hidden">
+                              <Swiper
+                                modules={[Pagination, Navigation]}
+                                spaceBetween={10}
+                                slidesPerView={1}
+                                loop
+                                pagination={{ clickable: true }}
+                                navigation={{
+                                  nextEl: ".custom-next",
+                                  prevEl: ".custom-prev",
+                                }}
+                                onSlideChange={(swiper) =>
+                                  setActiveIndex(swiper.realIndex)
+                                }
+                                className="rounded-lg"
+                              >
+                                {Array.isArray(post.media) &&
+                                post.media.length > 0 ? (
+                                  post.media.map((item, index) => (
+                                    <SwiperSlide key={item.id}>
+                                      <div className="w-full aspect-[4/5] rounded-lg overflow-hidden">
+                                        {item.image_url ? (
+                                          <img
+                                            src={item.image_url}
+                                            alt="media"
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : item.video_url ? (
+                                          <video
+                                            ref={(el) =>
+                                              (videoRefs.current[index] = el)
+                                            }
+                                            src={item.video_url}
+                                            autoPlay
+                                            controls
+                                            muted
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                                            No media
+                                          </div>
+                                        )}
+                                      </div>
+                                    </SwiperSlide>
+                                  ))
+                                ) : (
+                                  <SwiperSlide>
+                                    <div className="w-full aspect-[4/5] rounded-lg overflow-hidden flex items-center justify-center bg-gray-200 text-gray-500">
+                                      No media
+                                    </div>
+                                  </SwiperSlide>
+                                )}
+
+                                <div className="custom-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                                    <ChevronLeft
+                                      size={20}
+                                      strokeWidth={2}
+                                      className="text-pink-500"
+                                    />
+                                  </div>
+                                </div>
+                                <div className="custom-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                                  <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                                    <ChevronRight
+                                      size={20}
+                                      strokeWidth={2}
+                                      className="text-pink-500"
+                                    />
+                                  </div>
+                                </div>
+                              </Swiper>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-4 mb-3">
+                              <div className="flex items-center space-x-4">
+                                <button
+                                  onClick={() => handleLike(post.id)}
+                                  className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                                >
+                                  <Heart
+                                    className={`w-5 h-5 ${
+                                      likesData[post.id]?.liked
+                                        ? "fill-pink-500 text-pink-500"
+                                        : ""
+                                    }`}
+                                  />
+                                  <span className="text-sm">
+                                    {likesData[post.id]?.count ??
+                                      post.total_likes}
+                                  </span>
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedPost(post);
+                                    setIsPostDetailOpen(true);
+                                  }}
+                                  className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                                >
+                                  <MessageCircle className="w-5 h-5" />
+                                  <span className="text-sm">
+                                    {post.total_comments}
+                                  </span>
+                                </button>
+                                <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
+                                  <Share className="w-5 h-5" />
+                                </button>
+                              </div>
+                              <button className="text-gray-600 hover:text-yellow-500">
+                                <Bookmark className="w-5 h-5" />
+                              </button>
+                            </div>
+
+                            <div className="text-left">
+                              <p className="text-black text-sm">
+                                {post.description}
+                              </p>
+                              <span className="text-gray-500 text-sm">
+                                {dayjs(post.created_at).fromNow()}
                               </span>
-                            </button>
-                            <button
+                            </div>
+                            <div
                               onClick={() => {
                                 setSelectedPost(post);
                                 setIsPostDetailOpen(true);
                               }}
-                              className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                              className="text-gray-500 text-sm text-left"
                             >
-                              <MessageCircle className="w-5 h-5" />
-                              <span className="text-sm">
-                                {post.total_comments}
-                              </span>
-                            </button>
-                            <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
-                              <Share className="w-5 h-5" />
-                            </button>
+                              View comments
+                            </div>
                           </div>
-                          <button className="text-gray-600 hover:text-yellow-500">
-                            <Bookmark className="w-5 h-5" />
-                          </button>
                         </div>
-
-                        <div className="text-left">
-                          <p className="text-black text-sm">
-                            {post.description}
-                          </p>
-                          <span className="text-gray-500 text-sm">
-                            {dayjs(post.created_at).fromNow()}
-                          </span>
-                        </div>
-                        <div
-                          onClick={() => {
-                            setSelectedPost(post);
-                            setIsPostDetailOpen(true);
-                          }}
-                          className="text-gray-500 text-sm text-left"
-                        >
-                          View comments
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                      ))
+                    )}
+                  </InfiniteScroll>
+                ) : (
+                  <div className="flex justify-center text-pink-500">
+                    Loading posts...
+                  </div>
                 )}
               </div>
             </div>
@@ -443,17 +443,6 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </div>
-      <div ref={loader} className="flex justify-center py-4">
-        {loading && <span className="text-pink-500">Loading...</span>}
-        {!hasMore && (
-          <div className=" flex flex-col items-center justify-center mt-12 px-4 pt-2">
-            <BadgeCheck size={90} className="text-pink-400 mb-2" />
-            <span className="text-gray-500 text-md italic whitespace-nowrap">
-              No more posts.
-            </span>
-          </div>
-        )}
       </div>
       <PostDetail
         isOpen={isPostDetailOpen}
