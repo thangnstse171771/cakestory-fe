@@ -31,10 +31,21 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(formData);
-      // Redirect to the page they tried to visit or home
-      const from = location.state?.from?.pathname || "/home";
-      navigate(from, { replace: true });
+      const response = await login(formData);
+      // Redirect theo role
+      const user = response.user;
+      if (
+        user &&
+        (user.role === "admin" ||
+          user.role === "account_staff" ||
+          user.role === "staff")
+      ) {
+        navigate("/admin", { replace: true });
+      } else {
+        // Redirect to the page they tried to visit or home
+        const from = location.state?.from?.pathname || "/home";
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       setError(
         err.response?.data?.message ||

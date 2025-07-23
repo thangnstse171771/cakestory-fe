@@ -199,11 +199,16 @@ const AdminDashboard = () => {
             Bảng điều khiển Admin
           </h1>
 
-          {/* Search Form */}
-          <SearchForm search={search} setSearch={setSearch} />
-
-          {/* View Controls */}
-          <ViewControls view={view} setView={setView} />
+          {/* ViewControls (dropdown) và Search Form */}
+          <div className="flex flex-wrap gap-4 items-end mb-6">
+            {/* Search Form với dropdown filter loại tài khoản tích hợp */}
+            <SearchForm
+              search={search}
+              setSearch={setSearch}
+              view={view}
+              setView={setView}
+            />
+          </div>
 
           {/* Accounts Table */}
           <AccountsTable

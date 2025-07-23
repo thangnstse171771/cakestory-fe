@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { fetchShopByUserId } from "../../api/axios";
 
 const AccountDetailModal = ({
   showModal,
@@ -9,6 +10,21 @@ const AccountDetailModal = ({
   getIsPremium,
   getIsBaker,
 }) => {
+  const [shopInfo, setShopInfo] = useState(null);
+  const [shopLoading, setShopLoading] = useState(false);
+
+  useEffect(() => {
+    if (showModal && selectedAccount && getIsBaker(selectedAccount)) {
+      setShopLoading(true);
+      fetchShopByUserId(selectedAccount.id)
+        .then((data) => setShopInfo(data.shop))
+        .catch(() => setShopInfo(null))
+        .finally(() => setShopLoading(false));
+    } else {
+      setShopInfo(null);
+    }
+  }, [showModal, selectedAccount, getIsBaker]);
+
   if (!showModal || !selectedAccount) return null;
 
   return (
@@ -111,19 +127,100 @@ const AccountDetailModal = ({
                 <h3 className="text-xl font-bold text-pink-500 mb-4 text-center">
                   Thông tin cửa hàng
                 </h3>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="font-semibold text-gray-700">
-                    Tên cửa hàng:
-                  </span>
-                  <span className="text-gray-900">
-                    {selectedAccount.shop_name || (
-                      <span className="italic text-gray-400">
-                        Chưa có tên cửa hàng
+                {shopLoading ? (
+                  <div className="text-center text-pink-400">
+                    Đang tải thông tin cửa hàng...
+                  </div>
+                ) : shopInfo ? (
+                  <>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Tên cửa hàng:
                       </span>
-                    )}
-                  </span>
-                </div>
-                {/* Nếu có thêm thông tin shop khác, bổ sung ở đây */}
+                      <span className="text-gray-900">
+                        {shopInfo.business_name || (
+                          <span className="italic text-gray-400">
+                            Chưa có tên cửa hàng
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Địa chỉ:
+                      </span>
+                      <span className="text-gray-900">
+                        {shopInfo.business_address || (
+                          <span className="italic text-gray-400">
+                            Chưa có địa chỉ
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Số điện thoại:
+                      </span>
+                      <span className="text-gray-900">
+                        {shopInfo.phone_number || (
+                          <span className="italic text-gray-400">
+                            Chưa có SĐT
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Chuyên môn:
+                      </span>
+                      <span className="text-gray-900">
+                        {shopInfo.specialty || (
+                          <span className="italic text-gray-400">
+                            Chưa có chuyên môn
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">Bio:</span>
+                      <span className="text-gray-900">
+                        {shopInfo.bio || (
+                          <span className="italic text-gray-400">
+                            Chưa có bio
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Hoạt động:
+                      </span>
+                      <span className="text-gray-900">
+                        {shopInfo.is_active ? "Có" : "Không"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Kinh độ:
+                      </span>
+                      <span className="text-gray-900">
+                        {shopInfo.longitude ?? "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-700">
+                        Vĩ độ:
+                      </span>
+                      <span className="text-gray-900">
+                        {shopInfo.latitude ?? "N/A"}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center text-gray-400 italic">
+                    Không có thông tin cửa hàng
+                  </div>
+                )}
               </div>
             )}
           </div>
