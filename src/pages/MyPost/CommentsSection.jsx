@@ -89,7 +89,7 @@ const CommentsSection = ({ postId }) => {
       <div className="text-gray-500 text-sm mb-2">Comments</div>
 
       {/* Scrollable Comments */}
-      <div className="space-y-2 flex-1 overflow-y-auto pr-2">
+      <div className="space-y-2 flex-1 max-h-[310px] overflow-y-auto pr-2">
         {comments.map((comment) => (
           <div key={comment.id} className="py-1 border-b border-gray-100 pb-3">
             <div className="flex items-start justify-between">
