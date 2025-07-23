@@ -42,6 +42,7 @@ const Home = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
   const hasLoaded = useRef(false);
+  const fetchedPages = useRef(new Set());
 
   useEffect(() => {
     const fetchLikesForPosts = async () => {
@@ -71,11 +72,14 @@ const Home = () => {
 
   useEffect(() => {
     const fetchPosts = async () => {
+      if (!hasMore || loading || fetchedPages.current.has(page)) return;
+      fetchedPages.current.add(page);
+
       try {
         setLoading(true);
         const response = await authAPI.getPaginatedMemoryPosts(page, 5);
-        console.log("Paginated response:", response);
         const newPosts = response.posts || [];
+
         setPosts((prev) => {
           const allPosts = [...prev, ...newPosts];
           const uniquePosts = Array.from(
@@ -83,6 +87,7 @@ const Home = () => {
           );
           return uniquePosts;
         });
+
         setHasMore(page < response.totalPages);
       } catch (error) {
         console.error("Failed to fetch paginated posts:", error);
@@ -90,24 +95,36 @@ const Home = () => {
         setLoading(false);
       }
     };
+
     fetchPosts();
   }, [page]);
 
   useEffect(() => {
+    // Only reset if you want to force refresh on first mount
+    setPage(1);
+    setPosts([]);
+    fetchedPages.current.clear();
+  }, []);
+
+  useEffect(() => {
     if (loading || !hasMore) return;
-    hasLoaded.current = false;
+
+    let timeoutId = null;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading && !hasLoaded.current) {
+        if (entries[0].isIntersecting && !hasLoaded.current) {
           hasLoaded.current = true;
-          setPage((prev) => prev + 1);
+          timeoutId = setTimeout(() => setPage((prev) => prev + 1), 200); // debounce
         }
       },
       { threshold: 1.0 }
     );
+
     if (loader.current) observer.observe(loader.current);
+
     return () => {
       if (loader.current) observer.unobserve(loader.current);
+      clearTimeout(timeoutId);
     };
   }, [loading, hasMore]);
 
