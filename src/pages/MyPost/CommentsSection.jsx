@@ -117,7 +117,7 @@ const CommentsSection = ({ postId }) => {
                         type="text"
                         value={editingContent}
                         onChange={(e) => setEditingContent(e.target.value)}
-                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-gray-700 text-sm"
+                        className="flex-1 px-3 py-1 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       />
                       <button
                         type="button"
