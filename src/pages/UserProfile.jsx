@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import FollowersFollowingModal from "../components/FollowersFollowingModal";
+import useFollowersFollowing from "../hooks/useFollowersFollowing";
+import usePersonalFollowersFollowing from "../hooks/usePersonalFollowersFollowing";
 import { authAPI } from "../api/auth";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -67,6 +70,22 @@ const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
+  // Danh sách followers/following của user đang xem
+  const {
+    followers,
+    following,
+    fetchFollowers,
+    fetchFollowing,
+    setFollowers,
+    setFollowing,
+  } = useFollowersFollowing(id);
+  // Danh sách following của bản thân
+  const {
+    following: myFollowing,
+    fetchFollowing: fetchMyFollowing,
+  } = usePersonalFollowersFollowing(user?.id);
 
   useEffect(() => {
     if (user && String(user.id) === String(id)) {
@@ -78,6 +97,9 @@ const UserProfile = () => {
       try {
         const data = await authAPI.getUserById(id);
         setProfile(data.user);
+        await fetchFollowers();
+        await fetchFollowing();
+        await fetchMyFollowing();
       } catch (e) {
         setProfile(null);
       } finally {
@@ -85,16 +107,43 @@ const UserProfile = () => {
       }
     };
     fetchUser();
-  }, [id, user, navigate]);
+  }, [id, user, navigate, fetchFollowers, fetchFollowing, fetchMyFollowing]);
+
+  // Xác định trạng thái follow dựa vào danh sách following của bản thân
+  const isFollowingProfile = myFollowing.some((u) => String(u.id) === String(id));
 
   const handleFollow = async () => {
     try {
-      if (isFollowing) {
+      if (isFollowingProfile) {
         await authAPI.unfollowUserById(id);
       } else {
         await authAPI.followUserById(id);
       }
-      setIsFollowing((prev) => !prev);
+      await fetchFollowers();
+      await fetchFollowing();
+      await fetchMyFollowing();
+    } catch (err) {
+      alert("Thao tác thất bại. Vui lòng thử lại!");
+    }
+  };
+
+  const handleFollowUser = async (targetId) => {
+    try {
+      await authAPI.followUserById(targetId);
+      await fetchFollowing();
+      await fetchFollowers();
+      await fetchMyFollowing();
+    } catch (err) {
+      alert("Thao tác thất bại. Vui lòng thử lại!");
+    }
+  };
+
+  const handleUnfollowUser = async (targetId) => {
+    try {
+      await authAPI.unfollowUserById(targetId);
+      await fetchFollowing();
+      await fetchFollowers();
+      await fetchMyFollowing();
     } catch (err) {
       alert("Thao tác thất bại. Vui lòng thử lại!");
     }
@@ -156,12 +205,12 @@ const UserProfile = () => {
                   }`}
                 onClick={handleFollow}
               >
-                {isFollowing ? (
+                {isFollowingProfile ? (
                   <UserCheck className="w-5 h-5" />
                 ) : (
                   <UserPlus className="w-5 h-5" />
                 )}
-                {isFollowing ? "Đang theo dõi" : "Theo dõi"}
+                {isFollowingProfile ? "Đang theo dõi" : "Theo dõi"}
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
@@ -193,30 +242,44 @@ const UserProfile = () => {
             </p>
             <div className="flex gap-8 mb-2">
               <div className="text-center">
-                <div className="font-bold text-2xl text-pink-500">
-                  {stats.posts}
-                </div>
+                <div className="font-bold text-2xl text-pink-500">{stats.posts}</div>
                 <div className="text-gray-500 text-sm">Bài viết</div>
               </div>
-              <div className="text-center">
-                <div className="font-bold text-2xl text-pink-500">
-                  {stats.followers}
-                </div>
+              <div className="text-center cursor-pointer" onClick={() => { fetchFollowers(); setShowFollowers(true); }}>
+                <div className="font-bold text-2xl text-pink-500">{followers.length}</div>
                 <div className="text-gray-500 text-sm">Người theo dõi</div>
               </div>
-              <div className="text-center">
-                <div className="font-bold text-2xl text-pink-500">
-                  {stats.following}
-                </div>
+              <div className="text-center cursor-pointer" onClick={() => { fetchFollowing(); setShowFollowing(true); }}>
+                <div className="font-bold text-2xl text-pink-500">{following.length}</div>
                 <div className="text-gray-500 text-sm">Đang theo dõi</div>
               </div>
               <div className="text-center">
-                <div className="font-bold text-2xl text-pink-500">
-                  {stats.likes}
-                </div>
+                <div className="font-bold text-2xl text-pink-500">{stats.likes}</div>
                 <div className="text-gray-500 text-sm">Lượt thích</div>
               </div>
             </div>
+
+            {/* Modals for followers/following */}
+            <FollowersFollowingModal
+              open={showFollowers}
+              onClose={() => setShowFollowers(false)}
+              users={followers}
+              title="Danh sách người theo dõi"
+              currentUserId={user?.id}
+              onFollow={handleFollowUser}
+              onUnfollow={handleUnfollowUser}
+              followingIds={myFollowing.map((u) => u.id)}
+            />
+            <FollowersFollowingModal
+              open={showFollowing}
+              onClose={() => setShowFollowing(false)}
+              users={following}
+              title="Đang theo dõi"
+              currentUserId={user?.id}
+              onFollow={handleFollowUser}
+              onUnfollow={handleUnfollowUser}
+              followingIds={myFollowing.map((u) => u.id)}
+            />
             {/* Achievements */}
             <div className="flex gap-3 flex-wrap mt-2">
               {achievements.map((ach, idx) => (
