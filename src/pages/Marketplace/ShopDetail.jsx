@@ -15,63 +15,6 @@ import CreateMarketplacePost from "./CreateMarketplacePost";
 import DeletePostPopup from "../MyPost/DeletePostPopup";
 import { updateMarketplacePost, deleteMarketplacePost } from "../../api/axios";
 
-const mockShop = {
-  id: 1,
-  avatar:
-    "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-  name: "Sweet Delights Bakery",
-  tagline: "Crafting memorable moments with delicious cakes",
-  rating: 4.9,
-  reviews: 500,
-  since: 2018,
-  location: "123 Bakery Street, Sweet City, SC 12345",
-  businessHours: ["Mon-Sat: 9:00 AM - 7:00 PM", "Sun: 10:00 AM - 4:00 PM"],
-  delivery: [
-    "Available within 30 miles radius",
-    "Free delivery on orders above $200",
-  ],
-  gallery: [
-    {
-      title: "Elegant Wedding Cake",
-      img: "https://via.placeholder.com/600x400?text=600x400",
-    },
-    {
-      title: "Birthday Celebration",
-      img: "https://via.placeholder.com/600x400?text=600x400",
-    },
-    {
-      title: "Chocolate Dream",
-      img: "https://via.placeholder.com/600x400?text=600x400",
-    },
-    {
-      title: "Floral Design",
-      img: "https://via.placeholder.com/600x400?text=600x400",
-    },
-    {
-      title: "Summer Berry",
-      img: "https://via.placeholder.com/600x400?text=600x400",
-    },
-    {
-      title: "Classic Vanilla",
-      img: "https://via.placeholder.com/600x400?text=600x400",
-    },
-  ],
-  services: [
-    {
-      title: "Wedding Cakes",
-      desc: "Elegant custom wedding cakes for your special day",
-      price: "$299-999",
-      img: "https://via.placeholder.com/400x300?text=400x300",
-    },
-    {
-      title: "Birthday Cakes",
-      desc: "Personalized birthday cakes for all ages",
-      price: "$89-299",
-      img: "https://via.placeholder.com/400x300?text=400x300",
-    },
-  ],
-};
-
 const UpdateShopSchema = Yup.object().shape({
   business_name: Yup.string().required("Business name is required"),
   business_address: Yup.string().required("Address is required"),
@@ -310,113 +253,127 @@ const ShopDetail = ({ id: propId }) => {
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showUpdate, setShowUpdate] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [products, setProducts] = useState([]);
   const [editProduct, setEditProduct] = useState(null);
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showMenu, setShowMenu] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         const data = await fetchShopByUserId(id);
-        setShop({
-          id: data.shop.shop_id,
-          avatar: data.shop.image_url || mockShop.avatar,
-          name: data.shop.business_name,
-          tagline: mockShop.tagline,
-          rating: 4.9,
-          reviews: 500,
-          since: 2018,
-          location: data.shop.business_address,
-          phone_number: data.shop.phone_number,
-          specialties: data.shop.specialty
-            ? data.shop.specialty.split(",")
-            : [],
-          bio: data.shop.bio,
-          latitude: data.shop.latitude,
-          longitude: data.shop.longitude,
-          businessHours: mockShop.businessHours,
-          delivery: mockShop.delivery,
-          gallery: mockShop.gallery,
-          services: mockShop.services,
-        });
         // Lấy sản phẩm của shop này
         const postsData = await fetchMarketplacePosts();
-        setProducts(
-          (postsData.posts || []).filter((p) => p.shop_id === data.shop.shop_id)
+        const shopProducts = (postsData.posts || []).filter(
+          (p) => p.shop_id === data.shop.shop_id
         );
+        setShop({
+          id: data.shop.shop_id,
+          avatar: data.shop.avatar_image || data.shop.image_url || "",
+          name: data.shop.business_name,
+          bio: data.shop.bio,
+          phone_number: data.shop.phone_number,
+          specialty: data.shop.specialty,
+          business_hours: data.shop.business_hours,
+          delivery_area: data.shop.delivery_area,
+          latitude: data.shop.latitude,
+          longitude: data.shop.longitude,
+          is_active: data.shop.is_active,
+          background_image: data.shop.background_image,
+          user: data.shop.user,
+          services: shopProducts,
+        });
+        setProducts(shopProducts);
       } catch (err) {
-        setShop(mockShop);
+        setShop(null);
         setProducts([]);
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [id, showUpdate]);
+  }, []); // Only run once on mount
 
   if (loading || !shop) return <div>Loading...</div>;
 
-  const isOwner = user && String(user.id) === String(id);
+  const isOwner = user && String(user.id) === String(shop.user?.id);
 
   return (
     <div>
       {/* Header */}
-      <div className="bg-pink-100 rounded-xl p-6 flex flex-col gap-4 mb-6">
-        <div className="flex items-center gap-6">
+      <div className="bg-gradient-to-r from-pink-100 to-pink-200 rounded-xl p-6 flex flex-col gap-4 mb-6 shadow-lg border border-pink-200">
+        <div className="flex flex-col md:flex-row items-center gap-6">
           <img
-            src={shop.avatar}
+            src={shop.avatar || "/placeholder.svg"}
             alt="avatar"
-            className="w-[80px] h-[80px] md:w-32 md:h-32 rounded-full object-cover border-4 border-white shadow"
+            className="w-[100px] h-[100px] md:w-40 md:h-40 rounded-full object-cover border-4 border-white shadow-lg"
           />
           <div className="flex-1 text-left">
-            <h2 className="text-xl md:text-3xl font-bold mb-1">{shop.name}</h2>
-            <div className="text-sm md:text-base text-gray-600 mb-2">
-              {shop.tagline}
+            <h2 className="text-2xl md:text-4xl font-bold mb-2 text-pink-600">
+              {shop.name}
+            </h2>
+            <div className="text-gray-600 text-base mb-2 italic">
+              {shop.bio}
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="font-semibold text-gray-700 mr-1">
-                  {shop.rating}
-                </span>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-700 mb-2">
+              <div>
+                <span className="font-semibold">Phone:</span>{" "}
+                {shop.phone_number}
               </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">·</span>
-                <span>{shop.reviews}+ Orders</span>
+              <div>
+                <span className="font-semibold">Specialty:</span>{" "}
+                {shop.specialty}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold">·</span>
-                <span>Since {shop.since}</span>
+              <div>
+                <span className="font-semibold">Active:</span>{" "}
+                {shop.is_active ? "Yes" : "No"}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-4 text-sm text-gray-700">
+              <div>
+                <span className="font-semibold">Business Hours:</span>{" "}
+                {shop.business_hours}
+              </div>
+              <div>
+                <span className="font-semibold">Delivery Area:</span>{" "}
+                {shop.delivery_area}
               </div>
             </div>
           </div>
           {isOwner && (
-            <button
-              className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg font-semibold ml-4"
-              onClick={() => setShowUpdate(true)}
-            >
-              Edit Shop
-            </button>
+            <div className="flex flex-col gap-2 ml-0 md:ml-4">
+              <button
+                className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2 rounded-lg font-semibold shadow"
+                onClick={() => setShowUpdate(true)}
+              >
+                Edit Shop
+              </button>
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
+                onClick={() => setShowCreate(true)}
+              >
+                <span className="text-lg font-bold">+</span>
+                Create Marketplace Post
+              </button>
+            </div>
           )}
         </div>
-        <div className="flex flex-col md:flex-row gap-4 mt-2">
-          <div className="bg-white rounded-lg shadow p-4 flex-1 min-w-[220px]">
-            <div className="text-sm font-semibold mb-1">Location</div>
-            <div className="text-gray-700 text-sm">{shop.location}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4 flex-1 min-w-[220px]">
-            <div className="text-sm font-semibold mb-1">Business Hours</div>
-            <div className="text-gray-700 text-sm whitespace-pre-line">
-              {shop.businessHours.join("\n")}
+        <div className="flex flex-col md:flex-row gap-4 mt-4">
+          <div className="bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] border border-pink-100">
+            <div className="text-sm font-semibold mb-1 text-pink-500">
+              Address
             </div>
+            <div className="text-gray-700 text-sm">{shop.business_address}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 flex-1 min-w-[220px]">
-            <div className="text-sm font-semibold mb-1">Delivery Area</div>
-            <div className="text-gray-700 text-sm whitespace-pre-line">
-              {shop.delivery.join("\n")}
+          <div className="bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] border border-pink-100">
+            <div className="text-sm font-semibold mb-1 text-pink-500">
+              Location (Lat, Lng)
+            </div>
+            <div className="text-gray-700 text-sm">
+              {shop.latitude}, {shop.longitude}
             </div>
           </div>
         </div>
@@ -430,26 +387,32 @@ const ShopDetail = ({ id: propId }) => {
             Show all
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {shop.gallery.map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-gray-200 rounded-lg h-40 flex items-center justify-center relative overflow-hidden"
-            >
-              <img
-                src={item.img}
-                alt={item.title}
-                className="absolute inset-0 w-full h-full object-cover opacity-60"
-              />
-              <span className="relative z-10 text-white font-semibold text-center text-shadow-lg">
-                {item.title}
-              </span>
-            </div>
-          ))}
-        </div>
+        {shop.gallery && shop.gallery.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {shop.gallery.map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-gray-200 rounded-lg h-40 flex items-center justify-center relative overflow-hidden group"
+              >
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition"
+                />
+                <span className="relative z-10 text-white font-semibold text-center text-shadow-lg">
+                  {item.title}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-gray-400 text-center py-12 text-lg italic bg-white rounded-xl shadow border border-dashed border-pink-200">
+            No cake images yet. Add some beautiful cakes to your gallery!
+          </div>
+        )}
       </div>
 
-      {/* Services */}
+      {/* Our Services */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-bold text-xl">Our Services</h3>
@@ -457,86 +420,104 @@ const ShopDetail = ({ id: propId }) => {
             Show all
           </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {isOwner && products.length > 0
-            ? products.map((product, idx) => (
+        {shop.services.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {shop.services.map((product, idx) => {
+              // Lấy post object đúng key
+              const postObj = product.Post || product.post || {};
+              const firstMedia =
+                postObj.media && postObj.media.length > 0
+                  ? postObj.media[0]
+                  : null;
+              const imageUrl =
+                firstMedia &&
+                firstMedia.image_url &&
+                firstMedia.image_url !== "string"
+                  ? firstMedia.image_url
+                  : "/placeholder.svg";
+              return (
                 <div
                   key={product.post_id}
                   className="bg-white rounded-xl shadow-md border border-gray-100 flex flex-col hover:shadow-lg transition-shadow group relative"
                 >
                   <div className="relative">
                     <img
-                      src={
-                        product.Post?.media?.[0]?.image_url ||
-                        "/placeholder.svg"
-                      }
-                      alt={product.Post?.title}
+                      src={imageUrl}
+                      alt={postObj.title}
                       className="w-full h-48 object-cover rounded-t-xl"
                     />
                     {isOwner && (
-                      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          className="bg-yellow-400 hover:bg-yellow-500 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow"
-                          onClick={() => setEditProduct(product)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-semibold shadow"
-                          onClick={() => setDeleteProduct(product)}
-                        >
-                          Delete
-                        </button>
+                      <div className="absolute top-2 right-2 z-20">
+                        <div className="relative inline-block text-left">
+                          <button
+                            className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 shadow"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setShowMenu(showMenu === product.post_id ? null : product.post_id);
+                            }}
+                            aria-label="More options"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                              <circle cx="12" cy="5" r="1.5" />
+                              <circle cx="12" cy="12" r="1.5" />
+                              <circle cx="12" cy="19" r="1.5" />
+                            </svg>
+                          </button>
+                          {showMenu === product.post_id && (
+                            <div className="absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded-lg shadow-lg z-30 animate-fade-in">
+                              <button
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-yellow-100 hover:text-yellow-700 rounded-t-lg"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setEditProduct(product);
+                                  setShowMenu(null);
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100 hover:text-red-700 rounded-b-lg"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setDeleteProduct(product);
+                                  setShowMenu(null);
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                   <div className="p-4 flex flex-col flex-1">
                     <div className="font-bold text-lg text-pink-600 mb-1 truncate">
-                      {product.Post?.title}
+                      {postObj.title}
                     </div>
                     <div className="text-gray-500 text-sm mb-2 line-clamp-2">
-                      {product.Post?.description}
+                      {postObj.description}
                     </div>
-                    <div className="flex items-center justify-between mt-auto">
+                    <div className="flex items-center justify-between mt-auto gap-2">
                       <span className="text-pink-600 font-bold text-xl">
                         ${product.price}
                       </span>
-                      <button className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-4 py-2 rounded-lg shadow transition">
-                        Inquire Now
-                      </button>
+                      {!isOwner && (
+                        <button className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-4 py-2 rounded-lg shadow transition">
+                          Inquire Now
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
-              ))
-            : shop.services.map((service, idx) => (
-                <div
-                  key={idx}
-                  className="bg-gray-100 rounded-lg overflow-hidden flex flex-col"
-                >
-                  <div className="bg-gray-200 flex-1 flex items-center justify-center min-h-[180px]">
-                    <img
-                      src={service.img}
-                      alt={service.title}
-                      className="object-cover w-full h-full opacity-60"
-                    />
-                  </div>
-                  <div className="p-4 flex flex-col flex-1">
-                    <div className="font-semibold mb-1">{service.title}</div>
-                    <div className="text-sm text-gray-500 mb-2">
-                      {service.desc}
-                    </div>
-                    <div className="flex items-center justify-between mt-auto">
-                      <span className="text-pink-600 font-bold">
-                        {service.price}
-                      </span>
-                      <button className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-4 py-1.5 rounded-lg text-sm">
-                        Inquire Now
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-        </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-gray-400 text-center py-12 text-lg italic bg-white rounded-xl shadow border border-dashed border-pink-200">
+            No products yet. Create your first marketplace post to start selling!
+          </div>
+        )}
       </div>
       <UpdateShopModal
         open={showUpdate}
@@ -545,18 +526,31 @@ const ShopDetail = ({ id: propId }) => {
         userId={id}
         onUpdated={() => setShowUpdate(false)}
       />
+      <CreateMarketplacePost
+        isOpen={showCreate}
+        onClose={() => setShowCreate(false)}
+        onCreate={async (newPost) => {
+          setShowCreate(false);
+          if (newPost) {
+            setProducts((prev) => [...prev, newPost]);
+            setShop((prev) => ({ ...prev, services: [...prev.services, newPost] }));
+          }
+        }}
+      />
       {/* Popup sửa sản phẩm */}
       {editProduct && (
         <CreateMarketplacePost
           isOpen={!!editProduct}
           onClose={() => setEditProduct(null)}
-          onCreate={async () => {
+          onCreate={async (updatedPost) => {
             setEditProduct(null);
-            // reload lại sản phẩm
-            const postsData = await fetchMarketplacePosts();
-            setProducts(
-              (postsData.posts || []).filter((p) => p.shop_id === shop.id)
-            );
+            if (updatedPost) {
+              setProducts((prev) => prev.map((p) => p.post_id === updatedPost.post_id ? updatedPost : p));
+              setShop((prev) => ({
+                ...prev,
+                services: prev.services.map((p) => p.post_id === updatedPost.post_id ? updatedPost : p),
+              }));
+            }
           }}
           initialData={editProduct}
           isEdit={true}
@@ -570,12 +564,12 @@ const ShopDetail = ({ id: propId }) => {
           setDeleteLoading(true);
           try {
             await deleteMarketplacePost(deleteProduct.post_id);
+            setProducts((prev) => prev.filter((p) => p.post_id !== deleteProduct.post_id));
+            setShop((prev) => ({
+              ...prev,
+              services: prev.services.filter((p) => p.post_id !== deleteProduct.post_id),
+            }));
             setDeleteProduct(null);
-            // reload lại sản phẩm
-            const postsData = await fetchMarketplacePosts();
-            setProducts(
-              (postsData.posts || []).filter((p) => p.shop_id === shop.id)
-            );
           } catch (err) {
             alert("Xóa sản phẩm thất bại!");
           } finally {
