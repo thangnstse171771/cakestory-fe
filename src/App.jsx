@@ -14,6 +14,7 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 import Home from "./pages/Home";
 import CakeDesign from "./pages/CakeDesign";
+import AIGenGalleryPage from "./pages/AIGenGalleryPage";
 import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
@@ -93,6 +94,7 @@ export default function App() {
             <Route path="marketplace/create-shop" element={<CreateShop />} />
             <Route path="events" element={<Events />} />
             <Route path="cake-design" element={<CakeDesign />} />
+            <Route path="ai-generated-images" element={<AIGenGalleryPage />} />
             <Route path="challenge" element={<ChallengeList />} />
             <Route path="challenge/:id/group" element={<ChallengeGroup />} />
             <Route path="user/:id" element={<UserProfile />} />
