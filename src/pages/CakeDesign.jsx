@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Download, RotateCcw } from "lucide-react";
 
+import { useNavigate } from "react-router-dom";
+
 const CakeDesign = () => {
   const [selectedShape, setSelectedShape] = useState("Round");
   const [numberOfTiers, setNumberOfTiers] = useState(3);
@@ -10,6 +12,7 @@ const CakeDesign = () => {
   const [height, setHeight] = useState(15);
   const [width, setWidth] = useState(20);
   const [selectedFlavors, setSelectedFlavors] = useState(["Vanilla"]);
+  const navigate = useNavigate();
 
   const shapes = ["Round", "Square", "Rect", "Heart"];
   const flavors = ["Vanilla", "Chocolate", "Lemon", "Red Velvet"];
@@ -27,7 +30,15 @@ const CakeDesign = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-pink-600">Cake Design</h1>
-        <div className="text-sm text-gray-500">Cake design V.2</div>
+        <div className="flex items-center gap-3">
+          <button
+            className="px-4 py-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-lg font-semibold shadow hover:from-pink-500 hover:to-purple-500 transition-all duration-200"
+            onClick={() => navigate('/ai-generated-images')}
+          >
+            AI Generation
+          </button>
+          <div className="text-sm text-gray-500">Cake design V.2</div>
+        </div>
       </div>
 
       <div className="flex gap-6">
@@ -233,6 +244,7 @@ const CakeDesign = () => {
       <div className="mt-6 text-center text-xs text-gray-500">
         © 2025 CakeStory. All rights reserved.
       </div>
+
     </div>
   );
 };
