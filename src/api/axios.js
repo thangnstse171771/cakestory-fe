@@ -74,12 +74,38 @@ export const updateShopByUserId = async (userId, data) => {
 };
 
 export const fetchMarketplacePosts = async () => {
-  const response = await axiosInstance.get("/marketplace-posts");
+  // Lấy token từ localStorage nếu có
+  const token = localStorage.getItem("token");
+  const response = await axiosInstance.get(
+    "/marketplace-posts",
+    token
+      ? {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            accept: "*/*",
+          },
+        }
+      : undefined
+  );
   return response.data;
 };
 
 export const createMarketplacePost = async (data) => {
-  const response = await axiosInstance.post("/marketplace-posts", data);
+  // Lấy token từ localStorage (nếu chưa có sẵn trong axiosInstance)
+  const token = localStorage.getItem("token");
+  const response = await axiosInstance.post(
+    "/marketplace-posts",
+    data,
+    token
+      ? {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            accept: "*/*",
+          },
+        }
+      : undefined
+  );
   return response.data;
 };
 

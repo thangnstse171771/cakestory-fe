@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import { X, Upload } from "lucide-react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
@@ -30,23 +32,6 @@ const CreateMarketplacePost = ({
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Chuẩn hóa media cho edit
-  const convertExistingMediaToFiles = () => {
-    if (!initialData || !initialData.Post?.media) return [];
-    return initialData.Post.media.map((media, index) => {
-      const url = media.image_url || media.video_url;
-      const isVideo = !!media.video_url;
-      return {
-        id: `existing-${index}`,
-        url: url,
-        isVideo: isVideo,
-        isExisting: true,
-        name: `existing-media-${index}`,
-        type: isVideo ? "video/mp4" : "image/jpeg",
-      };
-    });
-  };
-
   const uploadMediaToFirebase = async (file) => {
     const mediaRef = ref(
       storage,
@@ -59,11 +44,8 @@ const CreateMarketplacePost = ({
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
+    if (e.type === "dragenter" || e.type === "dragover") setDragActive(true);
+    else if (e.type === "dragleave") setDragActive(false);
   };
 
   if (!isOpen) return null;
@@ -84,7 +66,7 @@ const CreateMarketplacePost = ({
         </div>
 
         <Formik
-          enableReinitialize={true}
+          enableReinitialize
           initialValues={{
             title: initialData?.Post?.title || "",
             description: initialData?.Post?.description || "",
@@ -92,7 +74,7 @@ const CreateMarketplacePost = ({
             available: initialData?.available ?? true,
             expiry_date: initialData?.expiry_date || "",
             is_public: true,
-            media: isEdit ? convertExistingMediaToFiles() : [],
+            media: [], // always upload new files
           }}
           validationSchema={CreateMarketplacePostSchema}
           onSubmit={async (
@@ -101,26 +83,16 @@ const CreateMarketplacePost = ({
           ) => {
             setLoading(true);
             try {
-              // Tách media cũ và mới
-              const existingMedia = values.media.filter(
-                (item) => item.isExisting
-              );
-              const newFiles = values.media.filter((item) => !item.isExisting);
-              // Upload media mới
+              // Upload files
               const uploadedMedia = await Promise.all(
-                newFiles.map(async (file) => {
+                values.media.map(async (file) => {
                   const url = await uploadMediaToFirebase(file);
                   return file.type.startsWith("video")
                     ? { video_url: url, image_url: null }
                     : { image_url: url, video_url: null };
                 })
               );
-              // Media cũ giữ nguyên
-              const existingMediaFormatted = existingMedia.map((item) => ({
-                image_url: item.isVideo ? null : item.url,
-                video_url: item.isVideo ? item.url : null,
-              }));
-              const finalMedia = [...existingMediaFormatted, ...uploadedMedia];
+
               const payload = {
                 title: values.title,
                 description: values.description,
@@ -128,8 +100,9 @@ const CreateMarketplacePost = ({
                 available: values.available,
                 expiry_date: values.expiry_date,
                 is_public: true,
-                media: finalMedia,
+                media: uploadedMedia,
               };
+
               if (isEdit && initialData) {
                 await updateMarketplacePost(initialData.post_id, payload);
                 if (onCreate) await onCreate();
@@ -143,12 +116,8 @@ const CreateMarketplacePost = ({
                 alert("Marketplace post created!");
               }
             } catch (err) {
-              setFieldError(
-                "general",
-                isEdit
-                  ? "Failed to update marketplace product. Please try again."
-                  : "Failed to create marketplace post. Please try again."
-              );
+              console.error(err);
+              setFieldError("general", "Failed to submit. Please try again.");
             } finally {
               setLoading(false);
               setSubmitting(false);
@@ -172,14 +141,7 @@ const CreateMarketplacePost = ({
                   if (e.dataTransfer.files) {
                     setFieldValue("media", [
                       ...values.media,
-                      ...Array.from(e.dataTransfer.files).map((file) => ({
-                        id: `new-${Date.now()}-${file.name}`,
-                        url: URL.createObjectURL(file),
-                        isVideo: file.type.startsWith("video"),
-                        isExisting: false,
-                        name: file.name,
-                        type: file.type,
-                      })),
+                      ...Array.from(e.dataTransfer.files),
                     ]);
                   }
                 }}
@@ -187,7 +149,7 @@ const CreateMarketplacePost = ({
                 <div className="flex flex-col items-center">
                   <Upload className="w-12 h-12 text-gray-400 mb-2" />
                   <p className="text-gray-600 mb-2">
-                    Drag and drop your cake photos/videos here
+                    Drag and drop your media here
                   </p>
                   <p className="text-gray-400 text-sm mb-4">or</p>
                   <label className="cursor-pointer">
@@ -199,14 +161,7 @@ const CreateMarketplacePost = ({
                       onChange={(e) => {
                         setFieldValue("media", [
                           ...values.media,
-                          ...Array.from(e.target.files).map((file) => ({
-                            id: `new-${Date.now()}-${file.name}`,
-                            url: URL.createObjectURL(file),
-                            isVideo: file.type.startsWith("video"),
-                            isExisting: false,
-                            name: file.name,
-                            type: file.type,
-                          })),
+                          ...Array.from(e.target.files),
                         ]);
                         e.target.value = "";
                       }}
@@ -223,14 +178,14 @@ const CreateMarketplacePost = ({
                 className="text-red-500 text-sm"
               />
 
-              {/* Preview thumbnails */}
+              {/* Media preview */}
               <div className="flex flex-wrap gap-4">
                 {values.media.map((file, index) => {
-                  const url = file.url;
-                  const isVideo = file.isVideo;
+                  const isVideo = file.type.startsWith("video");
+                  const url = URL.createObjectURL(file);
 
                   return (
-                    <div key={file.id} className="relative w-24 h-24">
+                    <div key={index} className="relative w-24 h-24">
                       {isVideo ? (
                         <video
                           src={url}
@@ -278,6 +233,7 @@ const CreateMarketplacePost = ({
                   className="text-red-500 text-sm"
                 />
               </div>
+
               {/* Description */}
               <div>
                 <label className="block text-pink-500 font-semibold mb-1">
@@ -295,6 +251,7 @@ const CreateMarketplacePost = ({
                   className="text-red-500 text-sm"
                 />
               </div>
+
               {/* Price */}
               <div>
                 <label className="block text-pink-500 font-semibold mb-1">
@@ -313,6 +270,7 @@ const CreateMarketplacePost = ({
                   className="text-red-500 text-sm"
                 />
               </div>
+
               {/* Available */}
               <div className="flex items-center gap-2">
                 <Field type="checkbox" name="available" id="available" />
@@ -323,6 +281,7 @@ const CreateMarketplacePost = ({
                   Available
                 </label>
               </div>
+
               {/* Expiry Date */}
               {!isEdit && (
                 <div>
@@ -341,9 +300,13 @@ const CreateMarketplacePost = ({
                   />
                 </div>
               )}
+
+              {/* General error */}
               {errors.general && (
                 <div className="text-red-500 text-sm">{errors.general}</div>
               )}
+
+              {/* Submit button */}
               <button
                 type="submit"
                 disabled={isSubmitting || loading}

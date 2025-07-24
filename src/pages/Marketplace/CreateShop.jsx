@@ -13,7 +13,27 @@ const ShopSchema = Yup.object().shape({
   phone_number: Yup.string().required("Phone number is required"),
   specialty: Yup.string().required("Specialty is required"),
   bio: Yup.string().required("Bio is required"),
+  business_hours: Yup.string().required("Business hours are required"),
+  delivery_area: Yup.string().required("Delivery area is required"),
 });
+
+const specialtyOptions = [
+  "Birthday Cakes",
+  "Wedding Cakes",
+  "Anniversary Cakes",
+  "Cupcakes",
+  "Custom Cakes",
+];
+const businessHoursOptions = [
+  "Mon-Sat: 9:00-19:00, Sun: 10:00-16:00",
+  "Mon-Fri: 8:00-18:00, Sat-Sun: 9:00-17:00",
+  "Everyday: 7:00-21:00",
+];
+const deliveryAreaOptions = [
+  "Within 30km",
+  "Free delivery above $200",
+  "City center only",
+];
 
 const CreateShop = () => {
   const { user } = useAuth();
@@ -38,7 +58,7 @@ const CreateShop = () => {
       }
     };
     checkUserShop();
-  }, [user, navigate]);
+  }, []); // Only run once on mount
 
   // Upload ảnh shop lên Firebase
   const uploadShopImage = async (file, userId) => {
@@ -73,21 +93,24 @@ const CreateShop = () => {
             is_active: true,
             longitude: 0,
             latitude: 0,
-            image_url: "",
+            business_hours: "",
+            delivery_area: "",
+            background_image: "",
+            avatar_image: "",
           }}
           validationSchema={ShopSchema}
           onSubmit={async (values, { setSubmitting, resetForm }) => {
             setLoading(true);
             setError("");
             try {
-              let imageUrl = "";
+              let avatarUrl = "";
               if (imageFile) {
-                imageUrl = await uploadShopImage(imageFile, user?.id);
+                avatarUrl = await uploadShopImage(imageFile, user?.id);
               }
               await createShop({
                 ...values,
                 user_id: user?.id,
-                image_url: imageUrl,
+                avatar_image: avatarUrl,
                 longitude: marker?.lng || 0,
                 latitude: marker?.lat || 0,
               });
@@ -184,8 +207,19 @@ const CreateShop = () => {
                   Specialty
                 </label>
                 <Field
+                  as="select"
                   name="specialty"
-                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 mb-2"
+                >
+                  <option value="">-- Select specialty --</option>
+                  {specialtyOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                  <option value="other">Other (custom)</option>
+                </Field>
+                <Field
+                  name="specialty"
+                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 mt-2"
                   placeholder="e.g. Birthday Cakes, Wedding Cakes"
                 />
                 <ErrorMessage
@@ -196,16 +230,52 @@ const CreateShop = () => {
               </div>
               <div>
                 <label className="block text-pink-500 font-semibold mb-1">
-                  Bio
+                  Business Hours
                 </label>
                 <Field
-                  as="textarea"
-                  name="bio"
-                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 min-h-[80px]"
-                  placeholder="Describe your shop..."
+                  as="select"
+                  name="business_hours"
+                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 mb-2"
+                >
+                  <option value="">-- Select business hours --</option>
+                  {businessHoursOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                  <option value="other">Other (custom)</option>
+                </Field>
+                <Field
+                  name="business_hours"
+                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 mt-2"
+                  placeholder="e.g. Mon-Sat: 9:00-19:00, Sun: 10:00-16:00"
                 />
                 <ErrorMessage
-                  name="bio"
+                  name="business_hours"
+                  component="div"
+                  className="text-red-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-pink-500 font-semibold mb-1">
+                  Delivery Area
+                </label>
+                <Field
+                  as="select"
+                  name="delivery_area"
+                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 mb-2"
+                >
+                  <option value="">-- Select delivery area --</option>
+                  {deliveryAreaOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                  <option value="other">Other (custom)</option>
+                </Field>
+                <Field
+                  name="delivery_area"
+                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 mt-2"
+                  placeholder="e.g. Within 30km, Free delivery above $200"
+                />
+                <ErrorMessage
+                  name="delivery_area"
                   component="div"
                   className="text-red-500 text-sm"
                 />

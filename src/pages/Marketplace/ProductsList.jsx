@@ -3,7 +3,8 @@ import React, { useState, useMemo } from "react";
 
 function ProductDetailModal({ open, product, onClose }) {
   if (!open || !product) return null;
-  const post = product.Post || {};
+  // Lấy post object đúng key
+  const post = product.Post || product.post || {};
   const shop = product.shop || {};
   const firstMedia = post.media && post.media.length > 0 ? post.media[0] : null;
   const imageUrl =
@@ -29,16 +30,29 @@ function ProductDetailModal({ open, product, onClose }) {
             <h2 className="text-2xl font-bold text-pink-600 mb-2">
               {post.title}
             </h2>
-            <div className="text-gray-500 mb-2">{shop.business_name}</div>
+            <div className="text-gray-500 mb-2 font-semibold">
+              Shop: {shop.business_name || shop.name || "Unknown Shop"}
+            </div>
             <div className="mb-2 text-lg font-semibold text-pink-500">
               ${product.price}
             </div>
             <div className="mb-2 text-gray-700">{post.description}</div>
-            <div className="text-xs text-gray-400 mb-2">
-              Expiry:{" "}
-              {product.expiry_date
-                ? new Date(product.expiry_date).toLocaleDateString()
-                : "-"}
+            <div className="flex flex-col gap-1 text-xs text-gray-400 mb-2">
+              <span>
+                Status: {product.available ? "Available" : "Out of stock"}
+              </span>
+              <span>
+                Expiry:{" "}
+                {product.expiry_date
+                  ? new Date(product.expiry_date).toLocaleDateString()
+                  : "-"}
+              </span>
+              <span>
+                Created:{" "}
+                {product.created_at
+                  ? new Date(product.created_at).toLocaleString()
+                  : "-"}
+              </span>
             </div>
             <div className="flex gap-2 mt-auto">
               <button className="bg-pink-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-pink-600 transition">
@@ -123,14 +137,13 @@ const ProductsList = ({ products = [] }) => {
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredProducts.map((item) => {
-          const post = item.Post || {};
+          // Lấy post object đúng key
+          const post = item.Post || item.post || {};
           const shop = item.shop || {};
           const firstMedia =
             post.media && post.media.length > 0 ? post.media[0] : null;
           const imageUrl =
-            firstMedia &&
-            firstMedia.image_url &&
-            firstMedia.image_url !== "string"
+            firstMedia && firstMedia.image_url && firstMedia.image_url !== "string"
               ? firstMedia.image_url
               : "/placeholder.svg";
           return (
