@@ -1,8 +1,18 @@
+
 import axiosInstance from "./axios";
 import { storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export const authAPI = {
+  getFollowers: async (id) => {
+    const response = await axiosInstance.get(`/users/${id}/followers`);
+    return response.data;
+  },
+
+  getFollowing: async (id) => {
+    const response = await axiosInstance.get(`/users/${id}/following`);
+    return response.data;
+  },
   login: async (credentials) => {
     const response = await axiosInstance.post("/auth/login", credentials);
     return response.data;

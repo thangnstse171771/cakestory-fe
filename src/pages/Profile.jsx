@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import usePersonalFollowersFollowing from "../hooks/usePersonalFollowersFollowing";
+import FollowersFollowingModal from "../components/FollowersFollowingModal";
+import useAdminLoader from "../hooks/useAdminLoader";
 import { useAuth } from "../contexts/AuthContext";
 import { authAPI } from "../api/auth";
 
@@ -22,6 +25,10 @@ const Profile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showFollowers, setShowFollowers] = useState(false);
+  const [showFollowing, setShowFollowing] = useState(false);
+  const { followers, following, fetchFollowers, fetchFollowing } = usePersonalFollowersFollowing(user?.id);
+  const adminLoader = useAdminLoader();
 
   const userStats = [
     { label: "Posts", value: "127" },
@@ -118,6 +125,8 @@ const Profile = () => {
       try {
         const data = await authAPI.getUserById(user.id);
         setProfile(data.user);
+        await fetchFollowers();
+        await fetchFollowing();
       } catch (e) {
         setProfile(null);
       } finally {
@@ -125,7 +134,7 @@ const Profile = () => {
       }
     };
     fetchProfile();
-  }, [user]);
+  }, [user, fetchFollowers, fetchFollowing]);
 
   if (loading) {
     return (
@@ -206,18 +215,61 @@ const Profile = () => {
               </div>
 
               <div className="grid grid-cols-4 gap-4">
-                {userStats.map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="text-center bg-pink-50 rounded-xl p-4"
-                  >
-                    <div className="text-2xl font-bold text-pink-500">
-                      {stat.value}
-                    </div>
-                    <div className="text-sm text-gray-600">{stat.label}</div>
-                  </div>
-                ))}
+                <div className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer" onClick={() => { fetchFollowers(); setShowFollowers(true); }}>
+                  <div className="text-2xl font-bold text-pink-500">{followers.length}</div>
+                  <div className="text-sm text-gray-600">Followers</div>
+                </div>
+                <div className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer" onClick={() => { fetchFollowing(); setShowFollowing(true); }}>
+                  <div className="text-2xl font-bold text-pink-500">{following.length}</div>
+                  <div className="text-sm text-gray-600">Following</div>
+                </div>
+                <div className="text-center bg-pink-50 rounded-xl p-4">
+                  <div className="text-2xl font-bold text-pink-500">127</div>
+                  <div className="text-sm text-gray-600">Posts</div>
+                </div>
+                <div className="text-center bg-pink-50 rounded-xl p-4">
+                  <div className="text-2xl font-bold text-pink-500">15.6K</div>
+                  <div className="text-sm text-gray-600">Likes</div>
+                </div>
               </div>
+
+              {/* Modals for followers/following */}
+              <FollowersFollowingModal
+                open={showFollowers}
+                onClose={() => setShowFollowers(false)}
+                users={followers}
+                title="Danh sách người theo dõi"
+                currentUserId={user?.id}
+                onFollow={async (targetId) => {
+                  await authAPI.followUserById(targetId);
+                  await fetchFollowing();
+                  await fetchFollowers();
+                }}
+                onUnfollow={async (targetId) => {
+                  await authAPI.unfollowUserById(targetId);
+                  await fetchFollowing();
+                  await fetchFollowers();
+                }}
+                followingIds={following.map((u) => u.id)}
+              />
+              <FollowersFollowingModal
+                open={showFollowing}
+                onClose={() => setShowFollowing(false)}
+                users={following}
+                title="Đang theo dõi"
+                currentUserId={user?.id}
+                onFollow={async (targetId) => {
+                  await authAPI.followUserById(targetId);
+                  await fetchFollowing();
+                  await fetchFollowers();
+                }}
+                onUnfollow={async (targetId) => {
+                  await authAPI.unfollowUserById(targetId);
+                  await fetchFollowing();
+                  await fetchFollowers();
+                }}
+                followingIds={following.map((u) => u.id)}
+              />
             </div>
           </div>
         </div>
