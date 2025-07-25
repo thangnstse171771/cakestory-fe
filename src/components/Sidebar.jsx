@@ -35,7 +35,7 @@ const Sidebar = () => {
   ];
   // Menu cho user thường
   const userMenu = [
-    { icon: MessageCircle, label: "Messages", path: "/messages" },
+    { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: BookImage, label: "My Post", path: "/mypost" },
     { icon: User, label: "Profile", path: "/profile" },
   ];
@@ -99,7 +99,7 @@ const Sidebar = () => {
               key={path}
               to={path}
               end={
-                ["/admin", "/messages", "/mypost", "/profile"].includes(path)
+                ["/admin", "/chat", "/mypost", "/profile"].includes(path)
                   ? true
                   : undefined
               }
