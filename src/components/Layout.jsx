@@ -10,6 +10,8 @@ const Layout = () => {
   const isAuthPage =
     location.pathname === "/login" || location.pathname === "/signup";
 
+  const isChatPage = location.pathname === "/chat";
+
   return (
     <div className="min-h-screen">
       <div className="flex">
@@ -18,7 +20,7 @@ const Layout = () => {
 
         <main
           className={`flex-1 ${
-            !isAuthPage ? "ml-20 lg:ml-64" : ""
+            !isAuthPage && !isChatPage ? "ml-20 lg:ml-64" : ""
           } p-6 transition-all duration-300`}
         >
           <Outlet />

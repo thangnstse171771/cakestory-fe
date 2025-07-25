@@ -20,7 +20,7 @@ import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
 import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
-import Messages from "./pages/Messages";
+import Chat from "./pages/Chat/Chat";
 import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
 import WalletManagement from "./pages/Admin/WalletManagement";
@@ -116,7 +116,7 @@ export default function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="mypost" element={<MyPost />} />
-            <Route path="messages" element={<Messages />} />
+            <Route path="chat" element={<Chat />} />
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />
             <Route path="admin/wallet" element={<WalletManagement />} />
