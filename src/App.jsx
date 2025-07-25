@@ -19,6 +19,7 @@ import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
+import ShopAnalysic from "./pages/Marketplace/ShopAnalysic";
 import Messages from "./pages/Messages";
 import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
             <Route path="marketplace/create-shop" element={<CreateShop />} />
+            <Route path="marketplace/shop-analytics" element={<ShopAnalysic onBack={() => window.history.back()} />} />
             <Route path="events" element={<Events />} />
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="ai-generated-images" element={<AIGenGalleryPage />} />
