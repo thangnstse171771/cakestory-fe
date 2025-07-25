@@ -1,5 +1,5 @@
 import { Image, Info } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import UserInfoPanel from "./ChatInfo";
 
 const OPPOSING_USER = {
@@ -13,6 +13,21 @@ const OPPOSING_USER = {
 
 const ChatArea = () => {
   const [showUserInfo, setShowUserInfo] = useState(false);
+
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100); // delay slightly to wait for layout paint
+
+    return () => clearTimeout(timeout);
+  });
+
+  //   useEffect(() => {
+  //     endRef.current?.scrollIntoView({ behavior: "smooth" });
+  //   }, [messages]);
+
   return (
     <div className="flex flex-1 bg-white rounded-r-xl shadow-sm border-t border-r border-b border-gray-100">
       {/* Main Chat Area */}
@@ -102,6 +117,7 @@ const ChatArea = () => {
                 </div>
               </div>
             </div>
+            <div ref={endRef}></div>
           </div>
         </div>
 
