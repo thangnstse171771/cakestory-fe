@@ -165,7 +165,7 @@ const orderColumns = [
   },
 ];
 
-const ShopAnalysic = ({ onBack }) => {
+const ShopAnalystic = ({ onBack }) => {
   const [tab, setTab] = useState("overview");
 
   return (
