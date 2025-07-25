@@ -1,5 +1,5 @@
 // src/components/Sidebar.jsx
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   ShoppingBag,
@@ -17,11 +17,12 @@ import {
   Menu,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showMore, setShowMore] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -60,6 +61,10 @@ const Sidebar = () => {
       menuItems = [...publicMenu, ...userMenu];
     }
   }
+
+  useEffect(() => {
+    setCollapsed(location.pathname === "/chat");
+  }, [location.pathname]);
 
   return (
     <div

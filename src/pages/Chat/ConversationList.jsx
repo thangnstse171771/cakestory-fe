@@ -69,7 +69,7 @@ const ConversationList = () => {
   ];
 
   return (
-    <div className="w-1/4 lg:w-1/3 flex flex-col bg-white rounded-l-xl shadow-sm border border-gray-100">
+    <div className="min-w-[180px] w-1/5 lg:w-1/4 flex flex-col bg-white rounded-l-xl shadow-sm border border-gray-100">
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Messages</h2>
         <div className="relative">
@@ -86,7 +86,7 @@ const ConversationList = () => {
         {conversations.map((conversation) => (
           <div
             key={conversation.id}
-            className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+            className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer h-auto"
           >
             <div className="flex items-center space-x-3">
               <img
