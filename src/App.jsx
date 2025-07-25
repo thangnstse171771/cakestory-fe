@@ -20,7 +20,6 @@ import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
 import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
-import Messages from "./pages/Messages";
 import Chat from "./pages/Chat/Chat";
 import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
