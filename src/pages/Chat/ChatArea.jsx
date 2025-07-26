@@ -48,10 +48,10 @@ const ChatArea = () => {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+              className="p-2 rounded-lg hover:bg-gray-100"
               onClick={() => setShowUserInfo((v) => !v)}
             >
-              <Info className="w-5 h-5" />
+              <Info className="w-5 h-5 text-pink-500 hover:text-pink-600" />
             </button>
           </div>
         </div>
