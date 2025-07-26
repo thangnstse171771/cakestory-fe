@@ -35,6 +35,7 @@ import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
 import AdminChallengeDashboard from "./pages/AdminChallenge/AdminDashboard";
 import UserProfile from "./pages/UserProfile";
 import CreateShop from "./pages/Marketplace/CreateShop";
+import UserWallet from "./pages/Wallet/UserWallet";
 import "./App.css";
 import ToastNotify from "./components/ToastNotify";
 
@@ -105,6 +106,7 @@ export default function App() {
             <Route path="challenge" element={<ChallengeList />} />
             <Route path="challenge/:id/group" element={<ChallengeGroup />} />
             <Route path="user/:id" element={<UserProfile />} />
+            <Route path="wallet" element={<UserWallet />} />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}
