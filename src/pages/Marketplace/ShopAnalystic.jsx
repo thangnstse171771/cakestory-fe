@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   Tabs,
@@ -20,6 +20,7 @@ import {
   BarChartOutlined,
   LineChartOutlined,
   PieChartOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import {
   LineChart,
@@ -38,6 +39,12 @@ import {
 } from "recharts";
 import "./ShopAnalystic.css";
 import { Star } from "lucide-react";
+import {
+  fetchShopMembers,
+  fetchAllActiveUsers,
+  addMemberToShop,
+  deleteMemberFromShop,
+} from "../../api/shopMembers";
 
 const fakeShopInfo = {
   name: "Sweet Cake Shop",
@@ -123,50 +130,171 @@ const productData = [
 ];
 const COLORS = ["#f59e42", "#52c41a", "#ff7875", "#1890ff", "#fadb14"];
 
-const memberColumns = [
-  {
-    title: "Avatar",
-    dataIndex: "avatar",
-    key: "avatar",
-    render: (_, record) => <Avatar icon={<UserOutlined />} />,
-  },
-  { title: "Name", dataIndex: "name", key: "name" },
-  {
-    title: "Role",
-    dataIndex: "role",
-    key: "role",
-    render: (role) => (
-      <Tag color={role === "Owner" ? "gold" : "blue"}>{role}</Tag>
-    ),
-  },
-  { title: "Joined", dataIndex: "joined", key: "joined" },
-];
-
-const orderColumns = [
-  { title: "Order ID", dataIndex: "id", key: "id" },
-  { title: "Customer", dataIndex: "customer", key: "customer" },
-  { title: "Date", dataIndex: "date", key: "date" },
-  {
-    title: "Status",
-    dataIndex: "status",
-    key: "status",
-    render: (status) => {
-      let color = "green";
-      if (status === "Pending") color = "orange";
-      if (status === "Cancelled") color = "red";
-      return <Tag color={color}>{status}</Tag>;
-    },
-  },
-  {
-    title: "Total (VND)",
-    dataIndex: "total",
-    key: "total",
-    render: (total) => total.toLocaleString(),
-  },
-];
-
 const ShopAnalystic = ({ onBack }) => {
   const [tab, setTab] = useState("overview");
+  const [members, setMembers] = useState([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [activeUsers, setActiveUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [addingUserId, setAddingUserId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState(null);
+  const [deletingMember, setDeletingMember] = useState(false);
+
+  // Hàm hiển thị modal xác nhận xóa
+  const showDeleteConfirm = (record) => {
+    setMemberToDelete(record);
+    setShowDeleteModal(true);
+  };
+
+  // Hàm xử lý xóa thành viên
+  const handleDeleteMember = async () => {
+    if (!memberToDelete) return;
+
+    setDeletingMember(true);
+    try {
+      await deleteMemberFromShop(memberToDelete.id);
+      // Refresh members list
+      const data = await fetchShopMembers();
+      setMembers(
+        data.members.map((m) => ({
+          id: m.user_id,
+          name: m.User?.username || "",
+          role: m.is_admin ? "Owner" : "Staff",
+          avatar: "",
+          joined: m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "",
+        }))
+      );
+      setShowDeleteModal(false);
+      setMemberToDelete(null);
+    } catch (error) {
+      console.error("Error deleting member:", error);
+    } finally {
+      setDeletingMember(false);
+    }
+  };
+
+  const memberColumns = [
+    {
+      title: "Avatar",
+      dataIndex: "avatar",
+      key: "avatar",
+      render: (_, record) => <Avatar icon={<UserOutlined />} />,
+      width: 60,
+    },
+    { title: "Name", dataIndex: "name", key: "name", width: 160 },
+    {
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      render: (role) => (
+        <Tag color={role === "Owner" ? "gold" : "blue"}>{role}</Tag>
+      ),
+      width: 100,
+    },
+    { title: "Joined", dataIndex: "joined", key: "joined", width: 120 },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 120,
+      render: (_, record) =>
+        record.role !== "Owner" ? (
+          <Button
+            danger
+            type="primary"
+            style={{
+              background: "#ff7875",
+              borderColor: "#ff7875",
+              color: "#fff",
+              borderRadius: 8,
+            }}
+            onClick={() => showDeleteConfirm(record)}
+          >
+            Xóa
+          </Button>
+        ) : (
+          <Tag color="gold">Chủ shop</Tag>
+        ),
+    },
+  ];
+
+  const orderColumns = [
+    { title: "Order ID", dataIndex: "id", key: "id" },
+    { title: "Customer", dataIndex: "customer", key: "customer" },
+    { title: "Date", dataIndex: "date", key: "date" },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status) => {
+        let color = "green";
+        if (status === "Pending") color = "orange";
+        if (status === "Cancelled") color = "red";
+        return <Tag color={color}>{status}</Tag>;
+      },
+    },
+    {
+      title: "Total (VND)",
+      dataIndex: "total",
+      key: "total",
+      render: (total) => total.toLocaleString(),
+    },
+  ];
+
+  const handleOpenAddModal = () => {
+    setShowAddModal(true);
+    setLoadingUsers(true);
+    fetchAllActiveUsers()
+      .then((users) => setActiveUsers(users))
+      .catch(() => setActiveUsers([]))
+      .finally(() => setLoadingUsers(false));
+  };
+
+  const handleAddMember = async (userId) => {
+    setAddingUserId(userId);
+    try {
+      await addMemberToShop(userId);
+      // Refresh members list
+      fetchShopMembers().then((data) => {
+        setMembers(
+          data.members.map((m) => ({
+            id: m.user_id,
+            name: m.User?.username || "",
+            role: m.is_admin ? "Owner" : "Staff",
+            avatar: "",
+            joined: m.joined_at
+              ? new Date(m.joined_at).toLocaleDateString()
+              : "",
+          }))
+        );
+      });
+    } finally {
+      setAddingUserId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (tab === "members") {
+      setLoadingMembers(true);
+      fetchShopMembers()
+        .then((data) => {
+          setMembers(
+            data.members.map((m) => ({
+              id: m.user_id,
+              name: m.User?.username || "",
+              role: m.is_admin ? "Owner" : "Staff",
+              avatar: "",
+              joined: m.joined_at
+                ? new Date(m.joined_at).toLocaleDateString()
+                : "",
+            }))
+          );
+        })
+        .catch(() => setMembers([]))
+        .finally(() => setLoadingMembers(false));
+    }
+  }, [tab]);
 
   return (
     <div className="shop-analysic-container">
@@ -373,13 +501,280 @@ const ShopAnalystic = ({ onBack }) => {
               </span>
             ),
             children: (
-              <Table
-                columns={memberColumns}
-                dataSource={fakeShopInfo.members}
-                rowKey="id"
-                pagination={false}
-                className="fade-in-table"
-              />
+              <>
+                <Button
+                  type="primary"
+                  style={{ marginBottom: 16 }}
+                  onClick={handleOpenAddModal}
+                >
+                  Thêm thành viên
+                </Button>
+                <Table
+                  columns={memberColumns}
+                  dataSource={members}
+                  rowKey="id"
+                  loading={loadingMembers}
+                  pagination={false}
+                  className="fade-in-table"
+                />
+                {showAddModal && (
+                  <div
+                    className="add-member-modal-overlay"
+                    style={{
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      width: "100vw",
+                      height: "100vh",
+                      background: "rgba(245,158,66,0.08)",
+                      zIndex: 1000,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: "#fff",
+                        padding: 56,
+                        minWidth: 700,
+                        maxWidth: 1100,
+                        width: "98%",
+                        borderRadius: 24,
+                        boxShadow: "0 6px 40px rgba(245,158,66,0.18)",
+                        border: "2px solid #f59e42",
+                        position: "relative",
+                      }}
+                    >
+                      <Button
+                        type="text"
+                        onClick={() => setShowAddModal(false)}
+                        style={{
+                          position: "absolute",
+                          top: 18,
+                          right: 18,
+                          fontSize: 22,
+                          color: "#f59e42",
+                          fontWeight: 700,
+                        }}
+                      >
+                        ×
+                      </Button>
+                      <h2
+                        style={{
+                          marginBottom: 32,
+                          textAlign: "center",
+                          color: "#f59e42",
+                          fontWeight: 700,
+                          fontSize: 28,
+                        }}
+                      >
+                        Thêm thành viên vào shop
+                      </h2>
+                      <Table
+                        columns={[
+                          {
+                            title: "Avatar",
+                            dataIndex: "avatar",
+                            key: "avatar",
+                            render: (avatar) => (
+                              <Avatar
+                                src={avatar}
+                                icon={<UserOutlined />}
+                                size={48}
+                                style={{ background: "#f59e42" }}
+                              />
+                            ),
+                            width: 80,
+                          },
+                          {
+                            title: "Tên",
+                            dataIndex: "full_name",
+                            key: "full_name",
+                            render: (v, r) => v || r.username,
+                            width: 180,
+                          },
+                          {
+                            title: "Email",
+                            dataIndex: "email",
+                            key: "email",
+                            width: 220,
+                          },
+                          {
+                            title: "Vai trò",
+                            dataIndex: "role",
+                            key: "role",
+                            render: (role) => {
+                              let color = "#f59e42";
+                              if (role === "admin") color = "#fadb14";
+                              if (role === "user") color = "#1890ff";
+                              if (role === "account_staff") color = "#52c41a";
+                              if (role === "complaint_handler")
+                                color = "#ff7875";
+                              return (
+                                <Tag
+                                  style={{
+                                    background: color,
+                                    color: "#fff",
+                                    borderRadius: 8,
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {role}
+                                </Tag>
+                              );
+                            },
+                            width: 140,
+                          },
+                          {
+                            title: "Thao tác",
+                            key: "action",
+                            width: 160,
+                            render: (_, record) =>
+                              members.some(
+                                (m) => m.name === record.username
+                              ) ? (
+                                <Tag
+                                  style={{
+                                    background: "#52c41a",
+                                    color: "#fff",
+                                    borderRadius: 8,
+                                  }}
+                                >
+                                  Đã là thành viên
+                                </Tag>
+                              ) : (
+                                <Button
+                                  type="primary"
+                                  style={{
+                                    background: "#f59e42",
+                                    borderColor: "#f59e42",
+                                    color: "#fff",
+                                    fontWeight: 600,
+                                    borderRadius: 8,
+                                  }}
+                                  loading={addingUserId === record.id}
+                                  onClick={() => handleAddMember(record.id)}
+                                  onMouseOver={(e) =>
+                                    (e.currentTarget.style.background =
+                                      "#d9822b")
+                                  }
+                                  onMouseOut={(e) =>
+                                    (e.currentTarget.style.background =
+                                      "#f59e42")
+                                  }
+                                >
+                                  Thêm vào shop
+                                </Button>
+                              ),
+                          },
+                        ]}
+                        dataSource={activeUsers}
+                        rowKey="id"
+                        loading={loadingUsers}
+                        pagination={{ pageSize: 8 }}
+                        style={{ marginTop: 8 }}
+                        scroll={{ y: 700 }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Delete Confirmation Modal */}
+                {showDeleteModal && (
+                  <div
+                    className="delete-modal-overlay"
+                    style={{
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      width: "100vw",
+                      height: "100vh",
+                      background: "rgba(0, 0, 0, 0.5)",
+                      zIndex: 1001,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: "#fff",
+                        padding: 32,
+                        borderRadius: 12,
+                        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.2)",
+                        minWidth: 400,
+                        maxWidth: 500,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <ExclamationCircleOutlined
+                          style={{
+                            color: "#ff7875",
+                            fontSize: 24,
+                            marginRight: 12,
+                          }}
+                        />
+                        <h3
+                          style={{ margin: 0, fontSize: 18, fontWeight: 600 }}
+                        >
+                          Xác nhận xóa thành viên
+                        </h3>
+                      </div>
+
+                      <div style={{ marginBottom: 24 }}>
+                        <p style={{ margin: 0, marginBottom: 8 }}>
+                          Bạn có chắc chắn muốn xóa thành viên{" "}
+                          <strong>{memberToDelete?.name}</strong> khỏi shop
+                          không?
+                        </p>
+                        <p
+                          style={{
+                            color: "#ff7875",
+                            fontSize: "14px",
+                            margin: 0,
+                            fontStyle: "italic",
+                          }}
+                        >
+                          Hành động này không thể hoàn tác.
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          gap: 12,
+                        }}
+                      >
+                        <Button
+                          onClick={() => {
+                            setShowDeleteModal(false);
+                            setMemberToDelete(null);
+                          }}
+                          disabled={deletingMember}
+                        >
+                          Hủy
+                        </Button>
+                        <Button
+                          type="primary"
+                          danger
+                          loading={deletingMember}
+                          onClick={handleDeleteMember}
+                        >
+                          Xóa
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             ),
           },
           {
