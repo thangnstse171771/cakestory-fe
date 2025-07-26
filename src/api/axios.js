@@ -121,3 +121,13 @@ export const deleteMarketplacePost = async (postId) => {
   const response = await axiosInstance.delete(`/marketplace-posts/${postId}`);
   return response.data;
 };
+
+export const depositToWallet = async (amount) => {
+  const response = await axiosInstance.post("/wallet/deposit", { amount });
+  return response.data;
+};
+
+export const fetchWalletBalance = async () => {
+  const response = await axiosInstance.get("/wallet/balance");
+  return response.data;
+};
