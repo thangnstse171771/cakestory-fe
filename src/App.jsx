@@ -19,7 +19,8 @@ import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
-import Messages from "./pages/Messages";
+import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
+import Chat from "./pages/Chat/Chat";
 import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
 import WalletManagement from "./pages/Admin/WalletManagement";
@@ -93,6 +94,10 @@ export default function App() {
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
             <Route path="marketplace/create-shop" element={<CreateShop />} />
+            <Route
+              path="marketplace/shop-analytics"
+              element={<ShopAnalystic onBack={() => window.history.back()} />}
+            />
             <Route path="events" element={<Events />} />
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="ai-generated-images" element={<AIGenGalleryPage />} />
@@ -113,7 +118,7 @@ export default function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="mypost" element={<MyPost />} />
-            <Route path="messages" element={<Messages />} />
+            <Route path="chat" element={<Chat />} />
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />
             <Route path="admin/wallet" element={<WalletManagement />} />

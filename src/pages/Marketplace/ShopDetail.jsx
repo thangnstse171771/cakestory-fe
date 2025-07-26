@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import ShopAnalysticSummary from "./ShopAnalysticSummary";
 import { Star } from "lucide-react";
 import { useParams } from "react-router-dom";
 import {
@@ -247,6 +249,7 @@ function UpdateShopModal({ open, onClose, shop, userId, onUpdated }) {
 }
 
 const ShopDetail = ({ id: propId }) => {
+  const navigate = useNavigate();
   const params = useParams();
   const id = propId || params.id;
   const { user } = useAuth();
@@ -368,7 +371,7 @@ const ShopDetail = ({ id: propId }) => {
             </div>
             <div className="text-gray-700 text-sm">{shop.business_address}</div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4 flex-1 min-w-[220px] border border-pink-100">
+          <div className="bg-white rounded-xl shadow p-4 flex-1 min-w-[220px] border border-pink-100">
             <div className="text-sm font-semibold mb-1 text-pink-500">
               Location (Lat, Lng)
             </div>
@@ -379,11 +382,12 @@ const ShopDetail = ({ id: propId }) => {
         </div>
       </div>
 
+
       {/* Gallery */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-xl">Our Cake Gallery</h3>
-          <button className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-6 h-8 rounded-md shadow-sm transition">
+          <h3 className="font-bold text-xl text-pink-500">Our Cake Gallery</h3>
+          <button className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-6 h-8 rounded-lg shadow transition">
             Show all
           </button>
         </div>
@@ -392,31 +396,47 @@ const ShopDetail = ({ id: propId }) => {
             {shop.gallery.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-gray-200 rounded-lg h-40 flex items-center justify-center relative overflow-hidden group"
+                className="bg-gradient-to-br from-pink-100 to-orange-100 rounded-xl h-44 flex items-center justify-center relative overflow-hidden group shadow border border-pink-100 hover:shadow-lg transition"
               >
                 <img
                   src={item.img}
                   alt={item.title}
                   className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition"
                 />
-                <span className="relative z-10 text-white font-semibold text-center text-shadow-lg">
+                <span className="relative z-10 text-white font-semibold text-center text-shadow-lg text-lg drop-shadow-lg">
                   {item.title}
                 </span>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-gray-400 text-center py-12 text-lg italic bg-white rounded-xl shadow border border-dashed border-pink-200">
+          <div className="text-pink-400 text-center py-12 text-lg italic bg-white rounded-xl shadow border border-dashed border-pink-200">
             No cake images yet. Add some beautiful cakes to your gallery!
           </div>
         )}
       </div>
 
+      {/* Shop Analytics Summary + Button */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-xl text-pink-500">Phân tích Shop</h3>
+          <button
+            onClick={() => navigate('/marketplace/shop-analytics')}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
+            style={{ boxShadow: '0 2px 8px 0 #f9a8d4' }}
+          >
+            <span role="img" aria-label="analytics">📊</span>
+            Xem chi tiết phân tích
+          </button>
+        </div>
+        <ShopAnalysticSummary />
+      </div>
+
       {/* Our Services */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-bold text-xl">Our Services</h3>
-          <button className="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-6 h-8 rounded-md shadow-sm transition">
+          <h3 className="font-bold text-xl text-pink-500">Our Services</h3>
+          <button className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-6 h-8 rounded-lg shadow transition">
             Show all
           </button>
         </div>
@@ -438,26 +458,37 @@ const ShopDetail = ({ id: propId }) => {
               return (
                 <div
                   key={product.post_id}
-                  className="bg-white rounded-xl shadow-md border border-gray-100 flex flex-col hover:shadow-lg transition-shadow group relative"
+                  className="bg-gradient-to-br from-pink-50 to-orange-50 rounded-xl shadow-md border border-pink-100 flex flex-col hover:shadow-lg transition-shadow group relative"
                 >
                   <div className="relative">
                     <img
                       src={imageUrl}
                       alt={postObj.title}
-                      className="w-full h-48 object-cover rounded-t-xl"
+                      className="w-full h-48 object-cover rounded-t-xl border-b-2 border-pink-100"
                     />
                     {isOwner && (
                       <div className="absolute top-2 right-2 z-20">
                         <div className="relative inline-block text-left">
                           <button
                             className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 shadow"
-                            onClick={e => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              setShowMenu(showMenu === product.post_id ? null : product.post_id);
+                              setShowMenu(
+                                showMenu === product.post_id
+                                  ? null
+                                  : product.post_id
+                              );
                             }}
                             aria-label="More options"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={2}
+                              stroke="currentColor"
+                              className="w-5 h-5"
+                            >
                               <circle cx="12" cy="5" r="1.5" />
                               <circle cx="12" cy="12" r="1.5" />
                               <circle cx="12" cy="19" r="1.5" />
@@ -467,7 +498,7 @@ const ShopDetail = ({ id: propId }) => {
                             <div className="absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded-lg shadow-lg z-30 animate-fade-in">
                               <button
                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-yellow-100 hover:text-yellow-700 rounded-t-lg"
-                                onClick={e => {
+                                onClick={(e) => {
                                   e.stopPropagation();
                                   setEditProduct(product);
                                   setShowMenu(null);
@@ -477,7 +508,7 @@ const ShopDetail = ({ id: propId }) => {
                               </button>
                               <button
                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100 hover:text-red-700 rounded-b-lg"
-                                onClick={e => {
+                                onClick={(e) => {
                                   e.stopPropagation();
                                   setDeleteProduct(product);
                                   setShowMenu(null);
@@ -515,7 +546,8 @@ const ShopDetail = ({ id: propId }) => {
           </div>
         ) : (
           <div className="text-gray-400 text-center py-12 text-lg italic bg-white rounded-xl shadow border border-dashed border-pink-200">
-            No products yet. Create your first marketplace post to start selling!
+            No products yet. Create your first marketplace post to start
+            selling!
           </div>
         )}
       </div>
@@ -533,7 +565,10 @@ const ShopDetail = ({ id: propId }) => {
           setShowCreate(false);
           if (newPost) {
             setProducts((prev) => [...prev, newPost]);
-            setShop((prev) => ({ ...prev, services: [...prev.services, newPost] }));
+            setShop((prev) => ({
+              ...prev,
+              services: [...prev.services, newPost],
+            }));
           }
         }}
       />
@@ -545,10 +580,16 @@ const ShopDetail = ({ id: propId }) => {
           onCreate={async (updatedPost) => {
             setEditProduct(null);
             if (updatedPost) {
-              setProducts((prev) => prev.map((p) => p.post_id === updatedPost.post_id ? updatedPost : p));
+              setProducts((prev) =>
+                prev.map((p) =>
+                  p.post_id === updatedPost.post_id ? updatedPost : p
+                )
+              );
               setShop((prev) => ({
                 ...prev,
-                services: prev.services.map((p) => p.post_id === updatedPost.post_id ? updatedPost : p),
+                services: prev.services.map((p) =>
+                  p.post_id === updatedPost.post_id ? updatedPost : p
+                ),
               }));
             }
           }}
@@ -564,10 +605,14 @@ const ShopDetail = ({ id: propId }) => {
           setDeleteLoading(true);
           try {
             await deleteMarketplacePost(deleteProduct.post_id);
-            setProducts((prev) => prev.filter((p) => p.post_id !== deleteProduct.post_id));
+            setProducts((prev) =>
+              prev.filter((p) => p.post_id !== deleteProduct.post_id)
+            );
             setShop((prev) => ({
               ...prev,
-              services: prev.services.filter((p) => p.post_id !== deleteProduct.post_id),
+              services: prev.services.filter(
+                (p) => p.post_id !== deleteProduct.post_id
+              ),
             }));
             setDeleteProduct(null);
           } catch (err) {

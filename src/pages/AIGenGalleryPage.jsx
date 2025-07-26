@@ -12,11 +12,11 @@ const defaultFields = {
 
 function composePrompt(fields) {
   // Đưa prompt người dùng nhập lên đầu, sau đó mới đến prompt ẩn
-  let userPrompt = `Bánh kem${fields.name ? ' ' + fields.name : ''}`;
+  let userPrompt = `Bánh kem${fields.name ? " " + fields.name : ""}`;
   if (fields.layers) userPrompt += `, ${fields.layers} tầng`;
   if (fields.color) userPrompt += `, màu ${fields.color}`;
   if (fields.theme) userPrompt += `, chủ đề ${fields.theme}`;
-  userPrompt += '.';
+  userPrompt += ".";
   // Đảm bảo prompt người dùng nhập là phần đầu tiên, sau đó mới đến prompt ẩn để AI ưu tiên ý người dùng
   return `${userPrompt} ${HIDDEN_PROMPT}`;
 }
@@ -38,8 +38,7 @@ export default function AIGenGalleryPage() {
     fetch("https://cakestory-be.onrender.com/api/ai/images", {
       headers: {
         accept: "*/*",
-        Authorization:
-          "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywidXNlcm5hbWUiOiJzb25ndGhhbmciLCJlbWFpbCI6InNvbmd0aGFuZ0BnbWFpbC5jb20iLCJyb2xlIjoidXNlciIsImZpcmViYXNlVWlkIjoiUWIwUVhVcDM1U1RNRUJZWlg2WFp1bHRUODFyMiIsImlhdCI6MTc1MzM1MjUwMiwiZXhwIjoxNzUzNDM4OTAyfQ.zD9PR651DBsYBpFiKkjPPjSfWzRC5TEzDqSfepX9m5M",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     })
       .then((res) => res.json())
@@ -58,8 +57,7 @@ export default function AIGenGalleryPage() {
     fetch("https://cakestory-be.onrender.com/api/ai/images", {
       headers: {
         accept: "*/*",
-        Authorization:
-          "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywidXNlcm5hbWUiOiJzb25ndGhhbmciLCJlbWFpbCI6InNvbmd0aGFuZ0BnbWFpbC5jb20iLCJyb2xlIjoidXNlciIsImZpcmViYXNlVWlkIjoiUWIwUVhVcDM1U1RNRUJZWlg2WFp1bHRUODFyMiIsImlhdCI6MTc1MzM1MjUwMiwiZXhwIjoxNzUzNDM4OTAyfQ.zD9PR651DBsYBpFiKkjPPjSfWzRC5TEzDqSfepX9m5M",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     })
       .then((res) => res.json())

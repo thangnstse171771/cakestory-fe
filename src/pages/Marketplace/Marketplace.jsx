@@ -7,9 +7,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { fetchAllShops, fetchMarketplacePosts } from "../../api/axios";
 import CreateMarketplacePost from "./CreateMarketplacePost";
 import ShopDetail from "./ShopDetail";
+import ShopAnalystic from "./ShopAnalystic";
 
 const Marketplace = () => {
-  const [view, setView] = useState("products"); // "products" or "shops" or "myshop"
+  const [view, setView] = useState("products"); // "products" or "shops" or "myshop" or "shop-analysic"
   const navigate = useNavigate();
   const { user } = useAuth();
   const [hasShop, setHasShop] = useState(false);
