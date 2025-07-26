@@ -1,18 +1,41 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import {
+  arrayUnion,
   collection,
+  doc,
   getDoc,
   getDocs,
   limit,
   query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
   where,
 } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useAuth } from "../../contexts/AuthContext";
 
 const AddUser = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   const [users, setUsers] = useState([]);
+  const { user } = useAuth();
+  const currentUserId = user?.id?.toString();
+
+  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
+    const q = query(
+      collection(db, "users"),
+      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      return querySnapshot.docs[0].id; // Firestore doc ID
+    }
+
+    return null; // not found
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -40,6 +63,53 @@ const AddUser = ({ isOpen, onClose }) => {
     }
   };
 
+  const handleAdd = async (user) => {
+    const chatRef = collection(db, "chats");
+    const userChatsRef = collection(db, "userchats");
+
+    try {
+      const currentFirebaseId = await getFirebaseUserIdFromPostgresId(
+        currentUserId
+      );
+      if (!currentFirebaseId) {
+        console.error(
+          "Current Firebase user ID not found for Postgres ID:",
+          currentUserId
+        );
+        return;
+      }
+      console.log("Current Firebase ID:", currentFirebaseId);
+
+      const newChatRef = doc(chatRef);
+
+      await setDoc(newChatRef, {
+        createdAt: serverTimestamp(),
+        messages: [],
+      });
+
+      await updateDoc(doc(userChatsRef, user.id), {
+        chats: arrayUnion({
+          chatId: newChatRef.id,
+          receiverId: currentFirebaseId,
+          lastMessage: "",
+          createdAt: Date.now(),
+        }),
+      });
+
+      await updateDoc(doc(userChatsRef, currentFirebaseId), {
+        chats: arrayUnion({
+          chatId: newChatRef.id,
+          receiverId: user.id,
+          lastMessage: "",
+          createdAt: Date.now(),
+        }),
+      });
+
+      console.log("New chat created:", newChatRef.id);
+    } catch (error) {
+      console.error("Chat error: ", error);
+    }
+  };
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
       {/* Modal Card */}
@@ -90,7 +160,10 @@ const AddUser = ({ isOpen, onClose }) => {
                     {user.username}
                   </span>
                 </div>
-                <button className="py-1 px-3 text-sm bg-pink-500 text-white rounded hover:bg-pink-600 transition">
+                <button
+                  className="py-1 px-3 text-sm bg-pink-500 text-white rounded hover:bg-pink-600 transition"
+                  onClick={() => handleAdd(user)}
+                >
                   Add
                 </button>
               </div>

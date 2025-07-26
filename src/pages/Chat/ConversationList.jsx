@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Search, Plus } from "lucide-react";
 import AddUser from "./AddUser";
 import { useAuth } from "../../contexts/AuthContext";
-import { onSnapshot, doc, query, collection, where, getDocs } from "firebase/firestore";
+import { onSnapshot, doc, query, collection, where, getDocs, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 
 const ConversationList = () => {
@@ -32,6 +32,7 @@ const ConversationList = () => {
 
       const firebaseUserId = await getFirebaseUserIdFromPostgresId(currentUserId);
       if (!firebaseUserId) return;
+      // console.log("My id: " ,firebaseUserId)
 
       const unSub = onSnapshot(
         doc(db, "userchats", firebaseUserId),
@@ -189,9 +190,9 @@ const ConversationList = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {chats.map((chat) => (
+        {chats.map((chat, index) => (
           <div
-            key={chat.chatId}
+            key={chat.chatId || chat.receiverId || index}
             className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer h-auto"
           >
             <div className="flex items-center space-x-3">
@@ -211,11 +212,11 @@ const ConversationList = () => {
                   {chat.lastMessage}
                 </p>
               </div>
-              {conversation.unread > 0 && (
+              {/* {conversation.unread > 0 && (
                 <div className="bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {chat.unread}
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         ))}
