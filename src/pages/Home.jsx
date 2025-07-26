@@ -27,12 +27,13 @@ import PostDetail from "./MyPost/PostDetail";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import InfiniteScroll from "react-infinite-scroll-component";
+// import { toast } from "react-toastify";
 dayjs.extend(relativeTime);
 
 const Home = () => {
   const { user } = useAuth();
-  const location = useLocation();
   const currentUserId = user?.id;
+  const location = useLocation();
   const [likesData, setLikesData] = useState({});
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -132,6 +133,7 @@ const Home = () => {
           },
         };
       });
+      // toast.success("This is a success message!")
     } catch (error) {
       console.error("Failed to toggle like", error);
     }

@@ -36,6 +36,7 @@ import AdminChallengeDashboard from "./pages/AdminChallenge/AdminDashboard";
 import UserProfile from "./pages/UserProfile";
 import CreateShop from "./pages/Marketplace/CreateShop";
 import "./App.css";
+import ToastNotify from "./components/ToastNotify";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -67,6 +68,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <ToastNotify />
         <Routes>
           {/* Public */}
           <Route
