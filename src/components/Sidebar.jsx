@@ -32,12 +32,14 @@ const Sidebar = () => {
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: Trophy, label: "Challenge", path: "/challenge" },
+    { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho public
   ];
   // Menu cho user thường
   const userMenu = [
     { icon: MessageCircle, label: "Messages", path: "/messages" },
     { icon: BookImage, label: "My Post", path: "/mypost" },
     { icon: User, label: "Profile", path: "/profile" },
+    { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
   ];
   // Menu cho admin/staff
   const adminMenu = [
@@ -55,9 +57,15 @@ const Sidebar = () => {
   let menuItems = publicMenu;
   if (user) {
     if (["admin", "account_staff", "staff"].includes(user.role)) {
-      menuItems = [...publicMenu, ...adminMenu];
+      menuItems = [
+        ...publicMenu.filter((item) => item.path !== "/wallet"),
+        ...adminMenu,
+      ]; // Ẩn mục Nạp tiền cho admin
     } else {
-      menuItems = [...publicMenu, ...userMenu];
+      menuItems = [
+        ...publicMenu.filter((item) => item.path !== "/wallet"),
+        ...userMenu,
+      ];
     }
   }
 
