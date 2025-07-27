@@ -38,6 +38,7 @@ import CreateShop from "./pages/Marketplace/CreateShop";
 import UserWallet from "./pages/Wallet/UserWallet";
 import "./App.css";
 import ToastNotify from "./components/ToastNotify";
+import SyncUserIdToStore from "./pages/Chat/libs/SyncUserIdToStore";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -68,6 +69,7 @@ function PublicRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <SyncUserIdToStore />
       <Router>
         <ToastNotify />
         <Routes>

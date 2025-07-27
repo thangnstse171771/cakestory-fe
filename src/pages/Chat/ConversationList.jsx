@@ -2,14 +2,27 @@ import React, { useEffect, useState } from "react";
 import { Search, Plus } from "lucide-react";
 import AddUser from "./AddUser";
 import { useAuth } from "../../contexts/AuthContext";
-import { onSnapshot, doc, query, collection, where, getDocs, getDoc } from "firebase/firestore";
+import {
+  onSnapshot,
+  doc,
+  query,
+  collection,
+  where,
+  getDocs,
+  getDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "../../firebase";
+import { useChatStore } from "./libs/useChatStore";
 
 const ConversationList = () => {
   const [chats, setChats] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user } = useAuth();
   const currentUserId = user?.id?.toString();
+  const { chatId, changeChat } = useChatStore();
+
+  console.log("Chat id from store:", chatId);
 
   const getFirebaseUserIdFromPostgresId = async (postgresId) => {
     const q = query(
@@ -30,7 +43,9 @@ const ConversationList = () => {
     const fetchAndListenChats = async () => {
       if (!user?.id) return;
 
-      const firebaseUserId = await getFirebaseUserIdFromPostgresId(currentUserId);
+      const firebaseUserId = await getFirebaseUserIdFromPostgresId(
+        currentUserId
+      );
       if (!firebaseUserId) return;
       // console.log("My id: " ,firebaseUserId)
 
@@ -92,6 +107,34 @@ const ConversationList = () => {
 
   //   return () => unSub();
   // }, [currentUserId]);
+
+  const handleSelect = async (chat) => {
+    const userChats = chats.map((item) => {
+      const { user, ...rest } = item;
+      return rest;
+    });
+
+    const chatIndex = userChats.findIndex(
+      (item) => item.chatId === chat.chatId
+    );
+
+    userChats[chatIndex].isSeen = true;
+
+    const firebaseUserId = await getFirebaseUserIdFromPostgresId(currentUserId);
+    if (!firebaseUserId) return;
+
+    const userChatsRef = doc(db, "userchats", firebaseUserId);
+
+    try {
+      await updateDoc(userChatsRef, {
+        chats: userChats,
+      });
+    } catch (error) {
+      console.log("Error updating chat:", error);
+    }
+
+    changeChat(chat.chatId, chat.user);
+  };
 
   console.log("Chats:", chats);
 
@@ -190,36 +233,47 @@ const ConversationList = () => {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {chats.map((chat, index) => (
-          <div
-            key={chat.chatId || chat.receiverId || index}
-            className="p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer h-auto"
-          >
-            <div className="flex items-center space-x-3">
-              <img
-                src={chat.user.avatar || "/placeholder.svg"}
-                alt={chat.user.username}
-                className="w-12 h-12 rounded-full"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-800 truncate">
-                    {chat.user.username}
-                  </h3>
-                  <span className="text-xs text-gray-500">{chat.time}</span>
+        {chats.map((chat, index) => {
+          const isUnread = chat?.lastMessage && !chat?.isSeen;
+          const isSelected = chat.chatId === chatId;
+
+          return (
+            <div
+              key={chat.chatId || chat.receiverId || index}
+              className={`p-4 border-b border-gray-100 cursor-pointer h-auto
+                ${isSelected ? "bg-pink-100" : isUnread ? "bg-pink-50" : ""}
+              hover:bg-gray-50`}
+              onClick={() => handleSelect(chat)}
+            >
+              <div className="flex items-center space-x-3">
+                <img
+                  src={chat.user.avatar || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"}
+                  alt={chat.user.username}
+                  className="w-12 h-12 rounded-full"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-gray-800 truncate">
+                      {chat.user.username}
+                    </h3>
+                    <span className="text-xs text-gray-500">{chat.time}</span>
+                  </div>
+                  <p
+                    className={`text-sm truncate ${
+                      isUnread ? "text-gray-900 font-medium" : "text-gray-600"
+                    }`}
+                  >
+                    {chat.lastMessage}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-600 truncate">
-                  {chat.lastMessage}
-                </p>
+
+                {isUnread && (
+                  <div className="bg-pink-500 text-white text-xs rounded-full w-2 h-2 ml-2" />
+                )}
               </div>
-              {/* {conversation.unread > 0 && (
-                <div className="bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {chat.unread}
-                </div>
-              )} */}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <AddUser isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
