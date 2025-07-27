@@ -64,16 +64,8 @@ const ChatArea = () => {
   };
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      endRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100); // delay slightly to wait for layout paint
-
-    return () => clearTimeout(timeout);
-  });
-
-  //   useEffect(() => {
-  //     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  //   }, [messages]);
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat?.messages]);
 
   useEffect(() => {
     if (!chatId) return;
