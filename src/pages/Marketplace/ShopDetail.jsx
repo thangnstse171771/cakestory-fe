@@ -307,10 +307,10 @@ const ShopDetail = ({ id: propId }) => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-white px-4 py-6">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-lg border border-pink-100 hover:shadow-xl transition-all duration-300">
+      <div className="bg-pink-100/90 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-lg border border-pink-300 hover:shadow-xl transition-all duration-300">
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-200 to-purple-200 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-500"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-300 to-purple-300 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-500"></div>
             <img
               src={shop.avatar || "/placeholder.svg"}
               alt="avatar"
@@ -449,17 +449,17 @@ const ShopDetail = ({ id: propId }) => {
           )}
         </div>
         <div className="flex flex-col md:flex-row gap-4 mt-4">
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow p-4 flex-1 min-w-[220px] border border-pink-100 hover:shadow-md transition-all duration-300">
-            <div className="text-sm font-semibold mb-1 text-pink-500">
+          <div className="bg-pink-200/90 backdrop-blur-sm rounded-lg shadow p-4 flex-1 min-w-[220px] border border-pink-300 hover:shadow-md transition-all duration-300">
+            <div className="text-sm font-semibold mb-1 text-pink-700">
               Address
             </div>
-            <div className="text-gray-700 text-sm">{shop.business_address}</div>
+            <div className="text-gray-800 text-sm">{shop.business_address}</div>
           </div>
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow p-4 flex-1 min-w-[220px] border border-pink-100 hover:shadow-md transition-all duration-300">
-            <div className="text-sm font-semibold mb-1 text-pink-500">
+          <div className="bg-pink-200/90 backdrop-blur-sm rounded-xl shadow p-4 flex-1 min-w-[220px] border border-pink-300 hover:shadow-md transition-all duration-300">
+            <div className="text-sm font-semibold mb-1 text-pink-600">
               Location (Lat, Lng)
             </div>
-            <div className="text-gray-700 text-sm">
+            <div className="text-gray-800 text-sm">
               {shop.latitude}, {shop.longitude}
             </div>
           </div>
