@@ -65,6 +65,16 @@ export const useChatStore = create((set, get) => ({
     }));
   },
 
+  resetChatStore: () =>
+    set({
+      chatId: null,
+      user: null,
+      currentUser: null,
+      currentUserId: null,
+      isCurrentUserBlocked: null,
+      isReceveiverBlocked: null,
+    }),
+
   getFirebaseUserIdFromPostgresId: async (postgresId) => {
     const q = query(
       collection(db, "users"),

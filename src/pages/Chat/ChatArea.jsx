@@ -37,6 +37,8 @@ const ChatArea = () => {
   const endRef = useRef(null);
   const [firebaseUserId, setFirebaseUserId] = useState(null);
 
+  console.log("check user", user);
+
   useEffect(() => {
     const fetchFirebaseId = async () => {
       const id = await getFirebaseUserIdFromPostgresId(currentUserId);
@@ -180,7 +182,10 @@ const ChatArea = () => {
                   key={message.createdAt}
                 >
                   <img
-                    src={user.avatar}
+                    src={
+                      user.avatar ||
+                      "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                    }
                     alt={user.username}
                     className="w-10 h-10 rounded-full"
                   />
