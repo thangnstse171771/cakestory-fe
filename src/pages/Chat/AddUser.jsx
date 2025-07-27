@@ -41,22 +41,31 @@ const AddUser = ({ isOpen, onClose }) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const username = formData.get("username");
-    console.log("Searching for username:", username);
 
     try {
+      const currentFirebaseId = await getFirebaseUserIdFromPostgresId(
+        currentUserId
+      );
+      if (!currentFirebaseId) {
+        console.warn("No Firebase ID found for current user.");
+        return;
+      }
+
       const userRef = collection(db, "users");
       const q = query(
         userRef,
         where("username", ">=", username),
         where("username", "<", username + "\uf8ff")
       );
-      const querySnapshot = await getDocs(q); // ✅ Correct function
+      const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        const results = querySnapshot.docs.map((doc) => doc.data());
+        const results = querySnapshot.docs
+          .map((doc) => ({ id: doc.id, ...doc.data() }))
+          .filter((u) => u.id !== currentFirebaseId); // 👈 filter out self
         setUsers(results);
       } else {
-        setUsers([]); // clear if none found
+        setUsers([]);
       }
     } catch (error) {
       console.error("Search failed:", error);
