@@ -101,18 +101,6 @@ const Marketplace = () => {
         )}
       </div>
 
-      {view === "products" && (
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
-          >
-            <Plus className="w-5 h-5" />
-            Create Marketplace Post
-          </button>
-        </div>
-      )}
-
       {view === "products" ? (
         loadingProducts ? (
           <div className="text-center py-12">Loading...</div>

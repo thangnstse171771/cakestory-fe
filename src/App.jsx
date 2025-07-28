@@ -40,6 +40,7 @@ import CustomizedOrderDetails from "./pages/CustomizedOrderForm/CustomizedOrderD
 import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
 import "./App.css";
 import ToastNotify from "./components/ToastNotify";
+import SyncUserIdToStore from "./pages/Chat/libs/SyncUserIdToStore";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -70,6 +71,7 @@ function PublicRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
+      <SyncUserIdToStore />
       <Router>
         <ToastNotify />
         <Routes>
