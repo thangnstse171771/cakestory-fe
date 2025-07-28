@@ -533,6 +533,7 @@ const ShopDetail = ({ id: propId }) => {
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -849,6 +850,22 @@ const ShopDetail = ({ id: propId }) => {
           <ShopAnalysticSummary />
         </div>
       )}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-xl text-pink-500">Phân tích Shop</h3>
+          <button
+            onClick={() => navigate("/marketplace/shop-analytics")}
+            className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
+            style={{ boxShadow: "0 2px 8px 0 #f9a8d4" }}
+          >
+            <span role="img" aria-label="analytics">
+              📊
+            </span>
+            Xem chi tiết phân tích
+          </button>
+        </div>
+        <ShopAnalysticSummary />
+      </div>
 
       {/* Our Services */}
       <div>
@@ -980,9 +997,26 @@ const ShopDetail = ({ id: propId }) => {
                         ${product.price}
                       </span>
                       {!isOwner && (
-                        <button className="group relative px-5 py-2.5 rounded-lg overflow-hidden bg-gradient-to-r from-gray-700 to-gray-900 text-white text-sm font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg">
-                          <span className="relative z-10">Inquire Now</span>
-                          <div className="absolute inset-0 bg-gradient-to-r from-pink-200 to-purple-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <button
+                          onClick={() => {
+                            navigate(`/order/customize/${shop.id}`, {
+                              state: {
+                                shopId: shop.id,
+                                shop: shop,
+                                product: {
+                                  id: product.post_id,
+                                  name: postObj.title,
+                                  description: postObj.description,
+                                  basePrice: product.price,
+                                  image: imageUrl,
+                                },
+                                postDetails: postObj,
+                              },
+                            });
+                          }}
+                          className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-4 py-2 rounded-lg shadow transition-all duration-300 hover:scale-105"
+                        >
+                          Customize Order
                         </button>
                       )}
                     </div>
@@ -1005,6 +1039,7 @@ const ShopDetail = ({ id: propId }) => {
         userId={id}
         onUpdated={() => setShowUpdate(false)}
       />
+      {/* Removed CakeCard modal */}
       <CreateMarketplacePost
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
