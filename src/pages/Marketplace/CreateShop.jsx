@@ -213,7 +213,9 @@ const CreateShop = () => {
                 >
                   <option value="">-- Select specialty --</option>
                   {specialtyOptions.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                   <option value="other">Other (custom)</option>
                 </Field>
@@ -239,7 +241,9 @@ const CreateShop = () => {
                 >
                   <option value="">-- Select business hours --</option>
                   {businessHoursOptions.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                   <option value="other">Other (custom)</option>
                 </Field>
@@ -265,7 +269,9 @@ const CreateShop = () => {
                 >
                   <option value="">-- Select delivery area --</option>
                   {deliveryAreaOptions.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
                   ))}
                   <option value="other">Other (custom)</option>
                 </Field>
