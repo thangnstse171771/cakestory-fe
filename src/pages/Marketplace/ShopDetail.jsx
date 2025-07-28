@@ -382,7 +382,6 @@ const ShopDetail = ({ id: propId }) => {
         </div>
       </div>
 
-
       {/* Gallery */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
@@ -421,11 +420,13 @@ const ShopDetail = ({ id: propId }) => {
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-xl text-pink-500">Phân tích Shop</h3>
           <button
-            onClick={() => navigate('/marketplace/shop-analytics')}
+            onClick={() => navigate("/marketplace/shop-analytics")}
             className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
-            style={{ boxShadow: '0 2px 8px 0 #f9a8d4' }}
+            style={{ boxShadow: "0 2px 8px 0 #f9a8d4" }}
           >
-            <span role="img" aria-label="analytics">📊</span>
+            <span role="img" aria-label="analytics">
+              📊
+            </span>
             Xem chi tiết phân tích
           </button>
         </div>
@@ -534,8 +535,22 @@ const ShopDetail = ({ id: propId }) => {
                         ${product.price}
                       </span>
                       {!isOwner && (
-                        <button className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-4 py-2 rounded-lg shadow transition">
-                          Inquire Now
+                        <button
+                          onClick={() =>
+                            navigate(`/order/customize/${shop.id}`, {
+                              state: {
+                                shopData: {
+                                  id: shop.id,
+                                  name: shop.name,
+                                  location: shop.business_address,
+                                  image: shop.avatar,
+                                },
+                              },
+                            })
+                          }
+                          className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-4 py-2 rounded-lg shadow transition"
+                        >
+                          Customize Order
                         </button>
                       )}
                     </div>

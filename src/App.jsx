@@ -36,6 +36,8 @@ import AdminChallengeDashboard from "./pages/AdminChallenge/AdminDashboard";
 import UserProfile from "./pages/UserProfile";
 import CreateShop from "./pages/Marketplace/CreateShop";
 import UserWallet from "./pages/Wallet/UserWallet";
+import CustomizedOrderDetails from "./pages/CustomizedOrderForm/CustomizedOrderDetails";
+import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
 import "./App.css";
 import ToastNotify from "./components/ToastNotify";
 
@@ -96,6 +98,11 @@ export default function App() {
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
             <Route path="marketplace/create-shop" element={<CreateShop />} />
+            <Route
+              path="order/customize/:shopId"
+              element={<CustomizedOrderDetails />}
+            />
+            <Route path="order/payment" element={<OrderDetailPayment />} />
             <Route
               path="marketplace/shop-analytics"
               element={<ShopAnalystic onBack={() => window.history.back()} />}
