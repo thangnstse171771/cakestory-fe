@@ -35,10 +35,11 @@ export default function AIGenGalleryPage() {
   // Fetch 3 latest images for preview
   useEffect(() => {
     setLoadingRecent(true);
+    const token = localStorage.getItem("token");
     fetch("https://cakestory-be.onrender.com/api/ai/images", {
       headers: {
         accept: "*/*",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: token ? `Bearer ${token}` : undefined,
       },
     })
       .then((res) => res.json())
@@ -54,10 +55,11 @@ export default function AIGenGalleryPage() {
   useEffect(() => {
     if (tab !== "gallery") return;
     setLoadingGallery(true);
+    const token = localStorage.getItem("token");
     fetch("https://cakestory-be.onrender.com/api/ai/images", {
       headers: {
         accept: "*/*",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: token ? `Bearer ${token}` : undefined,
       },
     })
       .then((res) => res.json())
@@ -80,13 +82,13 @@ export default function AIGenGalleryPage() {
     setImage(null);
     const prompt = composePrompt(fields);
     try {
+      const token = localStorage.getItem("token");
       await fetch("https://cakestory-be.onrender.com/api/ai/generate", {
         method: "POST",
         headers: {
           accept: "*/*",
           "Content-Type": "application/json",
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywidXNlcm5hbWUiOiJzb25ndGhhbmciLCJlbWFpbCI6InNvbmd0aGFuZ0BnbWFpbC5jb20iLCJyb2xlIjoidXNlciIsImZpcmViYXNlVWlkIjoiUWIwUVhVcDM1U1RNRUJZWlg2WFp1bHRUODFyMiIsImlhdCI6MTc1MzM1MjUwMiwiZXhwIjoxNzUzNDM4OTAyfQ.zD9PR651DBsYBpFiKkjPPjSfWzRC5TEzDqSfepX9m5M",
+          Authorization: token ? `Bearer ${token}` : undefined,
         },
         body: JSON.stringify({ prompt }),
       });
@@ -102,8 +104,7 @@ export default function AIGenGalleryPage() {
           {
             headers: {
               accept: "*/*",
-              Authorization:
-                "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywidXNlcm5hbWUiOiJzb25ndGhhbmciLCJlbWFpbCI6InNvbmd0aGFuZ0BnbWFpbC5jb20iLCJyb2xlIjoidXNlciIsImZpcmViYXNlVWlkIjoiUWIwUVhVcDM1U1RNRUJZWlg2WFp1bHRUODFyMiIsImlhdCI6MTc1MzM1MjUwMiwiZXhwIjoxNzUzNDM4OTAyfQ.zD9PR651DBsYBpFiKkjPPjSfWzRC5TEzDqSfepX9m5M",
+              Authorization: token ? `Bearer ${token}` : undefined,
             },
           }
         );
