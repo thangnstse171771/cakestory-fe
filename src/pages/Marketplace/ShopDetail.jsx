@@ -1,3 +1,168 @@
+import {
+  fetchIngredients as fetchIngredientsApi,
+  createIngredient,
+  updateIngredient,
+} from "../../api/ingredients";
+// ...existing code...
+
+// Modal thêm/sửa topping (ingredient)
+function IngredientModal({ open, onClose, onAdded, initialData, isEdit }) {
+  const [name, setName] = useState(initialData?.name || "");
+  const [price, setPrice] = useState(initialData?.price || "");
+  const [description, setDescription] = useState(
+    initialData?.description || ""
+  );
+  const [image, setImage] = useState(null); // file or url
+  const [imagePreview, setImagePreview] = useState(initialData?.image || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  React.useEffect(() => {
+    setName(initialData?.name || "");
+    setPrice(initialData?.price || "");
+    setDescription(initialData?.description || "");
+    setImage(null);
+    setImagePreview(initialData?.image || "");
+  }, [initialData, open]);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setImage(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setImagePreview(initialData?.image || "");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const payload = {
+        name,
+        price: parseFloat(price),
+        description,
+        image: image || initialData?.image || "",
+      };
+      if (isEdit && initialData?.id) {
+        await updateIngredient(initialData.id, payload);
+      } else {
+        await createIngredient(payload);
+      }
+      setName("");
+      setPrice("");
+      setDescription("");
+      setImage(null);
+      setImagePreview("");
+      onAdded && onAdded();
+      onClose();
+    } catch (err) {
+      setError(
+        isEdit ? "Cập nhật topping thất bại!" : "Thêm topping thất bại!"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative">
+        <h2 className="text-xl font-bold mb-4 text-pink-600">
+          {isEdit ? "Chỉnh sửa Topping" : "Thêm Topping (Nguyên liệu)"}
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">
+              Tên topping
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">
+              Giá topping ($)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              required
+              className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">
+              Mô tả
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
+              placeholder="Mô tả về topping"
+            />
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">
+              Ảnh topping
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
+            />
+            {imagePreview && (
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="mt-2 w-full h-32 object-cover rounded-lg border shadow-sm"
+                style={{ objectFit: "cover" }}
+              />
+            )}
+          </div>
+          {error && <div className="text-red-500 text-sm">{error}</div>}
+          <div className="flex gap-2 justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+              disabled={loading}
+            >
+              Huỷ
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 rounded bg-pink-500 text-white font-semibold hover:bg-pink-600 disabled:opacity-60"
+            >
+              {loading
+                ? isEdit
+                  ? "Đang lưu..."
+                  : "Đang thêm..."
+                : isEdit
+                ? "Lưu"
+                : "Thêm"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ShopAnalysticSummary from "./ShopAnalysticSummary";
@@ -533,6 +698,12 @@ const ShopDetail = ({ id: propId }) => {
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(null);
+  const [showAddIngredient, setShowAddIngredient] = useState(false);
+  const [editIngredient, setEditIngredient] = useState(null);
+  const [ingredients, setIngredients] = useState([]);
+  const [loadingIngredients, setLoadingIngredients] = useState(false);
+  const [deleteIngredient, setDeleteIngredient] = useState(null);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -563,6 +734,8 @@ const ShopDetail = ({ id: propId }) => {
           services: shopProducts,
         });
         setProducts(shopProducts);
+        // Lấy topping
+        fetchIngredients(data.shop.shop_id);
       } catch (err) {
         setShop(null);
         setProducts([]);
@@ -571,7 +744,21 @@ const ShopDetail = ({ id: propId }) => {
       }
     };
     fetchData();
-  }, []); // Only run once on mount
+    // eslint-disable-next-line
+  }, []);
+
+  // Hàm lấy topping
+  const fetchIngredients = async (shopId) => {
+    setLoadingIngredients(true);
+    try {
+      const data = await fetchIngredientsApi(shopId);
+      setIngredients(data.ingredients || []);
+    } catch (err) {
+      setIngredients([]);
+    } finally {
+      setLoadingIngredients(false);
+    }
+  };
 
   if (loading || !shop) return <div>Loading...</div>;
 
@@ -1005,6 +1192,24 @@ const ShopDetail = ({ id: propId }) => {
         userId={id}
         onUpdated={() => setShowUpdate(false)}
       />
+      {/* Modal thêm topping */}
+      <IngredientModal
+        open={showAddIngredient}
+        onClose={() => setShowAddIngredient(false)}
+        onAdded={() => {
+          if (shop?.id) fetchIngredients(shop.id);
+        }}
+        isEdit={false}
+      />
+      <IngredientModal
+        open={!!editIngredient}
+        onClose={() => setEditIngredient(null)}
+        onAdded={() => {
+          if (shop?.id) fetchIngredients(shop.id);
+        }}
+        initialData={editIngredient}
+        isEdit={true}
+      />
       <CreateMarketplacePost
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
@@ -1070,6 +1275,114 @@ const ShopDetail = ({ id: propId }) => {
         }}
         loading={deleteLoading}
       />
+
+      {/* Danh sách topping */}
+      <div className="mt-12 mb-8">
+        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+          <h3 className="font-bold text-xl text-pink-500">
+            Danh sách Topping (Nguyên liệu)
+          </h3>
+          {isOwner && (
+            <button
+              className="bg-gradient-to-r from-pink-500 to-purple-400 hover:from-pink-600 hover:to-purple-500 text-white font-semibold px-6 py-2 rounded-lg shadow transition-all duration-200"
+              onClick={() => setShowAddIngredient(true)}
+            >
+              + Thêm Topping
+            </button>
+          )}
+        </div>
+        {loadingIngredients ? (
+          <div className="text-gray-400">Đang tải topping...</div>
+        ) : ingredients.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {ingredients.map((ing) => (
+              <div
+                key={ing.id}
+                className="bg-white rounded-xl shadow p-4 flex items-center justify-between border border-pink-100 hover:shadow-lg transition-all duration-200"
+              >
+                <div>
+                  <div className="font-semibold text-gray-800 text-lg">
+                    {ing.name}
+                  </div>
+                  <div className="text-gray-500 text-sm">
+                    Giá:{" "}
+                    <span className="text-pink-500 font-bold">
+                      ${parseFloat(ing.price).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+                {isOwner && (
+                  <div className="flex gap-2">
+                    <button
+                      className="px-3 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold text-sm transition"
+                      onClick={() => setEditIngredient(ing)}
+                      title="Chỉnh sửa topping"
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      className="px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-red-600 font-semibold text-sm transition"
+                      onClick={() => setDeleteIngredient(ing)}
+                      title="Xóa topping"
+                    >
+                      Xoá
+                    </button>
+                  </div>
+                )}
+                {/* Modal xác nhận xoá topping */}
+                {deleteIngredient && (
+                  <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative">
+                      <h2 className="text-xl font-bold mb-4 text-red-600">
+                        Xác nhận xoá topping
+                      </h2>
+                      <p className="mb-6 text-gray-700">
+                        Bạn có chắc chắn muốn xoá topping{" "}
+                        <span className="font-semibold text-pink-500">
+                          {deleteIngredient.name}
+                        </span>
+                        ?
+                      </p>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                          onClick={() => setDeleteIngredient(null)}
+                          disabled={loadingDelete}
+                        >
+                          Huỷ
+                        </button>
+                        <button
+                          className="px-4 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-60"
+                          onClick={async () => {
+                            setLoadingDelete(true);
+                            try {
+                              // Sử dụng đúng id của ingredient cần xoá
+                              const { deleteIngredient: deleteIngredientApi } =
+                                await import("../../api/ingredients");
+                              await deleteIngredientApi(deleteIngredient.id);
+                              setDeleteIngredient(null);
+                              if (shop?.id) fetchIngredients(shop.id);
+                            } catch (err) {
+                              alert("Xoá topping thất bại!");
+                            } finally {
+                              setLoadingDelete(false);
+                            }
+                          }}
+                          disabled={loadingDelete}
+                        >
+                          {loadingDelete ? "Đang xoá..." : "Xoá"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-gray-400 italic">Chưa có topping nào.</div>
+        )}
+      </div>
     </div>
   );
 };
