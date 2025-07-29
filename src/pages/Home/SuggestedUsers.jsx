@@ -7,15 +7,28 @@ const SuggestedUsers = () => {
   const { user } = useAuth();
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [following, setFollowing] = useState({});
 
   useEffect(() => {
     const fetchUsers = async () => {
+      if (!user?.id) return;
+
       try {
-        const response = await authAPI.getAllActiveUsers();
-        const usersArray = response.users.filter((u) => u.id !== user?.id);
-        setSuggestedUsers(usersArray);
+        const [allUsersRes, followingRes] = await Promise.all([
+          authAPI.getAllActiveUsers(),
+          authAPI.getFollowing(user.id),
+        ]);
+
+        const allUsers = allUsersRes.users;
+        const followingIds = followingRes.following.map((f) => f.id);
+
+        const filtered = allUsers.filter(
+          (u) => u.id !== user.id && !followingIds.includes(u.id)
+        );
+
+        setSuggestedUsers(filtered);
       } catch (error) {
-        console.error("Failed to fetch users", error);
+        console.error("Failed to fetch suggested users:", error);
       } finally {
         setLoading(false);
       }
@@ -23,6 +36,30 @@ const SuggestedUsers = () => {
 
     fetchUsers();
   }, [user?.id]);
+
+  const handleFollow = async (targetUserId, isFollowing) => {
+    try {
+      setFollowing((prev) => ({ ...prev, [targetUserId]: true }));
+
+      if (isFollowing) {
+        await authAPI.unfollowUserById(targetUserId);
+      } else {
+        await authAPI.followUserById(targetUserId);
+      }
+
+      setSuggestedUsers((prev) =>
+        prev.map((u) =>
+          u.id === targetUserId
+            ? { ...u, followedByCurrentUser: !isFollowing }
+            : u
+        )
+      );
+    } catch (error) {
+      console.error("Failed to toggle follow:", error);
+    } finally {
+      setFollowing((prev) => ({ ...prev, [targetUserId]: false }));
+    }
+  };
 
   return (
     <div className="flex justify-center p-4">
@@ -71,8 +108,24 @@ const SuggestedUsers = () => {
                 </div>
 
                 {/* Follow Button */}
-                <button className="bg-pink-500 hover:bg-pink-600 text-white text-xs font-medium px-3 py-1 rounded-full transition">
-                  Follow
+                <button
+                  disabled={following[u.id]}
+                  onClick={() => handleFollow(u.id, u.followedByCurrentUser)}
+                  className={`${
+                    following[u.id]
+                      ? "bg-pink-300 cursor-not-allowed"
+                      : u.followedByCurrentUser
+                      ? "bg-gray-300 hover:bg-gray-400 text-gray-800"
+                      : "bg-pink-500 hover:bg-pink-600 text-white"
+                  } text-xs font-medium px-3 py-1 rounded-full transition`}
+                >
+                  {following[u.id]
+                    ? u.followedByCurrentUser
+                      ? "Unfollow"
+                      : "Follow"
+                    : u.followedByCurrentUser
+                    ? "Unfollow"
+                    : "Follow"}
                 </button>
               </div>
             ))}
