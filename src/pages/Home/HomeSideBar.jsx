@@ -15,18 +15,32 @@ const HomeSideBar = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await authAPI.getAllActiveUsers();
-        const usersArray = response.users.filter((u) => u.id !== user?.id);
-        const shuffled = usersArray.sort(() => 0.5 - Math.random());
+        // 1. Fetch all users and following list in parallel
+        const [allUsersRes, followingRes] = await Promise.all([
+          authAPI.getAllActiveUsers(),
+          authAPI.getFollowing(user?.id),
+        ]);
+
+        const allUsers = allUsersRes.users || [];
+        const followingIds = followingRes.following.map((f) => f.id);
+
+        // 2. Filter out current user and already-followed users
+        const filteredUsers = allUsers.filter(
+          (u) => u.id !== user?.id && !followingIds.includes(u.id)
+        );
+
+        // 3. Shuffle and pick 4
+        const shuffled = filteredUsers.sort(() => 0.5 - Math.random());
         const limited = shuffled.slice(0, 4);
+
         setSuggestedUsers(limited);
       } catch (error) {
-        console.error("Failed to fetch users", error);
+        console.error("Failed to fetch suggested users:", error);
       }
     };
 
-    fetchUsers();
-  }, []);
+    if (user?.id) fetchUsers();
+  }, [user?.id]);
 
   const trendingTopics = generateTrendingTopics(5);
   const upcomingEvents = generateUpcomingEvents(4);
@@ -87,7 +101,10 @@ const HomeSideBar = () => {
         </div>
 
         <div className="mt-3">
-          <Link to="/suggested-users" className="text-sm text-pink-600 hover:text-pink-700">
+          <Link
+            to="/suggested-users"
+            className="text-sm text-pink-600 hover:text-pink-700"
+          >
             View all users
           </Link>
         </div>
