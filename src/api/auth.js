@@ -151,4 +151,9 @@ export const authAPI = {
     const response = await axiosInstance.delete(`/users/follow/${id}`);
     return response.data;
   },
+
+  getAllActiveUsers: async () => {
+    const response = await axiosInstance.get("/users");
+    return response.data;
+  },
 };
