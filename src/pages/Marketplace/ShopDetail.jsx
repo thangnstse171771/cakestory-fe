@@ -1333,21 +1333,37 @@ const ShopDetail = ({ id: propId }) => {
             {ingredients.map((ing) => (
               <div
                 key={ing.id}
-                className="bg-white rounded-xl shadow p-4 flex items-center justify-between border border-pink-100 hover:shadow-lg transition-all duration-200"
+                className="bg-white rounded-xl shadow p-4 border border-pink-100 hover:shadow-lg transition-all duration-200"
               >
-                <div>
-                  <div className="font-semibold text-gray-800 text-lg">
-                    {ing.name}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex-grow">
+                    <div className="font-semibold text-gray-800 text-lg">
+                      {ing.name}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      Giá:{" "}
+                      <span className="text-pink-500 font-bold">
+                        ${parseFloat(ing.price).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-gray-500 text-sm">
-                    Giá:{" "}
-                    <span className="text-pink-500 font-bold">
-                      ${parseFloat(ing.price).toFixed(2)}
-                    </span>
-                  </div>
+                  {ing.image && (
+                    <div className="w-16 h-16 ml-3">
+                      <img
+                        src={ing.image}
+                        alt={ing.name}
+                        className="w-full h-full object-cover rounded-lg shadow-sm"
+                      />
+                    </div>
+                  )}
                 </div>
+                {ing.description && (
+                  <div className="text-gray-600 text-sm mb-3 line-clamp-2">
+                    {ing.description}
+                  </div>
+                )}
                 {isOwner && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 justify-end mt-2">
                     <button
                       className="px-3 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-700 font-semibold text-sm transition"
                       onClick={() => setEditIngredient(ing)}
