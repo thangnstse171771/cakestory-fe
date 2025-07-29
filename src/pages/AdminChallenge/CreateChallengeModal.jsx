@@ -1,8 +1,11 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
+import { createChallenge } from "../../api/challenge";
+import { toast } from "react-toastify";
 
-export default function CreateChallengeModal({ isOpen, onClose }) {
+export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -16,22 +19,50 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
     hashtags: "",
     rules: "",
     requirements: "",
-  })
+  });
 
   // Fake data cho dropdown
-  const durationOptions = ["7 ngày", "14 ngày", "21 ngày", "30 ngày", "45 ngày", "60 ngày"]
+  const durationOptions = [
+    "7 ngày",
+    "14 ngày",
+    "21 ngày",
+    "30 ngày",
+    "45 ngày",
+    "60 ngày",
+  ];
   const defaultPrizes = [
     "Bộ dụng cụ làm bánh cao cấp",
     "Voucher 500.000đ",
     "Khóa học làm bánh chuyên nghiệp",
     "Chuyến du lịch",
     "Máy đánh trứng KitchenAid",
-  ]
-  const defaultHashtags = ["bánh", "thử-thách", "sáng-tạo", "học-hỏi"]
+  ];
+  const defaultHashtags = ["bánh", "thử-thách", "sáng-tạo", "học-hỏi"];
 
-  const handleSubmit = () => {
-    if (formData.title && formData.description) {
-      alert("Challenge đã được tạo thành công!")
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.description) {
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const challengeData = {
+        ...formData,
+        hashtags: formData.hashtags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+        max_participants: formData.maxParticipants,
+        min_participants: formData.minParticipants,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        prize_description: formData.prize,
+      };
+
+      const result = await createChallenge(challengeData);
+      toast.success("Tạo thử thách mới thành công!");
       setFormData({
         title: "",
         description: "",
@@ -45,22 +76,32 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
         hashtags: "",
         rules: "",
         requirements: "",
-      })
-      onClose()
+      });
+      if (onSuccess) {
+        onSuccess(result);
+      }
+      onClose();
+    } catch (error) {
+      console.error("Error creating challenge:", error);
+      toast.error(
+        error.response?.data?.message || "Có lỗi xảy ra khi tạo thử thách!"
+      );
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   const addHashtag = (tag) => {
-    const currentTags = formData.hashtags.split(",").map((t) => t.trim())
+    const currentTags = formData.hashtags.split(",").map((t) => t.trim());
     if (!currentTags.includes(tag)) {
       setFormData({
         ...formData,
         hashtags: formData.hashtags ? `${formData.hashtags}, ${tag}` : tag,
-      })
+      });
     }
-  }
+  };
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return (
     <div
@@ -100,7 +141,16 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
             borderBottom: "1px solid #e5e7eb",
           }}
         >
-          <h2 style={{ fontSize: "1.5rem", fontWeight: "600", color: "#374151", margin: "0" }}>Tạo Challenge Mới</h2>
+          <h2
+            style={{
+              fontSize: "1.5rem",
+              fontWeight: "600",
+              color: "#374151",
+              margin: "0",
+            }}
+          >
+            Tạo Challenge Mới
+          </h2>
           <button
             style={{
               background: "none",
@@ -119,32 +169,67 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
             }}
             onClick={onClose}
             onMouseEnter={(e) => {
-              e.target.style.background = "#f3f4f6"
-              e.target.style.color = "#374151"
+              e.target.style.background = "#f3f4f6";
+              e.target.style.color = "#374151";
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = "none"
-              e.target.style.color = "#6b7280"
+              e.target.style.background = "none";
+              e.target.style.color = "#6b7280";
             }}
           >
             ×
           </button>
         </div>
 
-        <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div
+          style={{
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "24px",
+          }}
+        >
           {/* Basic Info */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#374151", margin: "0" }}>Thông tin cơ bản</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="title">
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <h3
+              style={{
+                fontSize: "1.125rem",
+                fontWeight: "600",
+                color: "#374151",
+                margin: "0",
+              }}
+            >
+              Thông tin cơ bản
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="title"
+                >
                   Tên Challenge *
                 </label>
                 <input
                   id="title"
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   placeholder="Nhập tên challenge"
                   style={{
                     padding: "10px 12px",
@@ -156,14 +241,25 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
                   }}
                 />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="duration">
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="duration"
+                >
                   Thời gian *
                 </label>
                 <select
                   id="duration"
                   value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, duration: e.target.value })
+                  }
                   style={{
                     padding: "10px 12px",
                     border: "1px solid #d1d5db",
@@ -183,14 +279,25 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="description">
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label
+                style={{
+                  fontWeight: "500",
+                  color: "#374151",
+                  fontSize: "14px",
+                }}
+                htmlFor="description"
+              >
                 Mô tả *
               </label>
               <textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Mô tả chi tiết về challenge"
                 rows={3}
                 style={{
@@ -208,16 +315,36 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
           </div>
 
           {/* Prize and Dates */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#374151", margin: "0" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <h3
+              style={{
+                fontSize: "1.125rem",
+                fontWeight: "600",
+                color: "#374151",
+                margin: "0",
+              }}
+            >
               Giải thưởng & Thời gian
             </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="prize">
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label
+                style={{
+                  fontWeight: "500",
+                  color: "#374151",
+                  fontSize: "14px",
+                }}
+                htmlFor="prize"
+              >
                 Giải thưởng *
               </label>
               <select
-                onChange={(e) => setFormData({ ...formData, prize: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, prize: e.target.value })
+                }
                 style={{
                   padding: "10px 12px",
                   border: "1px solid #d1d5db",
@@ -237,7 +364,9 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
               <input
                 type="text"
                 value={formData.prize}
-                onChange={(e) => setFormData({ ...formData, prize: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, prize: e.target.value })
+                }
                 placeholder="Hoặc nhập giải thưởng tùy chỉnh"
                 style={{
                   padding: "10px 12px",
@@ -251,16 +380,33 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
               />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="startDate">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="startDate"
+                >
                   Ngày bắt đầu *
                 </label>
                 <input
                   id="startDate"
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startDate: e.target.value })
+                  }
                   style={{
                     padding: "10px 12px",
                     border: "1px solid #d1d5db",
@@ -271,15 +417,26 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
                   }}
                 />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="endDate">
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="endDate"
+                >
                   Ngày kết thúc *
                 </label>
                 <input
                   id="endDate"
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, endDate: e.target.value })
+                  }
                   style={{
                     padding: "10px 12px",
                     border: "1px solid #d1d5db",
@@ -294,20 +451,49 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
           </div>
 
           {/* Participants */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#374151", margin: "0" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <h3
+              style={{
+                fontSize: "1.125rem",
+                fontWeight: "600",
+                color: "#374151",
+                margin: "0",
+              }}
+            >
               Số lượng người tham gia
             </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="minParticipants">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="minParticipants"
+                >
                   Số người tối thiểu *
                 </label>
                 <input
                   id="minParticipants"
                   type="number"
                   value={formData.minParticipants}
-                  onChange={(e) => setFormData({ ...formData, minParticipants: Number.parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      minParticipants: Number.parseInt(e.target.value),
+                    })
+                  }
                   min="1"
                   style={{
                     padding: "10px 12px",
@@ -319,15 +505,29 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
                   }}
                 />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="maxParticipants">
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="maxParticipants"
+                >
                   Số người tối đa *
                 </label>
                 <input
                   id="maxParticipants"
                   type="number"
                   value={formData.maxParticipants}
-                  onChange={(e) => setFormData({ ...formData, maxParticipants: Number.parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      maxParticipants: Number.parseInt(e.target.value),
+                    })
+                  }
                   min="1"
                   style={{
                     padding: "10px 12px",
@@ -339,14 +539,25 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
                   }}
                 />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="difficulty">
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="difficulty"
+                >
                   Độ khó
                 </label>
                 <select
                   id="difficulty"
                   value={formData.difficulty}
-                  onChange={(e) => setFormData({ ...formData, difficulty: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, difficulty: e.target.value })
+                  }
                   style={{
                     padding: "10px 12px",
                     border: "1px solid #d1d5db",
@@ -365,17 +576,39 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
           </div>
 
           {/* Hashtags */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#374151", margin: "0" }}>Hashtags</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="hashtags">
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <h3
+              style={{
+                fontSize: "1.125rem",
+                fontWeight: "600",
+                color: "#374151",
+                margin: "0",
+              }}
+            >
+              Hashtags
+            </h3>
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <label
+                style={{
+                  fontWeight: "500",
+                  color: "#374151",
+                  fontSize: "14px",
+                }}
+                htmlFor="hashtags"
+              >
                 Hashtags (phân cách bằng dấu phẩy)
               </label>
               <input
                 id="hashtags"
                 type="text"
                 value={formData.hashtags}
-                onChange={(e) => setFormData({ ...formData, hashtags: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, hashtags: e.target.value })
+                }
                 placeholder="VD: bánh-kem, hoa-hồng, trang-trí"
                 style={{
                   padding: "10px 12px",
@@ -387,7 +620,15 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
                 }}
               />
               <div style={{ marginTop: "8px" }}>
-                <p style={{ fontSize: "14px", color: "#6b7280", margin: "0 0 8px 0" }}>Hashtags gợi ý:</p>
+                <p
+                  style={{
+                    fontSize: "14px",
+                    color: "#6b7280",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  Hashtags gợi ý:
+                </p>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                   {defaultHashtags.map((tag) => (
                     <span
@@ -404,12 +645,12 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
                       }}
                       onClick={() => addHashtag(tag)}
                       onMouseEnter={(e) => {
-                        e.target.style.background = "#fce7f3"
-                        e.target.style.borderColor = "#f9a8d4"
+                        e.target.style.background = "#fce7f3";
+                        e.target.style.borderColor = "#f9a8d4";
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = "#fdf2f8"
-                        e.target.style.borderColor = "#fce7f3"
+                        e.target.style.background = "#fdf2f8";
+                        e.target.style.borderColor = "#fce7f3";
                       }}
                     >
                       #{tag}
@@ -421,16 +662,35 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
           </div>
 
           {/* Rules and Requirements */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="rules">
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="rules"
+                >
                   Quy tắc (mỗi dòng một quy tắc)
                 </label>
                 <textarea
                   id="rules"
                   value={formData.rules}
-                  onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rules: e.target.value })
+                  }
                   placeholder="Nhập các quy tắc, mỗi dòng một quy tắc"
                   rows={4}
                   style={{
@@ -445,14 +705,25 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
                   }}
                 />
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <label style={{ fontWeight: "500", color: "#374151", fontSize: "14px" }} htmlFor="requirements">
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+              >
+                <label
+                  style={{
+                    fontWeight: "500",
+                    color: "#374151",
+                    fontSize: "14px",
+                  }}
+                  htmlFor="requirements"
+                >
                   Yêu cầu (mỗi dòng một yêu cầu)
                 </label>
                 <textarea
                   id="requirements"
                   value={formData.requirements}
-                  onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, requirements: e.target.value })
+                  }
                   placeholder="Nhập các yêu cầu, mỗi dòng một yêu cầu"
                   rows={4}
                   style={{
@@ -493,12 +764,12 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
             }}
             onClick={onClose}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#f9fafb"
-              e.target.style.borderColor = "#9ca3af"
+              e.target.style.backgroundColor = "#f9fafb";
+              e.target.style.borderColor = "#9ca3af";
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "white"
-              e.target.style.borderColor = "#d1d5db"
+              e.target.style.backgroundColor = "white";
+              e.target.style.borderColor = "#d1d5db";
             }}
           >
             Hủy
@@ -516,12 +787,12 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
             }}
             onClick={handleSubmit}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = "#ec4899"
-              e.target.style.borderColor = "#ec4899"
+              e.target.style.backgroundColor = "#ec4899";
+              e.target.style.borderColor = "#ec4899";
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = "#f472b6"
-              e.target.style.borderColor = "#f472b6"
+              e.target.style.backgroundColor = "#f472b6";
+              e.target.style.borderColor = "#f472b6";
             }}
           >
             Tạo Challenge
@@ -529,5 +800,5 @@ export default function CreateChallengeModal({ isOpen, onClose }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -4,6 +4,8 @@ import { addDays } from "date-fns";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
 import ChallengeDetail from "./ChallengeDetail";
+import { getAllChallenges, joinChallenge } from "../../api/challenge";
+import { toast } from "react-toastify";
 
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
@@ -24,9 +26,91 @@ export default function ChallengeList() {
     endDate: null,
     key: "selection",
   });
+  const [challenges, setChallenges] = useState([]);
+  const [loading, setLoading] = useState(false);
   const filterRef = useRef(null);
 
-  const challenges = [
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        setLoading(true);
+        // Tạm thời sử dụng dữ liệu mẫu để giữ UI hoạt động
+        setChallenges(placeholderChallenges);
+
+        // Gọi API và log response để debug
+        const response = await getAllChallenges();
+        console.log("Raw API Response:", response);
+
+        if (response && response.success && response.challenges) {
+          // Nếu có dữ liệu từ API, format và cập nhật state
+          const apiChallenges = response.challenges.map((challenge) => ({
+            id: challenge.id || challenge._id,
+            title: challenge.title || "Untitled Challenge",
+            description: challenge.description || "",
+            status: getStatusFromDates(
+              challenge.start_date,
+              challenge.end_date
+            ),
+            startDate: formatDate(challenge.start_date),
+            endDate: formatDate(challenge.end_date),
+            duration: challenge.duration || "30 ngày",
+            difficulty: challenge.difficulty || "Trung bình",
+            prize: challenge.prize_description || "",
+            participants: challenge.participants_count || 0,
+            maxParticipants: challenge.max_participants || 100,
+            minParticipants: challenge.min_participants || 10,
+            tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
+            image: challenge.image_url || IMAGE_URL,
+            host: {
+              name: challenge.host_name || "Admin",
+              avatar: challenge.host_avatar || IMAGE_URL,
+            },
+            rules: challenge.rules || "",
+            requirements: challenge.requirements || "",
+          }));
+
+          console.log("Formatted API Challenges:", apiChallenges);
+          if (apiChallenges.length > 0) {
+            setChallenges(apiChallenges);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching challenges:", error);
+        // Giữ nguyên dữ liệu mẫu nếu API gặp lỗi
+        setChallenges(placeholderChallenges);
+        toast.error(
+          error.response?.data?.message ||
+            "Đang hiển thị dữ liệu mẫu do không thể kết nối với server"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChallenges();
+  }, []);
+
+  const getStatusFromDates = (startDate, endDate) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (now < start) return "Sắp diễn ra";
+    if (now > end) return "Đã kết thúc";
+    return "Đang diễn ra";
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, "0")}/${(
+      date.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}/${date.getFullYear()}`;
+  };
+
+  // Placeholder data for development
+  const placeholderChallenges = [
     {
       id: "1",
       title: "Challenge Bánh Kem Hoa Hồng",
@@ -106,16 +190,24 @@ export default function ChallengeList() {
 
   const filteredChallenges = challenges.filter((challenge) => {
     const matchesSearch =
-      challenge.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      challenge.description.toLowerCase().includes(searchTerm.toLowerCase());
+      !searchTerm ||
+      challenge.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      challenge.description?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesFilter =
       selectedFilter === "Tất cả" || challenge.status === selectedFilter;
+
     let matchesDate = true;
     if (dateRange.startDate && dateRange.endDate) {
-      matchesDate =
-        parseDate(challenge.startDate) >= dateRange.startDate &&
-        parseDate(challenge.endDate) <= dateRange.endDate;
+      const challengeStartDate = parseDate(challenge.startDate);
+      const challengeEndDate = parseDate(challenge.endDate);
+      if (challengeStartDate && challengeEndDate) {
+        matchesDate =
+          challengeStartDate >= dateRange.startDate &&
+          challengeEndDate <= dateRange.endDate;
+      }
     }
+
     return matchesSearch && matchesFilter && matchesDate;
   });
 
@@ -153,10 +245,49 @@ export default function ChallengeList() {
     setSelectedChallenge(null);
   };
 
-  const handleJoinChallenge = (challengeId) => {
-    // Xử lý logic tham gia challenge
-    console.log("Tham gia challenge:", challengeId);
-    alert("Đã tham gia challenge thành công!");
+  const handleJoinChallenge = async (challengeId) => {
+    try {
+      const result = await joinChallenge(challengeId);
+      if (result.success) {
+        toast.success("Tham gia thử thách thành công!");
+        // Refresh lại danh sách để cập nhật số người tham gia
+        const response = await getAllChallenges();
+        if (response.success && response.challenges) {
+          const formattedChallenges = response.challenges.map((challenge) => ({
+            id: challenge.id || challenge._id,
+            title: challenge.title || "Untitled Challenge",
+            description: challenge.description || "",
+            status: getStatusFromDates(
+              challenge.start_date,
+              challenge.end_date
+            ),
+            startDate: formatDate(challenge.start_date),
+            endDate: formatDate(challenge.end_date),
+            duration: challenge.duration || "30 ngày",
+            difficulty: challenge.difficulty || "Trung bình",
+            prize: challenge.prize_description || "",
+            participants: challenge.participants_count || 0,
+            maxParticipants: challenge.max_participants || 100,
+            minParticipants: challenge.min_participants || 10,
+            tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
+            image: challenge.image_url || IMAGE_URL,
+            host: {
+              name: challenge.host_name || "Admin",
+              avatar: challenge.host_avatar || IMAGE_URL,
+            },
+          }));
+          setChallenges(formattedChallenges);
+        }
+      } else {
+        throw new Error(result.message || "Không thể tham gia thử thách");
+      }
+    } catch (error) {
+      console.error("Error joining challenge:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể tham gia thử thách. Vui lòng thử lại!"
+      );
+    }
   };
 
   // Đóng popup khi click ngoài
@@ -174,6 +305,15 @@ export default function ChallengeList() {
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showDateFilter]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
 
   // Nếu đang xem chi tiết challenge
   if (selectedChallenge) {
