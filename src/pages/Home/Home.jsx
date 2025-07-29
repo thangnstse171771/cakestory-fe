@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, use } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Heart,
   MessageCircle,
@@ -14,19 +14,20 @@ import {
   generateTrendingTopics,
   generateSuggestionGroups,
   generateUpcomingEvents,
-} from "../data/mockData";
+} from "../../data/mockData";
 import { Link, useLocation } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import { authAPI } from "../api/auth";
-import { useAuth } from "../contexts/AuthContext";
-import PostDetail from "./MyPost/PostDetail";
+import { authAPI } from "../../api/auth";
+import { useAuth } from "../../contexts/AuthContext";
+import PostDetail from "../MyPost/PostDetail";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import InfiniteScroll from "react-infinite-scroll-component";
+import HomeSideBar from "./HomeSideBar";
 // import { toast } from "react-toastify";
 dayjs.extend(relativeTime);
 
@@ -207,7 +208,7 @@ const Home = () => {
                                       to={`/user/${post.user.id}`}
                                       className="font-semibold text-gray-800 hover:text-pink-500 transition"
                                     >
-                                      {post.user.full_name}
+                                      {post.user.username}
                                     </Link>
                                     <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
                                       {post.MemoryPost.event_type}
@@ -365,84 +366,7 @@ const Home = () => {
             </div>
 
             {/* Right Sidebar */}
-            <div className="w-45 lg:w-60 xl:w-80 space-y-4">
-              {/* Trending Topics */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <h3 className="font-semibold text-gray-800 mb-3">
-                  Trending Topics
-                </h3>
-                <div className="space-y-2">
-                  {trendingTopics.map((topic, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center"
-                    >
-                      <span className="text-pink-600 font-medium">
-                        {topic.name}
-                      </span>
-                      <span className="text-gray-500 text-sm">
-                        {topic.posts}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button className="text-pink-500 text-sm mt-2 hover:text-pink-600">
-                  View all topics
-                </button>
-              </div>
-
-              {/* Suggestion Groups */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <h3 className="font-semibold text-gray-800 mb-3">
-                  Suggestion Groups
-                </h3>
-                <div className="space-y-2">
-                  {suggestionGroups.map((group, index) => (
-                    <div key={index} className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
-                        <span className="text-pink-600 text-xs font-bold">
-                          CG
-                        </span>
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="font-medium text-gray-800 text-sm">
-                          {group.name}
-                        </div>
-                        <div className="text-gray-500 text-xs">
-                          {group.members}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button className="text-pink-500 text-sm mt-2 hover:text-pink-600">
-                  View all groups
-                </button>
-              </div>
-
-              {/* Upcoming Events */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <h3 className="font-semibold text-gray-800 mb-3">
-                  Upcoming Events
-                </h3>
-                <div className="space-y-2">
-                  {upcomingEvents.map((event, index) => (
-                    <div
-                      key={index}
-                      className="border-l-2 border-pink-200 pl-3"
-                    >
-                      <div className="font-medium text-gray-800 text-sm">
-                        {event.name}
-                      </div>
-                      <div className="text-gray-500 text-xs">{event.date}</div>
-                    </div>
-                  ))}
-                </div>
-                <button className="text-pink-500 text-sm mt-2 hover:text-pink-600">
-                  View all events
-                </button>
-              </div>
-            </div>
+            <HomeSideBar />
           </div>
         </div>
       </div>
