@@ -7,6 +7,7 @@ import { storage } from "../../firebase";
 import { authAPI } from "../../api/auth";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import { toast } from "react-toastify";
 
 const UpdatePostSchema = Yup.object().shape({
   eventTitle: Yup.string().required("Event title is required"),
@@ -69,7 +70,9 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-10">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 m-4">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800">Update Your Story</h2>
+          <h2 className="text-2xl font-semibold text-gray-800">
+            Update Your Story
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -130,6 +133,7 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
               await authAPI.updateMemoryPost(post.id, payload);
               if (onUpdate) await onUpdate();
               onClose();
+              toast.success("Post updated!");
             } catch (err) {
               console.error("UpdatePost: Error updating post:", err);
               setFieldError(

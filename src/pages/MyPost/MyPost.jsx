@@ -321,7 +321,9 @@ const MyPost = () => {
         {/* Posts Grid/List */}
         {loading ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">Loading...</p>
+            <p className="text-pink-500 text-lg font-medium animate-pulse">
+              Loading...
+            </p>
           </div>
         ) : error ? (
           <div className="min-h-screen flex items-center justify-center text-red-500">

@@ -169,7 +169,7 @@ const Home = () => {
                     }}
                     hasMore={hasMore}
                     loader={
-                      <div className="flex justify-center text-pink-500">
+                      <div className="flex justify-center text-pink-500 text-lg font-medium animate-pulse">
                         Loading posts...
                       </div>
                     }
@@ -358,7 +358,7 @@ const Home = () => {
                     )}
                   </InfiniteScroll>
                 ) : (
-                  <div className="flex justify-center text-pink-500">
+                  <div className="flex justify-center text-pink-500 text-lg font-medium animate-pulse">
                     Loading posts...
                   </div>
                 )}

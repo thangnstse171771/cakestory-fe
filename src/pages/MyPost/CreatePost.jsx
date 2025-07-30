@@ -7,6 +7,7 @@ import * as Yup from "yup";
 import { authAPI } from "../../api/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../firebase";
+import { toast } from "react-toastify";
 
 const CreatePostSchema = Yup.object().shape({
   eventTitle: Yup.string().required("Event title is required"),
@@ -91,7 +92,7 @@ const CreatePost = ({ isOpen, onClose, onCreate }) => {
               if (onCreate) await onCreate();
               resetForm();
               onClose();
-              alert("Post created!");
+              toast.success("Post created!");
             } catch (err) {
               console.error(err);
               setFieldError(
