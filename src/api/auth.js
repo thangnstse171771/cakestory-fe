@@ -156,4 +156,9 @@ export const authAPI = {
     const response = await axiosInstance.get("/users");
     return response.data;
   },
+
+  createAlbum: async (albumData) => {
+    const response = await axiosInstance.post("/albums", albumData);
+    return response.data;
+  },
 };

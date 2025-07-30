@@ -15,6 +15,7 @@ import {
   CreditCard,
   Trophy,
   Menu,
+  SquareLibrary,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -39,6 +40,7 @@ const Sidebar = () => {
   const userMenu = [
     { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: BookImage, label: "My Post", path: "/mypost" },
+    { icon: SquareLibrary, label: "My Album", path: "/myalbum" },
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
   ];
