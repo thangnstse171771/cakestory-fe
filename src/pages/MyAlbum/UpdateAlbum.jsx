@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
@@ -13,8 +13,8 @@ const AlbumSchema = Yup.object().shape({
     .max(300, "Description must be at most 300 characters"),
 });
 
-const CreateAlbum = ({ isOpen, onClose, onCreate }) => {
-  if (!isOpen) return null;
+const UpdateAlbum = ({ isOpen, onClose, album, onUpdate }) => {
+  if (!isOpen || !album) return null;
 
   const [loading, setLoading] = useState(false);
 
@@ -28,22 +28,24 @@ const CreateAlbum = ({ isOpen, onClose, onCreate }) => {
           <X className="w-6 h-6 text-gray-500" />
         </button>
 
-        <h2 className="text-xl font-bold mb-4">Create New Album</h2>
+        <h2 className="text-xl font-bold mb-4">Update Album</h2>
 
         <Formik
-          initialValues={{ name: "", description: "" }}
+          initialValues={{
+            name: album.title || "",
+            description: album.description || "",
+          }}
           validationSchema={AlbumSchema}
-          onSubmit={async (values, { resetForm, setSubmitting }) => {
+          onSubmit={async (values, { setSubmitting }) => {
             setLoading(true);
             try {
-              await authAPI.createAlbum(values);
-              toast.success("Album created successfully!");
-              if (onCreate) await onCreate();
-              resetForm();
+              await authAPI.updateAlbum(album.id, values); // assumes `updateAlbum` exists in API
+              toast.success("Album updated successfully!");
+              if (onUpdate) await onUpdate();
               onClose();
             } catch (error) {
-              console.error("Failed to create album", error);
-              toast.error("Failed to create album");
+              console.error("Failed to update album", error);
+              toast.error("Failed to update album");
             } finally {
               setSubmitting(false);
               setLoading(false);
@@ -82,7 +84,7 @@ const CreateAlbum = ({ isOpen, onClose, onCreate }) => {
                   className="px-6 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
                   disabled={isSubmitting || loading}
                 >
-                  {isSubmitting || loading ? "Creating..." : "Create Album"}
+                  {isSubmitting || loading ? "Updating..." : "Update Album"}
                 </button>
               </div>
             </Form>
@@ -93,4 +95,4 @@ const CreateAlbum = ({ isOpen, onClose, onCreate }) => {
   );
 };
 
-export default CreateAlbum;
+export default UpdateAlbum;

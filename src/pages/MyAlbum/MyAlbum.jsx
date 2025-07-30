@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Grid,
   List,
@@ -12,82 +13,49 @@ import {
   Eye,
 } from "lucide-react";
 import CreateAlbum from "./CreateAlbum";
+import { useAuth } from "../../contexts/AuthContext";
+import { authAPI } from "../../api/auth";
+import UpdateAlbum from "./UpdateAlbum";
 
 const MyAlbum = () => {
+  const { user } = useAuth();
+  const [albums, setAlbums] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false);
+  const [isUpdateAlbumOpen, setIsUpdateAlbumOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
-  const albums = [
-    {
-      id: 1,
-      title: "Chocolate Dreams",
-      image:
-        "https://scientificallysweet.com/wp-content/uploads/2020/09/IMG_4117-feature.jpg",
-      likes: 234,
-      comments: 12,
-      views: 1847,
-      date: "2024-01-15",
-      category: "chocolate",
-      description: "Rich chocolate cake with meringue topping",
-    },
-    {
-      id: 2,
-      title: "Lemon Delight",
-      image:
-        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSwZ-GpTn9xTtYg8AC20UZwI3Qkj8E3UCqvSQ&s",
-      likes: 189,
-      comments: 8,
-      views: 892,
-      date: "2024-01-12",
-      category: "lemon",
-      description: "Fresh lemon cake with sweet cream",
-    },
-    {
-      id: 3,
-      title: "Strawberry Paradise",
-      image: "/placeholder.svg?height=300&width=300",
-      likes: 456,
-      comments: 23,
-      views: 2103,
-      date: "2024-01-10",
-      category: "fruit",
-      description: "Strawberry cake with fresh berries",
-    },
-    {
-      id: 4,
-      title: "Vanilla Classic",
-      image: "/placeholder.svg?height=300&width=300",
-      likes: 312,
-      comments: 15,
-      views: 1456,
-      date: "2024-01-08",
-      category: "vanilla",
-      description: "Classic vanilla cake with buttercream",
-    },
-    {
-      id: 5,
-      title: "Red Velvet Romance",
-      image: "/placeholder.svg?height=300&width=300",
-      likes: 567,
-      comments: 34,
-      views: 2890,
-      date: "2024-01-05",
-      category: "red-velvet",
-      description: "Heart-shaped red velvet cake",
-    },
-    {
-      id: 6,
-      title: "Birthday Special",
-      image: "/placeholder.svg?height=300&width=300",
-      likes: 423,
-      comments: 28,
-      views: 1923,
-      date: "2024-01-03",
-      category: "birthday",
-      description: "Colorful birthday cake with decorations",
-    },
-  ];
+  const fetchAlbums = async () => {
+    try {
+      const userId = user.id;
+      const response = await authAPI.getAlbumsByUserId(userId);
+      const rawAlbums = response.data.albums;
+
+      const formatted = rawAlbums.map((album) => ({
+        id: album.id,
+        title: album.name,
+        description: album.description,
+        image:
+          album.AlbumPosts?.[0]?.Post?.media?.[0]?.image_url ||
+          "https://www.shutterstock.com/image-vector/default-ui-image-placeholder-wireframes-600nw-1037719192.jpg",
+        date: new Date(album.created_at).toISOString().split("T")[0],
+        category: "default",
+      }));
+
+      setAlbums(formatted);
+    } catch (error) {
+      console.error("Error fetching albums:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAlbums();
+  }, []);
 
   const categories = [
     { value: "all", label: "All Cakes", count: albums.length },
@@ -137,7 +105,7 @@ const MyAlbum = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">My Album</h1>
+          <h1 className="text-3xl font-bold text-pink-600 mb-2">My Album</h1>
           <p className="text-gray-600">
             Showcase your delicious cake creations
           </p>
@@ -175,7 +143,7 @@ const MyAlbum = () => {
             <Search className="w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search cakes..."
+              placeholder="Search albums..."
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           </div>
@@ -206,12 +174,18 @@ const MyAlbum = () => {
       </div>
 
       {/* Album Grid/List */}
-      {viewMode === "grid" ? (
+      {loading ? (
+        <div className="flex justify-center items-center py-20">
+          <div className="text-pink-500 text-lg font-medium animate-pulse">
+            Loading albums...
+          </div>
+        </div>
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAlbums.map((album) => (
             <div
               key={album.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+              className="relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
             >
               <div className="relative group">
                 <img
@@ -220,18 +194,52 @@ const MyAlbum = () => {
                   className="w-full h-64 object-cover"
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
-                  <button className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 px-4 py-2 rounded-lg transition-opacity">
+                  <Link
+                    to={`/album`}
+                    className="opacity-0 group-hover:opacity-100 bg-pink-500 text-white px-4 py-2 rounded-lg transition-opacity"
+                  >
                     View Details
-                  </button>
+                  </Link>
                 </div>
               </div>
 
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold text-gray-800">{album.title}</h3>
-                  <button className="text-gray-400 hover:text-gray-600">
+                  <button
+                    className="text-gray-400 hover:text-gray-600"
+                    onClick={() =>
+                      setOpenDropdown(
+                        openDropdown === album.id ? null : album.id
+                      )
+                    }
+                  >
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
+                  {openDropdown === album.id && (
+                    <div className="absolute bottom-1 right-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
+                      <button
+                        onClick={() => {
+                          setOpenDropdown(null);
+                          setIsUpdateAlbumOpen(true);
+                          setSelectedAlbum(album);
+                        }}
+                        className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenDropdown(null);
+                          // setIsDeleteAlbumOpen(true);
+                          setSelectedAlbum(album);
+                        }}
+                        className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-gray-600 text-sm mb-3">
@@ -267,7 +275,7 @@ const MyAlbum = () => {
           {filteredAlbums.map((album) => (
             <div
               key={album.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow"
+              className="relative bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex items-center space-x-6">
                 <img
@@ -281,9 +289,39 @@ const MyAlbum = () => {
                     <h3 className="text-xl font-semibold text-gray-800">
                       {album.title}
                     </h3>
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button
+                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() =>
+                        setOpenDropdown(
+                          openDropdown === album.id ? null : album.id
+                        )
+                      }
+                    >
                       <MoreHorizontal className="w-5 h-5" />
                     </button>
+                    {openDropdown === album.id && (
+                      <div className="absolute top-11 right-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
+                        <button
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            setIsUpdateAlbumOpen(true);
+                            setSelectedAlbum(album);
+                          }}
+                          className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setOpenDropdown(null);
+                            setSelectedAlbum(album);
+                          }}
+                          className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <p className="text-gray-600 mb-3">{album.description}</p>
@@ -315,26 +353,33 @@ const MyAlbum = () => {
         </div>
       )}
 
-      {filteredAlbums.length === 0 && (
+      {!loading && filteredAlbums.length === 0 && (
         <div className="text-center py-12">
           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Grid className="w-12 h-12 text-gray-400" />
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">
-            No cakes found
+            No albums found
           </h3>
           <p className="text-gray-600 mb-6">
-            Try adjusting your filters or add your first cake!
+            Try adjusting your filters or add your first album!
           </p>
           <button className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto transition-colors">
             <Plus className="w-5 h-5" />
-            <span>Add Your First Cake</span>
+            <span>Add Your First Album</span>
           </button>
         </div>
       )}
       <CreateAlbum
         isOpen={isCreateAlbumOpen}
         onClose={() => setIsCreateAlbumOpen(false)}
+        onCreate={fetchAlbums}
+      />
+      <UpdateAlbum
+        isOpen={isUpdateAlbumOpen}
+        onClose={() => setIsUpdateAlbumOpen(false)}
+        album={selectedAlbum}
+        onUpdate={fetchAlbums}
       />
     </div>
   );

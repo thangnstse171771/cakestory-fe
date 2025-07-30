@@ -43,6 +43,7 @@ import ToastNotify from "./components/ToastNotify";
 import SyncUserIdToStore from "./pages/Chat/libs/SyncUserIdToStore";
 import SuggestedUsers from "./pages/Home/SuggestedUsers";
 import MyAlbum from "./pages/MyAlbum/MyAlbum";
+import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -119,6 +120,7 @@ export default function App() {
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="wallet" element={<UserWallet />} />
             <Route path="suggested-users" element={<SuggestedUsers />}/>
+            <Route path="album" element={<AlbumDetail />} />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}
