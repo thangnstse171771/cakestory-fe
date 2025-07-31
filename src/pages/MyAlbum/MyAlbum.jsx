@@ -26,7 +26,7 @@ const MyAlbum = () => {
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false);
   const [isUpdateAlbumOpen, setIsUpdateAlbumOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchAlbums = async () => {
     try {
@@ -57,39 +57,11 @@ const MyAlbum = () => {
     fetchAlbums();
   }, []);
 
-  const categories = [
-    { value: "all", label: "All Cakes", count: albums.length },
-    {
-      value: "chocolate",
-      label: "Chocolate",
-      count: albums.filter((a) => a.category === "chocolate").length,
-    },
-    {
-      value: "fruit",
-      label: "Fruit",
-      count: albums.filter((a) => a.category === "fruit").length,
-    },
-    {
-      value: "vanilla",
-      label: "Vanilla",
-      count: albums.filter((a) => a.category === "vanilla").length,
-    },
-    {
-      value: "red-velvet",
-      label: "Red Velvet",
-      count: albums.filter((a) => a.category === "red-velvet").length,
-    },
-    {
-      value: "birthday",
-      label: "Birthday",
-      count: albums.filter((a) => a.category === "birthday").length,
-    },
-  ];
-
-  const filteredAlbums =
-    selectedFilter === "all"
-      ? albums
-      : albums.filter((album) => album.category === selectedFilter);
+  const filteredAlbums = albums.filter(
+    (album) =>
+      album.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      album.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -111,7 +83,7 @@ const MyAlbum = () => {
           </p>
         </div>
         <button
-          className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 transition-colors"
+          className="flex items-center gap-2 px-6 py-3 bg-pink-500 text-white rounded-xl hover:bg-pink-400 transition-all duration-300 shadow-lg hover:shadow-xl"
           onClick={() => setIsCreateAlbumOpen(true)}
         >
           <Plus className="w-5 h-5" />
@@ -124,27 +96,14 @@ const MyAlbum = () => {
       {/* Filters and View Toggle */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-gray-400" />
-            <select
-              value={selectedFilter}
-              onChange={(e) => setSelectedFilter(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-            >
-              {categories.map((category) => (
-                <option key={category.value} value={category.value}>
-                  {category.label} ({category.count})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
             <Search className="w-5 h-5 text-gray-400" />
             <input
               type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search albums..."
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           </div>
         </div>
@@ -195,7 +154,7 @@ const MyAlbum = () => {
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
                   <Link
-                    to={`/album`}
+                    to={`/album/${album.id}`}
                     className="opacity-0 group-hover:opacity-100 bg-pink-500 text-white px-4 py-2 rounded-lg transition-opacity"
                   >
                     View Details
@@ -364,7 +323,10 @@ const MyAlbum = () => {
           <p className="text-gray-600 mb-6">
             Try adjusting your filters or add your first album!
           </p>
-          <button className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto transition-colors">
+          <button
+            className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto transition-colors"
+            onClick={() => setIsCreateAlbumOpen(true)}
+          >
             <Plus className="w-5 h-5" />
             <span>Add Your First Album</span>
           </button>

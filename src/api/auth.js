@@ -162,9 +162,25 @@ export const authAPI = {
     const response = await axiosInstance.put(`/albums/${id}`, data);
     return response.data;
   },
-  
+
   getAlbumsByUserId: async (userId) => {
     const response = await axiosInstance.get(`/albums/user/${userId}`);
     return response.data;
   },
+
+  getAlbumById: async (albumId) => {
+    const response = await axiosInstance.get(`/albums/${albumId}`);
+    return response.data;
+  },
+
+  createAlbumPost: async (postData) => {
+    const response = await axiosInstance.post(`/albums/posts`, postData);
+    return response.data;
+  },
+
+  updateAlbumPost: async (postId, postData) => {
+  const response = await axiosInstance.put(`/albums/posts/${postId}`, postData);
+  return response.data;
+  },
+
 };
