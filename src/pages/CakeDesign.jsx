@@ -136,15 +136,15 @@ const CakeDesign = () => {
     // Base cake or frosting image - một ảnh duy nhất
     let baseOrFrostingImage;
     if (design.frosting !== "none") {
-      baseOrFrostingImage = `${process.env.PUBLIC_URL}/src/assets/Cake Design/Base Frosting/Tier ${design.tiers} ${design.shape} ${design.frosting}.png`;
+      baseOrFrostingImage = `${process.env.PUBLIC_URL}/Cake Design/Base Frosting/Tier ${design.tiers} ${design.shape} ${design.frosting}.png`;
     } else {
-      baseOrFrostingImage = `${process.env.PUBLIC_URL}/src/assets/Cake Design/Base Cake Layer/Tier ${design.tiers} ${design.shape}.png`;
+      baseOrFrostingImage = `${process.env.PUBLIC_URL}/Cake Design/Base Cake Layer/Tier ${design.tiers} ${design.shape}.png`;
     }
 
     // Topping layer
     let toppingImage = null;
     if (design.topping !== "none") {
-      toppingImage = `${process.env.PUBLIC_URL}/src/assets/Cake Design/Base Topping/${design.topping}.png`;
+      toppingImage = `${process.env.PUBLIC_URL}/Cake Design/Base Topping/${design.topping}.png`;
     }
 
     return {
@@ -424,8 +424,8 @@ const CakeDesign = () => {
                       <img
                         src={
                           design.frosting !== "none"
-                            ? `/src/assets/Cake Design/Base Frosting/Tier ${design.tiers} ${design.shape} ${design.frosting}.png`
-                            : `/src/assets/Cake Design/Base Cake Layer/Tier ${design.tiers} ${design.shape}.png`
+                            ? `/Cake Design/Base Frosting/Tier ${design.tiers} ${design.shape} ${design.frosting}.png`
+                            : `/Cake Design/Base Cake Layer/Tier ${design.tiers} ${design.shape}.png`
                         }
                         alt={
                           design.frosting !== "none"
@@ -449,7 +449,7 @@ const CakeDesign = () => {
                         }}
                       >
                         <img
-                          src={`/src/assets/Cake Design/Base Topping/${design.topping}.png`}
+                          src={`/Cake Design/Base Topping/${design.topping}.png`}
                           alt={`${design.topping} topping`}
                           className={`w-full h-full object-contain transition-transform pointer-events-auto ${
                             isDragging &&
@@ -536,7 +536,7 @@ const CakeDesign = () => {
                               }}
                             >
                               <img
-                                src={`/src/assets/Cake Design/Base Decoration/${decorInfo.filename}`}
+                                src={`/Cake Design/Base Decoration/${decorInfo.filename}`}
                                 alt={`${decorInfo.label} decoration`}
                                 className={`w-full h-full object-contain transition-transform pointer-events-auto ${
                                   isDragging &&
