@@ -502,7 +502,7 @@ const MyPost = () => {
               <Search className="w-8 h-8 text-pink-500" />
             </div>
             <p className="text-gray-500 text-lg">
-              No posts found matching your search.
+              No posts found.
             </p>
             <button className="mt-4 text-pink-500 hover:text-pink-600 font-medium">
               Clear filters

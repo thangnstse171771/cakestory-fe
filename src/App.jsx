@@ -120,7 +120,7 @@ export default function App() {
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="wallet" element={<UserWallet />} />
             <Route path="suggested-users" element={<SuggestedUsers />}/>
-            <Route path="album" element={<AlbumDetail />} />
+            <Route path="album/:id" element={<AlbumDetail />} />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}
