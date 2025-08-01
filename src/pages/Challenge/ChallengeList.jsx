@@ -30,6 +30,27 @@ export default function ChallengeList() {
   const [loading, setLoading] = useState(false);
   const filterRef = useRef(null);
 
+  const getStatusFromDates = (startDate, endDate) => {
+    const now = new Date();
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (now < start) return "Sắp diễn ra";
+    if (now > end) return "Đã kết thúc";
+    return "Đang diễn ra";
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return `${date.getDate().toString().padStart(2, "0")}/${(
+      date.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}/${date.getFullYear()}`;
+  };
+
+  // Placeholder data for development
+
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
@@ -43,31 +64,35 @@ export default function ChallengeList() {
 
         if (response && response.success && response.challenges) {
           // Nếu có dữ liệu từ API, format và cập nhật state
-          const apiChallenges = response.challenges.map((challenge) => ({
-            id: challenge.id || challenge._id,
-            title: challenge.title || "Untitled Challenge",
-            description: challenge.description || "",
-            status: getStatusFromDates(
-              challenge.start_date,
-              challenge.end_date
-            ),
-            startDate: formatDate(challenge.start_date),
-            endDate: formatDate(challenge.end_date),
-            duration: challenge.duration || "30 ngày",
-            difficulty: challenge.difficulty || "Trung bình",
-            prize: challenge.prize_description || "",
-            participants: challenge.participants_count || 0,
-            maxParticipants: challenge.max_participants || 100,
-            minParticipants: challenge.min_participants || 10,
-            tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
-            image: challenge.image_url || IMAGE_URL,
-            host: {
-              name: challenge.host_name || "Admin",
-              avatar: challenge.host_avatar || IMAGE_URL,
-            },
-            rules: challenge.rules || "",
-            requirements: challenge.requirements || "",
-          }));
+          const apiChallenges = response.challenges.map((challenge) => {
+            console.log("Processing challenge:", challenge);
+            return {
+              id: challenge.id || challenge._id,
+              title: challenge.title || "Untitled Challenge",
+              description: challenge.description || "",
+              status: getStatusFromDates(
+                challenge.start_date,
+                challenge.end_date
+              ),
+              startDate: formatDate(challenge.start_date),
+              endDate: formatDate(challenge.end_date),
+              duration: challenge.duration || "30 ngày",
+              difficulty: challenge.difficulty || "Trung bình",
+              prize: challenge.prize_description || "",
+              participants: challenge.participants_count || 0,
+              maxParticipants: challenge.max_participants || 100,
+              minParticipants: challenge.min_participants || 10,
+              hashtag: challenge.hashtag,
+              image: challenge.image_url || IMAGE_URL,
+              tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
+              host: {
+                name: challenge.host_name || "Admin",
+                avatar: challenge.host_avatar || IMAGE_URL,
+              },
+              rules: challenge.rules || "",
+              requirements: challenge.requirements || "",
+            };
+          });
 
           console.log("Formatted API Challenges:", apiChallenges);
           if (apiChallenges.length > 0) {
@@ -89,102 +114,6 @@ export default function ChallengeList() {
 
     fetchChallenges();
   }, []);
-
-  const getStatusFromDates = (startDate, endDate) => {
-    const now = new Date();
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (now < start) return "Sắp diễn ra";
-    if (now > end) return "Đã kết thúc";
-    return "Đang diễn ra";
-  };
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return `${date.getDate().toString().padStart(2, "0")}/${(
-      date.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}/${date.getFullYear()}`;
-  };
-
-  // Placeholder data for development
-  const placeholderChallenges = [
-    {
-      id: "1",
-      title: "Challenge Bánh Kem Hoa Hồng",
-      description:
-        "Thử thách 30 ngày làm bánh kem với chủ đề hoa hồng lãng mạn",
-      image: IMAGE_URL,
-      participants: 248,
-      duration: "30 ngày",
-      difficulty: "Trung bình",
-      prize: "Bộ dụng cụ làm bánh cao cấp",
-      status: "Đang diễn ra",
-      startDate: "15/12/2024",
-      endDate: "15/01/2025",
-      host: {
-        name: "Chef Minh Anh",
-        avatar: IMAGE_URL,
-      },
-      tags: ["Bánh kem", "Hoa hồng", "Trang trí"],
-    },
-    {
-      id: "2",
-      title: "Cupcake Giáng Sinh",
-      description: "Tạo ra những chiếc cupcake đầy màu sắc cho mùa Giáng Sinh",
-      image: IMAGE_URL,
-      participants: 156,
-      duration: "14 ngày",
-      difficulty: "Dễ",
-      prize: "Voucher 500k",
-      status: "Sắp diễn ra",
-      startDate: "20/12/2024",
-      endDate: "03/01/2025",
-      host: {
-        name: "Baker Thanh Hoa",
-        avatar: IMAGE_URL,
-      },
-      tags: ["Cupcake", "Giáng sinh", "Màu sắc"],
-    },
-    {
-      id: "3",
-      title: "Bánh Sinh Nhật Sáng Tạo",
-      description: "Thiết kế bánh sinh nhật độc đáo với kỹ thuật fondant",
-      image: IMAGE_URL,
-      participants: 89,
-      duration: "21 ngày",
-      difficulty: "Khó",
-      prize: "Khóa học fondant chuyên nghiệp",
-      status: "Đang diễn ra",
-      startDate: "01/12/2024",
-      endDate: "22/12/2024",
-      host: {
-        name: "Master Quỳnh Anh",
-        avatar: IMAGE_URL,
-      },
-      tags: ["Sinh nhật", "Fondant", "Sáng tạo"],
-    },
-    {
-      id: "4",
-      title: "Macaron Pháp Truyền Thống",
-      description: "Học cách làm macaron Pháp hoàn hảo với nhiều hương vị",
-      image: IMAGE_URL,
-      participants: 312,
-      duration: "45 ngày",
-      difficulty: "Khó",
-      prize: "Chuyến du lịch Pháp",
-      status: "Đã kết thúc",
-      startDate: "01/10/2024",
-      endDate: "15/11/2024",
-      host: {
-        name: "Chef Pierre",
-        avatar: IMAGE_URL,
-      },
-      tags: ["Macaron", "Pháp", "Truyền thống"],
-    },
-  ];
 
   const filters = ["Tất cả", "Đang diễn ra", "Sắp diễn ra", "Đã kết thúc"];
 
@@ -248,11 +177,14 @@ export default function ChallengeList() {
   const handleJoinChallenge = async (challengeId) => {
     try {
       const result = await joinChallenge(challengeId);
-      if (result.success) {
+      console.log("Join challenge response:", result);
+
+      // Since the API returns entry object on success
+      if (result && result.entry) {
         toast.success("Tham gia thử thách thành công!");
-        // Refresh lại danh sách để cập nhật số người tham gia
+        // Refresh the challenges list to update UI
         const response = await getAllChallenges();
-        if (response.success && response.challenges) {
+        if (response && response.challenges) {
           const formattedChallenges = response.challenges.map((challenge) => ({
             id: challenge.id || challenge._id,
             title: challenge.title || "Untitled Challenge",
@@ -270,6 +202,7 @@ export default function ChallengeList() {
             maxParticipants: challenge.max_participants || 100,
             minParticipants: challenge.min_participants || 10,
             tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
+            hashtag: challenge.hashtag,
             image: challenge.image_url || IMAGE_URL,
             host: {
               name: challenge.host_name || "Admin",
@@ -278,15 +211,20 @@ export default function ChallengeList() {
           }));
           setChallenges(formattedChallenges);
         }
-      } else {
-        throw new Error(result.message || "Không thể tham gia thử thách");
       }
     } catch (error) {
       console.error("Error joining challenge:", error);
-      toast.error(
-        error.response?.data?.message ||
-          "Không thể tham gia thử thách. Vui lòng thử lại!"
-      );
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        toast.error("Bạn đã tham gia thử thách này rồi hoặc thử thách đã đầy");
+      } else if (error.response?.status === 404) {
+        toast.error("Không tìm thấy thử thách này");
+      } else {
+        toast.error(
+          error.response?.data?.message ||
+            "Không thể tham gia thử thách. Vui lòng thử lại!"
+        );
+      }
     }
   };
 
