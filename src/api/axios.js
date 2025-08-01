@@ -131,3 +131,11 @@ export const fetchWalletBalance = async () => {
   const response = await axiosInstance.get("/wallet/balance");
   return response.data;
 };
+
+export const joinChallenge = async (challengeId) => {
+  const response = await axiosInstance.post("/challenge-entries", {
+    challenge_id: challengeId,
+    user_id: JSON.parse(localStorage.getItem("user"))?.id,
+  });
+  return response.data;
+};

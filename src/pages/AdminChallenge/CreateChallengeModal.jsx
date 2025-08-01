@@ -9,27 +9,16 @@ export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    duration: "",
-    difficulty: "Dễ",
     prize: "",
     startDate: "",
     endDate: "",
     maxParticipants: 500,
     minParticipants: 10,
-    hashtags: "",
+    hashtag: "",
     rules: "",
     requirements: "",
   });
 
-  // Fake data cho dropdown
-  const durationOptions = [
-    "7 ngày",
-    "14 ngày",
-    "21 ngày",
-    "30 ngày",
-    "45 ngày",
-    "60 ngày",
-  ];
   const defaultPrizes = [
     "Bộ dụng cụ làm bánh cao cấp",
     "Voucher 500.000đ",
@@ -49,16 +38,16 @@ export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
     try {
       setLoading(true);
       const challengeData = {
-        ...formData,
-        hashtags: formData.hashtags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag),
+        title: formData.title,
+        description: formData.description,
         max_participants: formData.maxParticipants,
         min_participants: formData.minParticipants,
         start_date: formData.startDate,
         end_date: formData.endDate,
+        hashtag: formData.hashtag,
         prize_description: formData.prize,
+        rules: formData.rules,
+        requirements: formData.requirements,
       };
 
       const result = await createChallenge(challengeData);
@@ -66,14 +55,12 @@ export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
       setFormData({
         title: "",
         description: "",
-        duration: "",
-        difficulty: "Dễ",
         prize: "",
         startDate: "",
         endDate: "",
         maxParticipants: 500,
         minParticipants: 10,
-        hashtags: "",
+        hashtag: "",
         rules: "",
         requirements: "",
       });
@@ -92,11 +79,13 @@ export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
   };
 
   const addHashtag = (tag) => {
-    const currentTags = formData.hashtags.split(",").map((t) => t.trim());
+    const currentTags = (formData.hashtag || "")
+      .split(",")
+      .map((t) => t.trim());
     if (!currentTags.includes(tag)) {
       setFormData({
         ...formData,
-        hashtags: formData.hashtags ? `${formData.hashtags}, ${tag}` : tag,
+        hashtag: formData.hashtag ? `${formData.hashtag}, ${tag}` : tag,
       });
     }
   };
@@ -240,42 +229,6 @@ export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
                     transition: "all 0.2s",
                   }}
                 />
-              </div>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-              >
-                <label
-                  style={{
-                    fontWeight: "500",
-                    color: "#374151",
-                    fontSize: "14px",
-                  }}
-                  htmlFor="duration"
-                >
-                  Thời gian *
-                </label>
-                <select
-                  id="duration"
-                  value={formData.duration}
-                  onChange={(e) =>
-                    setFormData({ ...formData, duration: e.target.value })
-                  }
-                  style={{
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    fontFamily: "inherit",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  <option value="">Chọn thời gian</option>
-                  {durationOptions.map((duration) => (
-                    <option key={duration} value={duration}>
-                      {duration}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
@@ -539,39 +492,6 @@ export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
                   }}
                 />
               </div>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "4px" }}
-              >
-                <label
-                  style={{
-                    fontWeight: "500",
-                    color: "#374151",
-                    fontSize: "14px",
-                  }}
-                  htmlFor="difficulty"
-                >
-                  Độ khó
-                </label>
-                <select
-                  id="difficulty"
-                  value={formData.difficulty}
-                  onChange={(e) =>
-                    setFormData({ ...formData, difficulty: e.target.value })
-                  }
-                  style={{
-                    padding: "10px 12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    fontFamily: "inherit",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  <option value="Dễ">Dễ</option>
-                  <option value="Trung bình">Trung bình</option>
-                  <option value="Khó">Khó</option>
-                </select>
-              </div>
             </div>
           </div>
 
@@ -598,16 +518,16 @@ export default function CreateChallengeModal({ isOpen, onClose, onSuccess }) {
                   color: "#374151",
                   fontSize: "14px",
                 }}
-                htmlFor="hashtags"
+                htmlFor="hashtag"
               >
                 Hashtags (phân cách bằng dấu phẩy)
               </label>
               <input
-                id="hashtags"
+                id="hashtag"
                 type="text"
-                value={formData.hashtags}
+                value={formData.hashtag}
                 onChange={(e) =>
-                  setFormData({ ...formData, hashtags: e.target.value })
+                  setFormData({ ...formData, hashtag: e.target.value })
                 }
                 placeholder="VD: bánh-kem, hoa-hồng, trang-trí"
                 style={{

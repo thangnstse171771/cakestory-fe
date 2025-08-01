@@ -11,6 +11,17 @@ export const getAllChallenges = async () => {
   try {
     const response = await axiosInstance.get("/challenges");
     console.log("Raw Challenge API Response:", response);
+    console.log(
+      "Challenge Data Structure:",
+      JSON.stringify(response.data, null, 2)
+    );
+    if (Array.isArray(response.data)) {
+      const firstChallenge = response.data[0];
+      console.log("First Challenge Full Data:", firstChallenge);
+      console.log("Available fields:", Object.keys(firstChallenge || {}));
+      console.log("Hashtag field:", firstChallenge?.hashtag);
+      console.log("Hashtag type:", typeof firstChallenge?.hashtag);
+    }
     return {
       success: true,
       challenges: Array.isArray(response.data)

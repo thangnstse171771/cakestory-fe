@@ -4,15 +4,13 @@ import { toast } from "react-toastify";
 import { joinChallenge } from "../../api/axios";
 import axiosInstance from "../../api/axios";
 
-const countParticipants = (entries, challengeId) => {
-  if (!entries || !Array.isArray(entries)) {
-    return 0;
-  }
-  return entries.filter((entry) => entry.challenge_id === challengeId).length;
-};
-
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
+
+// Hàm đếm số người tham gia cho một challenge
+const countParticipants = (entries, challengeId) => {
+  return entries.filter((entry) => entry.challenge_id === challengeId).length;
+};
 
 export default function ChallengeDetail({
   challenge,
@@ -21,108 +19,41 @@ export default function ChallengeDetail({
 }) {
   const [isJoining, setIsJoining] = useState(false);
   const [hasJoined, setHasJoined] = useState(false);
-  const [participantCount, setParticipantCount] = useState(0); // Clear buffer - start with 0
-  const [isLoadingCount, setIsLoadingCount] = useState(true);
+  const [participantCount, setParticipantCount] = useState(0);
   const navigate = useNavigate();
 
-  // Clear buffer and fetch real participant count
+  // Kiểm tra trạng thái tham gia và đếm số người tham gia
   useEffect(() => {
-    const fetchParticipantCount = async () => {
-      if (!challenge?.id) return;
-
-      setIsLoadingCount(true);
+    const checkJoinStatusAndCount = async () => {
       try {
-        // Clear any cached data and fetch fresh entries
-        const response = await axiosInstance.get(`/challenge-entries`, {
-          // Add cache busting parameters
-          params: {
-            timestamp: Date.now(),
-            _: Math.random(),
-          },
-          // Disable caching
-          headers: {
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-        });
+        if (!challenge?.id) return;
 
+        // Lấy danh sách entries từ API
+        const response = await axiosInstance.get(`/challenge-entries`);
         const entries = response.data.entries || [];
-        console.log("Fresh entries from API:", entries);
 
-        // Count participants for this specific challenge
-        const actualCount = countParticipants(entries, challenge.id);
-        console.log(
-          `Actual participant count for challenge ${challenge.id}:`,
-          actualCount
-        );
+        // Đếm số người tham gia cho challenge hiện tại
+        const count = countParticipants(entries, challenge.id);
+        setParticipantCount(count);
 
-        // Clear buffer and set real count
-        setParticipantCount(actualCount);
-      } catch (error) {
-        console.error("Error fetching participant count:", error);
-        // Fallback to 0 if API fails
-        setParticipantCount(0);
-      } finally {
-        setIsLoadingCount(false);
-      }
-    };
-
-    fetchParticipantCount();
-  }, [challenge?.id]); // Re-fetch when challenge changes
-
-  // Check join status
-  useEffect(() => {
-    const checkJoinStatus = async () => {
-      try {
-        // Clear localStorage buffer first
-        if (challenge?.id) {
-          localStorage.removeItem(`challenge_${challenge.id}_joined`);
-        }
-
-        // Check if user is logged in
+        // Kiểm tra xem user hiện tại đã tham gia chưa
         const user = JSON.parse(localStorage.getItem("user"));
-        if (!user?.id || !challenge?.id) return;
-
-        // Fetch fresh data to check join status
-        const response = await axiosInstance.get(`/challenge-entries`, {
-          params: {
-            timestamp: Date.now(),
-            _: Math.random(),
-          },
-          headers: {
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-        });
-
-        const entries = response.data.entries || [];
-        console.log("Checking join status with fresh entries:", entries);
-
-        // Check if user has joined this challenge
-        const hasJoinedChallenge = entries.some(
-          (entry) =>
-            entry.user_id === user.id && entry.challenge_id === challenge.id
-        );
-
-        console.log(
-          `User ${user.id} joined challenge ${challenge.id}:`,
-          hasJoinedChallenge
-        );
-
-        if (hasJoinedChallenge) {
-          setHasJoined(true);
-          localStorage.setItem(`challenge_${challenge.id}_joined`, "true");
-        } else {
-          setHasJoined(false);
+        if (user?.id) {
+          const hasJoinedChallenge = entries.some(
+            (entry) =>
+              entry.user_id === user.id && entry.challenge_id === challenge.id
+          );
+          if (hasJoinedChallenge) {
+            setHasJoined(true);
+          }
         }
       } catch (error) {
         console.error("Error checking join status:", error);
-        setHasJoined(false);
       }
     };
 
-    checkJoinStatus();
-  }, [challenge?.id]);
+    checkJoinStatusAndCount();
+  }, [challenge]);
 
   const handleJoin = async () => {
     if (!challenge?.id) {
@@ -130,7 +61,7 @@ export default function ChallengeDetail({
       return;
     }
 
-    // Check if user is logged in
+    // Kiểm tra xem user đã đăng nhập chưa
     const user = JSON.parse(localStorage.getItem("user"));
     if (!user?.id) {
       toast.error("Vui lòng đăng nhập để tham gia challenge");
@@ -138,33 +69,34 @@ export default function ChallengeDetail({
       return;
     }
 
+    // Kiểm tra số lượng người tham gia
+    if (participantCount >= (challenge.maxParticipants || 50)) {
+      toast.error("Challenge đã đầy, không thể tham gia thêm!");
+      return;
+    }
+
     setIsJoining(true);
 
     try {
-      // Call API to join challenge
+      // Gọi API để tham gia challenge
       await joinChallenge(challenge.id);
 
-      // Update state and localStorage
+      // Cập nhật state
       setHasJoined(true);
-      localStorage.setItem(`challenge_${challenge.id}_joined`, "true");
-
-      // Update participant count immediately (optimistic update)
-      const newParticipantCount = participantCount + 1;
-      setParticipantCount(newParticipantCount);
+      setParticipantCount((prev) => prev + 1);
 
       toast.success("Tham gia challenge thành công!");
 
-      // Call callback to update parent component
+      // Gọi callback để cập nhật parent component
       if (onJoinChallenge) {
         onJoinChallenge(challenge.id);
       }
 
-      // Navigate to challenge group
+      // Chuyển hướng đến trang nhóm challenge
       navigate(`/challenge/${challenge.id}/group`);
     } catch (error) {
       console.error("Error joining challenge:", error);
 
-      // Handle different error cases
       if (error.response?.data?.message?.includes("already joined")) {
         toast.warning("Bạn đã tham gia challenge này rồi!");
         setHasJoined(true);
@@ -182,11 +114,6 @@ export default function ChallengeDetail({
       setIsJoining(false);
     }
   };
-
-  console.log("Full Challenge Object:", challenge);
-  console.log("Challenge Fields:", Object.keys(challenge || {}));
-  console.log("Hashtag value:", challenge?.hashtag);
-  console.log("Current participant count:", participantCount);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -219,7 +146,6 @@ export default function ChallengeDetail({
     .split("\n")
     .filter((r) => r);
 
-  // Default rules and requirements
   const defaultRules = [
     "Tham gia đầy đủ trong thời gian diễn ra challenge",
     "Chia sẻ kết quả làm bánh theo yêu cầu",
@@ -237,7 +163,6 @@ export default function ChallengeDetail({
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FFF5F7" }}>
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {/* Back Button */}
         <button
           onClick={onBack}
           className="mb-6 text-gray-700 hover:text-gray-800 hover:bg-pink-50 p-2 rounded"
@@ -258,7 +183,6 @@ export default function ChallengeDetail({
           Quay lại danh sách
         </button>
 
-        {/* Hero Section */}
         <div className="bg-white border border-gray-200 rounded-lg mb-6 overflow-hidden">
           <div className="relative">
             <img
@@ -292,9 +216,7 @@ export default function ChallengeDetail({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Challenge Info */}
             <div className="bg-white border border-gray-200 rounded-lg">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-xl font-bold text-gray-800">
@@ -366,9 +288,7 @@ export default function ChallengeDetail({
                     <div>
                       <p className="text-sm text-gray-600">Thành viên</p>
                       <p className="font-semibold text-gray-800">
-                        {isLoadingCount
-                          ? "Đang tải..."
-                          : `${participantCount} người`}
+                        {participantCount} người
                       </p>
                     </div>
                   </div>
@@ -418,7 +338,6 @@ export default function ChallengeDetail({
               </div>
             </div>
 
-            {/* Rules */}
             <div className="bg-white border border-gray-200 rounded-lg">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800">
@@ -452,9 +371,7 @@ export default function ChallengeDetail({
             </div>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Join Card */}
             <div className="bg-white border border-gray-200 rounded-lg sticky top-6">
               <div className="p-6">
                 <div className="text-center mb-4">
@@ -485,16 +402,12 @@ export default function ChallengeDetail({
                   <div className="flex justify-between text-sm text-gray-600 mb-1">
                     <span>Tiến độ đăng ký</span>
                     <span>
-                      {isLoadingCount
-                        ? "..."
-                        : `${participantCount}/${
-                            challenge.maxParticipants || 50
-                          }`}
+                      {participantCount}/{challenge.maxParticipants || 50}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-pink-400 h-2 rounded-full transition-all duration-300"
+                      className="bg-pink-400 h-2 rounded-full"
                       style={{
                         width: `${Math.min(
                           (participantCount /
@@ -515,17 +428,31 @@ export default function ChallengeDetail({
                   <button
                     className="w-full bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleJoin}
-                    disabled={isJoining || isLoadingCount}
+                    disabled={
+                      isJoining ||
+                      participantCount >= (challenge.maxParticipants || 50)
+                    }
                   >
-                    {isJoining ? "Đang tham gia..." : "Tham gia ngay"}
+                    {isJoining
+                      ? "Đang tham gia..."
+                      : participantCount >= (challenge.maxParticipants || 50)
+                      ? "Challenge đã đầy"
+                      : "Tham gia ngay"}
                   </button>
                 ) : challenge.status === "Sắp diễn ra" ? (
                   <button
                     className="w-full bg-blue-400 hover:bg-blue-500 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleJoin}
-                    disabled={isJoining || isLoadingCount}
+                    disabled={
+                      isJoining ||
+                      participantCount >= (challenge.maxParticipants || 50)
+                    }
                   >
-                    {isJoining ? "Đang đăng ký..." : "Đăng ký tham gia"}
+                    {isJoining
+                      ? "Đang đăng ký..."
+                      : participantCount >= (challenge.maxParticipants || 50)
+                      ? "Challenge đã đầy"
+                      : "Đăng ký tham gia"}
                   </button>
                 ) : (
                   <button className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg cursor-not-allowed">
@@ -557,7 +484,6 @@ export default function ChallengeDetail({
               </div>
             </div>
 
-            {/* Requirements */}
             <div className="bg-white border border-gray-200 rounded-lg">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800">
@@ -579,7 +505,6 @@ export default function ChallengeDetail({
               </div>
             </div>
 
-            {/* Tags */}
             <div className="bg-white border border-gray-200 rounded-lg">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-800">Thẻ tag</h3>
@@ -587,13 +512,11 @@ export default function ChallengeDetail({
               <div className="p-6">
                 <div className="flex flex-wrap gap-2">
                   {challenge.hashtag ? (
-                    // If hashtag is string and doesn't contain comma, display as single tag
                     !challenge.hashtag.includes(",") ? (
                       <span className="px-2 py-1 border border-pink-200 text-pink-600 rounded text-sm">
                         #{challenge.hashtag.trim()}
                       </span>
                     ) : (
-                      // If contains comma, split and display multiple tags
                       challenge.hashtag
                         .split(",")
                         .map((tag) => tag.trim())
