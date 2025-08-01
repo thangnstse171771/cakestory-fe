@@ -3,21 +3,22 @@
 import React, { useState, useEffect } from "react";
 import { X, Upload } from "lucide-react";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../../firebase";
-import { authAPI } from "../../api/auth";
+import { storage } from "../../../firebase";
+import { authAPI } from "../../../api/auth";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
 
-const UpdatePostSchema = Yup.object().shape({
-  eventTitle: Yup.string().required("Event title is required"),
-  eventDate: Yup.string().required("Event date is required"),
-  eventType: Yup.string().required("Event type is required"),
-  story: Yup.string().max(1000, "Story cannot exceed 1000 characters"),
+const UpdateAlbumPostSchema = Yup.object().shape({
+  title: Yup.string().required("Post title is required"),
+  description: Yup.string().max(
+    1000,
+    "Description cannot exceed 1000 characters"
+  ),
   media: Yup.array().min(1, "Please add at least one media file"),
 });
 
-const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
+const UpdateAlbumPost = ({ isOpen, onClose, post, onUpdate }) => {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -85,13 +86,11 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
           key={post?.id} // Force re-render when post changes
           enableReinitialize={true}
           initialValues={{
-            eventTitle: post?.title || "",
-            eventDate: formatDateForInput(post?.date) || "",
-            eventType: post?.category || "Birthday",
-            story: post?.description || "",
+            title: post?.title || "",
+            description: post?.description || "",
             media: convertExistingMediaToFiles(),
           }}
-          validationSchema={UpdatePostSchema}
+          validationSchema={UpdateAlbumPostSchema}
           onSubmit={async (values, { setSubmitting, setFieldError }) => {
             setLoading(true);
             try {
@@ -121,16 +120,14 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
               const finalMedia = [...existingMediaFormatted, ...uploadedMedia];
 
               const payload = {
-                title: values.eventTitle,
-                description: values.story,
-                event_date: values.eventDate,
-                event_type: values.eventType,
+                title: values.title,
+                description: values.description,
                 is_public: true,
                 media: finalMedia,
               };
 
               console.log("UpdatePost: Sending payload to API:", payload);
-              await authAPI.updateMemoryPost(post.id, payload);
+              await authAPI.updateAlbumPost(post.id, payload);
               if (onUpdate) await onUpdate();
               onClose();
               toast.success("Post updated!");
@@ -246,73 +243,33 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
               {/* Event title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Title
+                  Title
                 </label>
                 <Field
-                  name="eventTitle"
+                  name="title"
                   placeholder="e.g., Birthday Celebration"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
                 <ErrorMessage
-                  name="eventTitle"
+                  name="title"
                   component="div"
                   className="text-red-500 text-sm"
                 />
               </div>
 
-              {/* Event date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Date
-                </label>
-                <Field
-                  type="date"
-                  name="eventDate"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                />
-                <ErrorMessage
-                  name="eventDate"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
-
-              {/* Event type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Type
-                </label>
-                <Field
-                  as="select"
-                  name="eventType"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                >
-                  <option value="Birthday">Birthday</option>
-                  <option value="Wedding">Wedding</option>
-                  <option value="Anniversary">Anniversary</option>
-                  <option value="Reunion">Reunion</option>
-                </Field>
-                <ErrorMessage
-                  name="eventType"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
-
-              {/* Story */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Your Story
                 </label>
                 <Field
                   as="textarea"
-                  name="story"
+                  name="description"
                   placeholder="Share your story..."
                   rows="4"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
                 <ErrorMessage
-                  name="story"
+                  name="description"
                   component="div"
                   className="text-red-500 text-sm"
                 />
@@ -349,4 +306,4 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
   );
 };
 
-export default UpdatePost;
+export default UpdateAlbumPost;

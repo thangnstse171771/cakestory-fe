@@ -1,4 +1,3 @@
-
 import axiosInstance from "./axios";
 import { storage } from "../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -66,15 +65,12 @@ export const authAPI = {
   },
 
   getPaginatedMemoryPosts: async (page, limit) => {
-    const response = await axiosInstance.get(
-      "/memory-posts/paginatedPosts",
-      {
-        params: {
-          page,
-          limit,
-        },
-      }
-    );
+    const response = await axiosInstance.get("/memory-posts/paginatedPosts", {
+      params: {
+        page,
+        limit,
+      },
+    });
     return response.data;
   },
 
@@ -151,4 +147,40 @@ export const authAPI = {
     const response = await axiosInstance.delete(`/users/follow/${id}`);
     return response.data;
   },
+
+  getAllActiveUsers: async () => {
+    const response = await axiosInstance.get("/users");
+    return response.data;
+  },
+
+  createAlbum: async (albumData) => {
+    const response = await axiosInstance.post("/albums", albumData);
+    return response.data;
+  },
+
+  updateAlbum: async (id, data) => {
+    const response = await axiosInstance.put(`/albums/${id}`, data);
+    return response.data;
+  },
+
+  getAlbumsByUserId: async (userId) => {
+    const response = await axiosInstance.get(`/albums/user/${userId}`);
+    return response.data;
+  },
+
+  getAlbumById: async (albumId) => {
+    const response = await axiosInstance.get(`/albums/${albumId}`);
+    return response.data;
+  },
+
+  createAlbumPost: async (postData) => {
+    const response = await axiosInstance.post(`/albums/posts`, postData);
+    return response.data;
+  },
+
+  updateAlbumPost: async (postId, postData) => {
+  const response = await axiosInstance.put(`/albums/posts/${postId}`, postData);
+  return response.data;
+  },
+
 };

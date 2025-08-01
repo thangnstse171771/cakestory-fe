@@ -12,7 +12,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
-import Home from "./pages/Home";
+import Home from "./pages/Home/Home";
 import CakeDesign from "./pages/CakeDesign";
 import AIGenGalleryPage from "./pages/AIGenGalleryPage";
 import MyPost from "./pages/MyPost/MyPost";
@@ -41,6 +41,9 @@ import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
 import "./App.css";
 import ToastNotify from "./components/ToastNotify";
 import SyncUserIdToStore from "./pages/Chat/libs/SyncUserIdToStore";
+import SuggestedUsers from "./pages/Home/SuggestedUsers";
+import MyAlbum from "./pages/MyAlbum/MyAlbum";
+import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -116,6 +119,8 @@ export default function App() {
             <Route path="challenge/:id/group" element={<ChallengeGroup />} />
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="wallet" element={<UserWallet />} />
+            <Route path="suggested-users" element={<SuggestedUsers />}/>
+            <Route path="album/:id" element={<AlbumDetail />} />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}
@@ -129,6 +134,7 @@ export default function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="mypost" element={<MyPost />} />
+            <Route path="myalbum" element={<MyAlbum />} />
             <Route path="chat" element={<Chat />} />
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />

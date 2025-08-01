@@ -1,32 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Upload } from "lucide-react";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../../firebase";
-import { authAPI } from "../../api/auth";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
+import { authAPI } from "../../../api/auth";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../../../firebase";
 import { toast } from "react-toastify";
 
-const UpdatePostSchema = Yup.object().shape({
-  eventTitle: Yup.string().required("Event title is required"),
-  eventDate: Yup.string().required("Event date is required"),
-  eventType: Yup.string().required("Event type is required"),
-  story: Yup.string().max(1000, "Story cannot exceed 1000 characters"),
+const CreateAlbumPostSchema = Yup.object().shape({
+  title: Yup.string().required("Post title is required"),
+  description: Yup.string().max(
+    1000,
+    "Description cannot exceed 1000 characters"
+  ),
   media: Yup.array().min(1, "Please add at least one media file"),
 });
 
-const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
+const CreateAlbumPost = ({ isOpen, onClose, onCreate, albumId }) => {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Format date for input field (YYYY-MM-DD)
-  const formatDateForInput = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toISOString().split("T")[0];
-  };
 
   const uploadMediaToFirebase = async (file) => {
     const mediaRef = ref(storage, `media/${Date.now()}-${file.name}`);
@@ -44,34 +38,14 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
     }
   };
 
-  if (!isOpen || !post) return null;
-
-  // Convert existing media to File objects for Formik
-  const convertExistingMediaToFiles = () => {
-    if (!post.media || post.media.length === 0) return [];
-
-    return post.media.map((media, index) => {
-      const url = media.image_url || media.video_url;
-      const isVideo = !!media.video_url;
-
-      // Create a mock file object for existing media
-      return {
-        id: `existing-${index}`,
-        url: url,
-        isVideo: isVideo,
-        isExisting: true,
-        name: `existing-media-${index}`,
-        type: isVideo ? "video/mp4" : "image/jpeg",
-      };
-    });
-  };
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-10">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 m-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">
-            Update Your Story
+            Share Your Cake Story
           </h2>
           <button
             onClick={onClose}
@@ -82,28 +56,21 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
         </div>
 
         <Formik
-          key={post?.id} // Force re-render when post changes
-          enableReinitialize={true}
           initialValues={{
-            eventTitle: post?.title || "",
-            eventDate: formatDateForInput(post?.date) || "",
-            eventType: post?.category || "Birthday",
-            story: post?.description || "",
-            media: convertExistingMediaToFiles(),
+            title: "",
+            description: "",
+            media: [],
           }}
-          validationSchema={UpdatePostSchema}
-          onSubmit={async (values, { setSubmitting, setFieldError }) => {
+          validationSchema={CreateAlbumPostSchema}
+          onSubmit={async (
+            values,
+            { setSubmitting, resetForm, setFieldError }
+          ) => {
             setLoading(true);
             try {
-              // Separate existing and new media
-              const existingMedia = values.media.filter(
-                (item) => item.isExisting
-              );
-              const newFiles = values.media.filter((item) => !item.isExisting);
-
-              // Upload new files
+              // Upload each file and get URLs
               const uploadedMedia = await Promise.all(
-                newFiles.map(async (file) => {
+                values.media.map(async (file) => {
                   const url = await uploadMediaToFirebase(file);
                   return file.type.startsWith("video")
                     ? { video_url: url, image_url: null }
@@ -111,34 +78,25 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
                 })
               );
 
-              // Convert existing media back to the format expected by API
-              const existingMediaFormatted = existingMedia.map((item) => ({
-                image_url: item.isVideo ? null : item.url,
-                video_url: item.isVideo ? item.url : null,
-              }));
-
-              // Combine all media
-              const finalMedia = [...existingMediaFormatted, ...uploadedMedia];
-
               const payload = {
-                title: values.eventTitle,
-                description: values.story,
-                event_date: values.eventDate,
-                event_type: values.eventType,
+                album_id: albumId, // Assuming you pass albumId as prop
+                title: values.title,
+                description: values.description,
                 is_public: true,
-                media: finalMedia,
+                media: uploadedMedia,
               };
 
-              console.log("UpdatePost: Sending payload to API:", payload);
-              await authAPI.updateMemoryPost(post.id, payload);
-              if (onUpdate) await onUpdate();
+              console.log("payload being sent:", payload);
+              await authAPI.createAlbumPost(payload);
+              if (onCreate) await onCreate();
+              resetForm();
               onClose();
-              toast.success("Post updated!");
+              toast.success("Post created!");
             } catch (err) {
-              console.error("UpdatePost: Error updating post:", err);
+              console.error(err);
               setFieldError(
                 "general",
-                "Failed to update post. Please try again."
+                "Failed to create post. Please try again."
               );
             } finally {
               setLoading(false);
@@ -171,7 +129,7 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
                 <div className="flex flex-col items-center">
                   <Upload className="w-12 h-12 text-gray-400 mb-2" />
                   <p className="text-gray-600 mb-2">
-                    Drag and drop to add new photos/videos
+                    Drag and drop your cake photos/videos here
                   </p>
                   <p className="text-gray-400 text-sm mb-4">or</p>
                   <label className="cursor-pointer">
@@ -200,15 +158,11 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
                 className="text-red-500 text-sm"
               />
 
-              {/* Media previews */}
+              {/* Preview thumbnails */}
               <div className="flex flex-wrap gap-4">
                 {values.media.map((file, index) => {
-                  const url = file.isExisting
-                    ? file.url
-                    : URL.createObjectURL(file);
-                  const isVideo = file.isExisting
-                    ? file.isVideo
-                    : file.type.startsWith("video");
+                  const url = URL.createObjectURL(file);
+                  const isVideo = file.type.startsWith("video");
 
                   return (
                     <div key={index} className="relative w-24 h-24">
@@ -246,73 +200,33 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
               {/* Event title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Title
+                  Title
                 </label>
                 <Field
-                  name="eventTitle"
-                  placeholder="e.g., Birthday Celebration"
+                  name="title"
+                  placeholder="e.g., Birthday Celebration, Wedding Cake"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
                 <ErrorMessage
-                  name="eventTitle"
+                  name="title"
                   component="div"
                   className="text-red-500 text-sm"
                 />
               </div>
 
-              {/* Event date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Date
-                </label>
-                <Field
-                  type="date"
-                  name="eventDate"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                />
-                <ErrorMessage
-                  name="eventDate"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
-
-              {/* Event type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Type
-                </label>
-                <Field
-                  as="select"
-                  name="eventType"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                >
-                  <option value="Birthday">Birthday</option>
-                  <option value="Wedding">Wedding</option>
-                  <option value="Anniversary">Anniversary</option>
-                  <option value="Reunion">Reunion</option>
-                </Field>
-                <ErrorMessage
-                  name="eventType"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
-
-              {/* Story */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Your Story
                 </label>
                 <Field
                   as="textarea"
-                  name="story"
-                  placeholder="Share your story..."
+                  name="description"
+                  placeholder="Share the story behind this cake..."
                   rows="4"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
                 <ErrorMessage
-                  name="story"
+                  name="description"
                   component="div"
                   className="text-red-500 text-sm"
                 />
@@ -324,21 +238,13 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
               )}
 
               {/* Buttons */}
-              <div className="flex justify-end gap-4">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-2 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-colors"
-                  disabled={isSubmitting || loading}
-                >
-                  Cancel
-                </button>
+              <div className="flex justify-end space-x-4">
                 <button
                   type="submit"
                   className="px-6 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
                   disabled={isSubmitting || loading}
                 >
-                  {isSubmitting || loading ? "Updating..." : "Update Post"}
+                  {isSubmitting || loading ? "Sharing..." : "Share Story"}
                 </button>
               </div>
             </Form>
@@ -349,4 +255,4 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
   );
 };
 
-export default UpdatePost;
+export default CreateAlbumPost;
