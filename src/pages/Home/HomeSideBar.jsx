@@ -103,7 +103,7 @@ const HomeSideBar = () => {
         <div className="mt-3">
           <Link
             to="/suggested-users"
-            className="text-sm text-pink-600 hover:text-pink-700"
+            className="text-sm text-pink-500 hover:text-pink-600"
           >
             View all users
           </Link>

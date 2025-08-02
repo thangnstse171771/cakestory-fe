@@ -154,9 +154,15 @@ const Home = () => {
                 <h1 className="text-2xl font-bold text-pink-600">
                   Community Feed
                 </h1>
-                <div className="flex items-center space-x-2 bg-white rounded-xl border px-4 py-2">
-                  <Search className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-500">Search posts</span>
+                <div className="flex items-center bg-white rounded-xl border px-3 py-2 focus-within:ring-2 focus-within:ring-pink-500 transition">
+                  <Search className="w-5 h-5 text-gray-400 mr-2" />
+                  <input
+                    type="text"
+                    placeholder="Search"
+                    className="outline-none text-gray-700 placeholder-gray-400 bg-transparent"
+                    // value={searchTerm}
+                    // onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
 
@@ -174,12 +180,17 @@ const Home = () => {
                       </div>
                     }
                     endMessage={
-                      <div className=" flex flex-col items-center justify-center mt-12 px-4 pt-2">
-                        <BadgeCheck size={90} className="text-pink-400 mb-2" />
-                        <span className="text-gray-500 text-md italic whitespace-nowrap">
-                          No more posts.
-                        </span>
-                      </div>
+                      posts.length > 0 ? (
+                        <div className=" flex flex-col items-center justify-center mt-12 px-4 pt-2">
+                          <BadgeCheck
+                            size={90}
+                            className="text-pink-400 mb-2"
+                          />
+                          <span className="text-gray-500 text-md italic whitespace-nowrap">
+                            No more posts.
+                          </span>
+                        </div>
+                      ) : null
                     }
                   >
                     {posts.length === 0 ? (
