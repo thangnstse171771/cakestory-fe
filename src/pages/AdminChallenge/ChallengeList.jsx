@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import CreateChallengeModal from "./CreateChallengeModal";
 import ChallengeCard from "./ChallengeCard";
 import { getAllChallenges } from "../../api/challenge";
@@ -26,6 +27,7 @@ function formatDate(dateString) {
 }
 
 export default function ChallengeList({ onViewDetail, onViewMembers }) {
+  const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [challenges, setChallenges] = useState([]);
@@ -167,7 +169,7 @@ export default function ChallengeList({ onViewDetail, onViewMembers }) {
             <ChallengeCard
               key={challenge.id}
               challenge={challenge}
-              onViewDetail={onViewDetail}
+              onViewDetail={() => navigate(`/admin/challenge/${challenge.id}`)}
               onViewMembers={onViewMembers}
             />
           ))}
