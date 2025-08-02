@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
+import axiosInstance from "../../api/axios";
 
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
@@ -7,78 +9,238 @@ const IMAGE_URL =
 export default function ChallengeGroup() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const challengeTitle = "Challenge Bánh Kem Hoa Hồng";
 
+  // States
+  const [challengeInfo, setChallengeInfo] = useState(null);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [newPost, setNewPost] = useState({ content: "", image: "" });
-  const [posts, setPosts] = useState([
-    {
-      id: "1",
-      user: {
-        name: "Minh Anh",
-        avatar: IMAGE_URL,
-        level: "Bánh sư cấp 3",
-      },
-      content:
-        "Vừa hoàn thành bánh kem hoa hồng đầu tiên của mình! Cảm ơn challenge này đã giúp mình thử thách bản thân 🌹",
-      image: IMAGE_URL,
-      likes: 24,
-      comments: 8,
-      timeAgo: "2 giờ trước",
-      isLiked: false,
-    },
-    {
-      id: "2",
-      user: {
-        name: "Thanh Hoa",
-        avatar: IMAGE_URL,
-        level: "Bánh sư cấp 2",
-      },
-      content:
-        "Ngày thứ 5 của challenge! Hôm nay thử làm bánh cupcake với kem bơ màu hồng. Ai có tips gì không ạ?",
-      image: IMAGE_URL,
-      likes: 18,
-      comments: 12,
-      timeAgo: "4 giờ trước",
-      isLiked: true,
-    },
-  ]);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const handleCreatePost = () => {
-    if (newPost.content.trim()) {
-      const post = {
-        id: Date.now().toString(),
+  // Fetch challenge info
+  useEffect(() => {
+    const fetchChallengeInfo = async () => {
+      if (!id) return;
+
+      setLoading(true);
+      try {
+        // Fetch challenge details
+        const response = await axiosInstance.get(`/challenges/${id}`);
+        setChallengeInfo(response.data.challenge || response.data);
+      } catch (error) {
+        console.error("Error fetching challenge info:", error);
+        setError("Không thể tải thông tin challenge");
+        toast.error("Không thể tải thông tin challenge");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChallengeInfo();
+  }, [id]);
+
+  // Fetch challenge posts
+  useEffect(() => {
+    const fetchChallengePosts = async () => {
+      setPostsLoading(true);
+      try {
+        // Fetch all challenge posts
+        const response = await axiosInstance.get("/challenge-posts", {
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
+
+        const allPosts = response.data.posts || response.data || [];
+        console.log("All challenge posts:", allPosts);
+
+        // Filter posts for current challenge if challenge ID is available
+        let filteredPosts = allPosts;
+        if (id) {
+          filteredPosts = allPosts.filter(
+            (post) =>
+              post.challenge_id === parseInt(id) || post.challenge_id === id
+          );
+        }
+
+        console.log(`Filtered posts for challenge ${id}:`, filteredPosts);
+
+        // Transform API data to component format
+        const transformedPosts = filteredPosts.map((post) => ({
+          id: post.id || post.post_id,
+          user: {
+            name: post.user?.name || post.username || "Người dùng",
+            avatar: post.user?.avatar || post.user_avatar || IMAGE_URL,
+            level:
+              post.user?.level ||
+              `Bánh sư cấp ${Math.floor(Math.random() * 5) + 1}`,
+          },
+          content: post.content || post.description || "",
+          image:
+            post.image ||
+            post.media_url ||
+            (post.images && post.images[0]) ||
+            null,
+          likes: post.likes_count || post.likes || 0,
+          comments: post.comments_count || post.comments || 0,
+          timeAgo: formatTimeAgo(post.created_at || post.createdAt),
+          isLiked: post.is_liked || false,
+          challenge_id: post.challenge_id,
+        }));
+
+        setPosts(transformedPosts);
+      } catch (error) {
+        console.error("Error fetching challenge posts:", error);
+        toast.error("Không thể tải bài đăng challenge");
+        // Set empty array on error
+        setPosts([]);
+      } finally {
+        setPostsLoading(false);
+      }
+    };
+
+    fetchChallengePosts();
+  }, [id]);
+
+  // Format time ago helper
+  const formatTimeAgo = (dateString) => {
+    if (!dateString) return "Vừa xong";
+
+    const now = new Date();
+    const postDate = new Date(dateString);
+    const diffInHours = Math.floor((now - postDate) / (1000 * 60 * 60));
+
+    if (diffInHours < 1) return "Vừa xong";
+    if (diffInHours < 24) return `${diffInHours} giờ trước`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays} ngày trước`;
+
+    return postDate.toLocaleDateString("vi-VN");
+  };
+
+  // Create new post
+  const handleCreatePost = async () => {
+    if (!newPost.content.trim()) {
+      toast.error("Vui lòng nhập nội dung bài đăng");
+      return;
+    }
+
+    try {
+      // Get current user
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user?.id) {
+        toast.error("Vui lòng đăng nhập để đăng bài");
+        navigate("/login");
+        return;
+      }
+
+      // Create post data
+      const postData = {
+        content: newPost.content,
+        challenge_id: parseInt(id),
+        image: newPost.image || null,
+      };
+
+      // Call API to create post
+      const response = await axiosInstance.post("/challenge-posts", postData);
+
+      const createdPost = response.data.post || response.data;
+
+      // Transform and add to posts list
+      const transformedPost = {
+        id: createdPost.id || Date.now().toString(),
         user: {
-          name: "Bạn",
-          avatar: IMAGE_URL,
-          level: "Bánh sư cấp 1",
+          name: user.name || "Bạn",
+          avatar: user.avatar || IMAGE_URL,
+          level: user.level || "Bánh sư cấp 1",
         },
         content: newPost.content,
-        image: IMAGE_URL,
+        image: newPost.image || null,
         likes: 0,
         comments: 0,
         timeAgo: "Vừa xong",
         isLiked: false,
+        challenge_id: parseInt(id),
       };
-      setPosts([post, ...posts]);
+
+      setPosts([transformedPost, ...posts]);
       setNewPost({ content: "", image: "" });
       setShowCreatePost(false);
+      toast.success("Đăng bài thành công!");
+    } catch (error) {
+      console.error("Error creating post:", error);
+      toast.error(
+        error.response?.data?.message || "Không thể đăng bài. Vui lòng thử lại!"
+      );
     }
   };
 
-  const handleLike = (postId) => {
-    setPosts(
-      posts.map((post) =>
-        post.id === postId
-          ? {
-              ...post,
-              isLiked: !post.isLiked,
-              likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-            }
-          : post
-      )
-    );
+  // Handle like post
+  const handleLike = async (postId) => {
+    try {
+      // Call API to like/unlike post
+      await axiosInstance.post(`/challenge-posts/${postId}/like`);
+
+      // Update local state
+      setPosts(
+        posts.map((post) =>
+          post.id === postId
+            ? {
+                ...post,
+                isLiked: !post.isLiked,
+                likes: post.isLiked ? post.likes - 1 : post.likes + 1,
+              }
+            : post
+        )
+      );
+    } catch (error) {
+      console.error("Error liking post:", error);
+      toast.error("Không thể thích bài đăng");
+    }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "#FFF5F7" }}
+      >
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải thông tin challenge...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "#FFF5F7" }}
+      >
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => navigate(-1)}
+            className="bg-pink-400 hover:bg-pink-500 text-white px-4 py-2 rounded"
+          >
+            Quay lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const challengeTitle = challengeInfo?.title || `Challenge ${id}`;
+  const memberCount = challengeInfo?.participant_count || 0;
+  const daysLeft = challengeInfo?.days_left || 0;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FFF5F7" }}>
@@ -113,8 +275,8 @@ export default function ChallengeGroup() {
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-pink-200 rounded-full flex items-center justify-center">
                     <img
-                      src={IMAGE_URL}
-                      alt="avatar"
+                      src={challengeInfo?.image || IMAGE_URL}
+                      alt="challenge"
                       className="w-14 h-14 rounded-full object-cover"
                     />
                   </div>
@@ -140,7 +302,9 @@ export default function ChallengeGroup() {
                         d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M16 3.13a4 4 0 010 7.75M8 3.13a4 4 0 000 7.75"
                       />
                     </svg>
-                    <span className="font-semibold">248 thành viên</span>
+                    <span className="font-semibold">
+                      {memberCount} thành viên
+                    </span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-700">
                     <svg
@@ -156,7 +320,7 @@ export default function ChallengeGroup() {
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
-                    <span>Còn 12 ngày</span>
+                    <span>Còn {daysLeft} ngày</span>
                   </div>
                 </div>
               </div>
@@ -206,6 +370,7 @@ export default function ChallengeGroup() {
                     setNewPost({ ...newPost, content: e.target.value })
                   }
                   className="w-full border border-gray-200 rounded px-3 py-2 focus:border-pink-300 focus:outline-none"
+                  rows="3"
                 />
                 <div className="flex items-center justify-between">
                   <button className="border border-gray-300 text-gray-700 px-3 py-1 rounded flex items-center">
@@ -219,7 +384,7 @@ export default function ChallengeGroup() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M15 10l4.553-2.276A2 2 0 0021 6.382V5a2 2 0 00-2-2H5a2 2 0 00-2 2v1.382a2 2 0 001.447 1.342L9 10m6 0v10a2 2 0 01-2 2H7a2 2 0 01-2-2V10m11 0h-1m-4 0h-1"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
                     Thêm ảnh
@@ -247,119 +412,158 @@ export default function ChallengeGroup() {
         {/* Posts Feed */}
         <div className="space-y-6">
           <h3 className="text-xl font-semibold text-gray-800">
-            Bài đăng từ cộng đồng
+            Bài đăng từ cộng đồng ({posts.length} bài)
           </h3>
 
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              className="border border-gray-200 bg-white shadow-sm rounded-lg"
-            >
-              <div className="p-4">
-                {/* Post Header */}
-                <div className="flex items-center space-x-3 mb-4">
-                  <img
-                    src={post.user.avatar}
-                    alt="avatar"
-                    className="w-10 h-10 rounded-full bg-pink-100 object-cover"
-                  />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-800">
-                      {post.user.name}
-                    </h4>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <span className="border border-pink-200 text-pink-600 text-xs px-2 py-0.5 rounded">
-                        {post.user.level}
-                      </span>
-                      <span>•</span>
-                      <span>{post.timeAgo}</span>
+          {postsLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Đang tải bài đăng...</p>
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-8 bg-white border border-gray-200 rounded-lg">
+              <svg
+                className="w-12 h-12 text-gray-400 mx-auto mb-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                />
+              </svg>
+              <p className="text-gray-600 mb-2">Chưa có bài đăng nào</p>
+              <p className="text-gray-500 text-sm">
+                Hãy là người đầu tiên chia sẻ tiến trình challenge!
+              </p>
+            </div>
+          ) : (
+            posts.map((post) => (
+              <div
+                key={post.id}
+                className="border border-gray-200 bg-white shadow-sm rounded-lg"
+              >
+                <div className="p-4">
+                  {/* Post Header */}
+                  <div className="flex items-center space-x-3 mb-4">
+                    <img
+                      src={post.user.avatar}
+                      alt="avatar"
+                      className="w-10 h-10 rounded-full bg-pink-100 object-cover"
+                    />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800">
+                        {post.user.name}
+                      </h4>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <span className="border border-pink-200 text-pink-600 text-xs px-2 py-0.5 rounded">
+                          {post.user.level}
+                        </span>
+                        <span>•</span>
+                        <span>{post.timeAgo}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Post Content */}
+                  <p className="text-gray-700 mb-4">{post.content}</p>
+
+                  {/* Post Image */}
+                  {post.image && (
+                    <div className="mb-4 rounded-lg overflow-hidden">
+                      <img
+                        src={post.image}
+                        alt="Challenge post"
+                        className="w-full h-64 object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Post Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center space-x-4">
+                      <button
+                        onClick={() => handleLike(post.id)}
+                        className={`flex items-center text-sm ${
+                          post.isLiked ? "text-pink-500" : "text-gray-600"
+                        } hover:text-pink-500`}
+                      >
+                        <svg
+                          className={`w-4 h-4 mr-1 ${
+                            post.isLiked ? "fill-current" : ""
+                          }`}
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+                          />
+                        </svg>
+                        {post.likes}
+                      </button>
+                      <button className="flex items-center text-sm text-gray-600 hover:text-pink-500">
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                          />
+                        </svg>
+                        {post.comments}
+                      </button>
+                      <button className="flex items-center text-sm text-gray-600 hover:text-pink-500">
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                          />
+                        </svg>
+                        Chia sẻ
+                      </button>
                     </div>
                   </div>
                 </div>
-
-                {/* Post Content */}
-                <p className="text-gray-700 mb-4">{post.content}</p>
-
-                {/* Post Image */}
-                {post.image && (
-                  <div className="mb-4 rounded-lg overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt="Challenge post"
-                      className="w-full h-64 object-cover"
-                    />
-                  </div>
-                )}
-
-                {/* Post Actions */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => handleLike(post.id)}
-                      className={`flex items-center text-sm ${
-                        post.isLiked ? "text-pink-500" : "text-gray-600"
-                      } hover:text-pink-500`}
-                    >
-                      <svg
-                        className={`w-4 h-4 mr-1 ${
-                          post.isLiked ? "fill-current" : ""
-                        }`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
-                        />
-                      </svg>
-                      {post.likes}
-                    </button>
-                    <button className="flex items-center text-sm text-gray-600 hover:text-pink-500">
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h12a2 2 0 012 2z"
-                        />
-                      </svg>
-                      {post.comments}
-                    </button>
-                    <button className="flex items-center text-sm text-gray-600 hover:text-pink-500">
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 12v2a2 2 0 002 2h8m4-4v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2"
-                        />
-                      </svg>
-                      Chia sẻ
-                    </button>
-                  </div>
-                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
-        {/* Load More */}
-        <div className="text-center mt-8">
-          <button className="border border-gray-300 text-gray-700 hover:bg-pink-50 px-4 py-2 rounded">
-            Xem thêm bài đăng
+        {/* Load More - Only show if there are posts */}
+        {posts.length > 0 && (
+          <div className="text-center mt-8">
+            <button className="border border-gray-300 text-gray-700 hover:bg-pink-50 px-4 py-2 rounded">
+              Xem thêm bài đăng
+            </button>
+          </div>
+        )}
+
+        {/* Go to Challenge Button */}
+        <div className="mt-8">
+          <button
+            onClick={() => navigate(`/challenge`)}
+            className="w-full bg-pink-400 hover:bg-pink-500 text-white py-2 rounded-lg"
+          >
+            Về danh sách Challenge
           </button>
         </div>
       </div>

@@ -1,11 +1,65 @@
+const handleBack = () => {
+  setSelectedChallenge(null);
+};
+
+const handleJoinChallenge = async (challengeId) => {
+  try {
+    const result = await joinChallenge(challengeId);
+    console.log("Join challenge response:", result);
+
+    // Since the API returns entry object on success
+    if (result && result.entry) {
+      toast.success("Tham gia thử thách thành công!");
+      // Refresh the challenges list to update UI
+      const response = await getAllChallenges();
+      if (response && response.challenges) {
+        const formattedChallenges = response.challenges.map((challenge) => ({
+          id: challenge.id || challenge._id,
+          title: challenge.title || "Untitled Challenge",
+          description: challenge.description || "",
+          status: getStatusFromDates(challenge.start_date, challenge.end_date),
+          startDate: formatDate(challenge.start_date),
+          endDate: formatDate(challenge.end_date),
+          duration: challenge.duration || "30 ngày",
+          difficulty: challenge.difficulty || "Trung bình",
+          prize: challenge.prize_description || "",
+          participants: challenge.participants_count || 0,
+          maxParticipants: challenge.max_participants || 100,
+          minParticipants: challenge.min_participants || 10,
+          tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
+          hashtag: challenge.hashtag,
+          image: challenge.image_url || IMAGE_URL,
+          host: {
+            name: challenge.host_name || "Admin",
+            avatar: challenge.host_avatar || IMAGE_URL,
+          },
+        }));
+        setChallenges(formattedChallenges);
+      }
+    }
+  } catch (error) {
+    console.error("Error joining challenge:", error);
+    // Handle specific error cases
+    if (error.response?.status === 400) {
+      toast.error("Bạn đã tham gia thử thách này rồi hoặc thử thách đã đầy");
+    } else if (error.response?.status === 404) {
+      toast.error("Không tìm thấy thử thách này");
+    } else {
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể tham gia thử thách. Vui lòng thử lại!"
+      );
+    }
+  }
+};
 import { useState, useRef, useEffect } from "react";
 import { DateRange } from "react-date-range";
 import { addDays } from "date-fns";
 import "react-date-range/dist/styles.css";
 import "react-date-range/dist/theme/default.css";
-import ChallengeDetail from "./ChallengeDetail";
-import { getAllChallenges, joinChallenge } from "../../api/challenge";
+import { getAllChallenges } from "../../api/challenge";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
@@ -17,9 +71,14 @@ function parseDate(str) {
 }
 
 export default function ChallengeList() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("Tất cả");
-  const [selectedChallenge, setSelectedChallenge] = useState(null);
+
+  const handleSelectChallenge = (challenge) => {
+    navigate(`/challenge/details/${challenge.id}`);
+  };
+
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [dateRange, setDateRange] = useState({
     startDate: null,
@@ -55,14 +114,12 @@ export default function ChallengeList() {
     const fetchChallenges = async () => {
       try {
         setLoading(true);
-        // Tạm thời sử dụng dữ liệu mẫu để giữ UI hoạt động
-        setChallenges(placeholderChallenges);
 
         // Gọi API và log response để debug
         const response = await getAllChallenges();
         console.log("Raw API Response:", response);
 
-        if (response && response.success && response.challenges) {
+        if (response && response.challenges) {
           // Nếu có dữ liệu từ API, format và cập nhật state
           const apiChallenges = response.challenges.map((challenge) => {
             console.log("Processing challenge:", challenge);
@@ -95,17 +152,15 @@ export default function ChallengeList() {
           });
 
           console.log("Formatted API Challenges:", apiChallenges);
-          if (apiChallenges.length > 0) {
-            setChallenges(apiChallenges);
-          }
+          setChallenges(apiChallenges);
+        } else {
+          toast.error("Không có thử thách nào từ API.");
         }
       } catch (error) {
         console.error("Error fetching challenges:", error);
-        // Giữ nguyên dữ liệu mẫu nếu API gặp lỗi
-        setChallenges(placeholderChallenges);
         toast.error(
           error.response?.data?.message ||
-            "Đang hiển thị dữ liệu mẫu do không thể kết nối với server"
+            "Không thể kết nối với server. Vui lòng thử lại sau."
         );
       } finally {
         setLoading(false);
@@ -166,68 +221,6 @@ export default function ChallengeList() {
     }
   };
 
-  const handleSelectChallenge = (challenge) => {
-    setSelectedChallenge(challenge);
-  };
-
-  const handleBack = () => {
-    setSelectedChallenge(null);
-  };
-
-  const handleJoinChallenge = async (challengeId) => {
-    try {
-      const result = await joinChallenge(challengeId);
-      console.log("Join challenge response:", result);
-
-      // Since the API returns entry object on success
-      if (result && result.entry) {
-        toast.success("Tham gia thử thách thành công!");
-        // Refresh the challenges list to update UI
-        const response = await getAllChallenges();
-        if (response && response.challenges) {
-          const formattedChallenges = response.challenges.map((challenge) => ({
-            id: challenge.id || challenge._id,
-            title: challenge.title || "Untitled Challenge",
-            description: challenge.description || "",
-            status: getStatusFromDates(
-              challenge.start_date,
-              challenge.end_date
-            ),
-            startDate: formatDate(challenge.start_date),
-            endDate: formatDate(challenge.end_date),
-            duration: challenge.duration || "30 ngày",
-            difficulty: challenge.difficulty || "Trung bình",
-            prize: challenge.prize_description || "",
-            participants: challenge.participants_count || 0,
-            maxParticipants: challenge.max_participants || 100,
-            minParticipants: challenge.min_participants || 10,
-            tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
-            hashtag: challenge.hashtag,
-            image: challenge.image_url || IMAGE_URL,
-            host: {
-              name: challenge.host_name || "Admin",
-              avatar: challenge.host_avatar || IMAGE_URL,
-            },
-          }));
-          setChallenges(formattedChallenges);
-        }
-      }
-    } catch (error) {
-      console.error("Error joining challenge:", error);
-      // Handle specific error cases
-      if (error.response?.status === 400) {
-        toast.error("Bạn đã tham gia thử thách này rồi hoặc thử thách đã đầy");
-      } else if (error.response?.status === 404) {
-        toast.error("Không tìm thấy thử thách này");
-      } else {
-        toast.error(
-          error.response?.data?.message ||
-            "Không thể tham gia thử thách. Vui lòng thử lại!"
-        );
-      }
-    }
-  };
-
   // Đóng popup khi click ngoài
   function handleClickOutside(e) {
     if (filterRef.current && !filterRef.current.contains(e.target)) {
@@ -250,17 +243,6 @@ export default function ChallengeList() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
       </div>
-    );
-  }
-
-  // Nếu đang xem chi tiết challenge
-  if (selectedChallenge) {
-    return (
-      <ChallengeDetail
-        challenge={selectedChallenge}
-        onBack={handleBack}
-        onJoinChallenge={handleJoinChallenge}
-      />
     );
   }
 
@@ -415,65 +397,69 @@ export default function ChallengeList() {
                 </div>
               </div>
 
-              <div className="p-4">
-                <h3 className="text-lg font-bold text-gray-800 mb-2">
-                  {challenge.title}
-                </h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  {challenge.description}
-                </p>
+              <div className="p-4 flex flex-col justify-between h-auto">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">
+                    {challenge.title}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4 overflow-hidden text-ellipsis line-clamp-2">
+                    {challenge.description}
+                  </p>
 
-                {/* Stats */}
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                  <div className="flex items-center space-x-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
-                      />
-                    </svg>
-                    <span>{challenge.participants} người</span>
+                  {/* Stats */}
+                  <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
+                    <div className="flex items-center space-x-1">
+                      <svg
+                        className="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                        />
+                      </svg>
+                      <span>{challenge.participants} người</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <svg
+                        className="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span>{challenge.duration}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <span>{challenge.duration}</span>
-                  </div>
-                </div>
 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-1 mb-4">
-                  {challenge.tags.slice(0, 3).map((tag, index) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 text-xs border border-pink-200 text-pink-600 rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                  {/* Tags */}
+                  {challenge.tags && challenge.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {challenge.tags.slice(0, 3).map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 text-xs border border-pink-200 text-pink-600 rounded"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Button */}
                 <button
-                  className="w-full bg-pink-400 hover:bg-pink-500 text-white py-2 rounded-lg"
+                  className="w-full bg-pink-400 hover:bg-pink-500 text-white py-2 rounded-lg "
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSelectChallenge(challenge);

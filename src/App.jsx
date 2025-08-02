@@ -31,6 +31,7 @@ import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import Report from "./pages/Report";
 import ChallengeList from "./pages/Challenge/ChallengeList";
+import ChallengeDetail from "./pages/Challenge/ChallengeDetail";
 import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
 import AdminChallengeDashboard from "./pages/AdminChallenge/AdminDashboard";
 import UserProfile from "./pages/UserProfile";
@@ -116,10 +117,15 @@ export default function App() {
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="ai-generated-images" element={<AIGenGalleryPage />} />
             <Route path="challenge" element={<ChallengeList />} />
-            <Route path="challenge/:id/group" element={<ChallengeGroup />} />
+            <Route path="challenge/details/:id" element={<ChallengeDetail />} />
+            <Route
+              path="challenge/details/group/:id"
+              element={<ChallengeGroup />}
+            />
+            <Route path="challenge-group/:id" element={<ChallengeGroup />} />
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="wallet" element={<UserWallet />} />
-            <Route path="suggested-users" element={<SuggestedUsers />}/>
+            <Route path="suggested-users" element={<SuggestedUsers />} />
             <Route path="album/:id" element={<AlbumDetail />} />
           </Route>
 

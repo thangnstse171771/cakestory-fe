@@ -38,10 +38,42 @@ export const getAllChallenges = async () => {
   }
 };
 
-// Lấy chi tiết một challenge theo ID
+// Lấy chi tiết đầy đủ một challenge theo ID (cho trang details)
 export const getChallengeById = async (challengeId) => {
-  const response = await axiosInstance.get(`/challenges/${challengeId}`);
-  return response.data;
+  try {
+    const response = await axiosInstance.get(`/challenges/${challengeId}`);
+    console.log("Challenge Details API Response:", response);
+    console.log(
+      "Challenge Details Data:",
+      JSON.stringify(response.data, null, 2)
+    );
+
+    // Xử lý dữ liệu trả về từ API
+    const challengeData = response.data?.challenge || response.data;
+
+    if (!challengeData) {
+      throw new Error("Không tìm thấy thông tin challenge");
+    }
+
+    // Log để debug
+    console.log("Processed Challenge Details:", challengeData);
+    console.log("Challenge fields:", Object.keys(challengeData));
+
+    return {
+      success: true,
+      challenge: challengeData,
+    };
+  } catch (error) {
+    console.error("Error fetching challenge details:", error);
+    return {
+      success: false,
+      error:
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể tải thông tin chi tiết challenge",
+      challenge: null,
+    };
+  }
 };
 
 // Cập nhật thông tin một challenge
