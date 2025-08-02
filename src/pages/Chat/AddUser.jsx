@@ -21,6 +21,7 @@ const AddUser = ({ isOpen, onClose }) => {
   const [users, setUsers] = useState([]);
   const { user } = useAuth();
   const currentUserId = user?.id?.toString();
+  const [existingChatUserIds, setExistingChatUserIds] = useState([]);
 
   const getFirebaseUserIdFromPostgresId = async (postgresId) => {
     const q = query(
@@ -51,6 +52,16 @@ const AddUser = ({ isOpen, onClose }) => {
         return;
       }
 
+      // Step 1: Fetch user's current chat partners
+      const userChatsSnap = await getDoc(
+        doc(db, "userchats", currentFirebaseId)
+      );
+      const chatUserIds = userChatsSnap.exists()
+        ? userChatsSnap.data().chats.map((chat) => chat.receiverId)
+        : [];
+      setExistingChatUserIds(chatUserIds); // 👈 store them in state
+
+      // Step 2: Search by username
       const userRef = collection(db, "users");
       const q = query(
         userRef,
@@ -62,7 +73,9 @@ const AddUser = ({ isOpen, onClose }) => {
       if (!querySnapshot.empty) {
         const results = querySnapshot.docs
           .map((doc) => ({ id: doc.id, ...doc.data() }))
-          .filter((u) => u.id !== currentFirebaseId); // 👈 filter out self
+          .filter(
+            (u) => u.id !== currentFirebaseId && !chatUserIds.includes(u.id)
+          ); // 👈 exclude existing chats
         setUsers(results);
       } else {
         setUsers([]);
