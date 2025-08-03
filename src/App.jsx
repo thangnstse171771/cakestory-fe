@@ -34,6 +34,7 @@ import ChallengeList from "./pages/Challenge/ChallengeList";
 import ChallengeDetail from "./pages/Challenge/ChallengeDetail";
 import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
 import AdminChallengeDashboard from "./pages/AdminChallenge/AdminDashboard";
+import AdminChallengeDetail from "./pages/AdminChallenge/AdminChallengeDetail";
 import UserProfile from "./pages/UserProfile";
 import CreateShop from "./pages/Marketplace/CreateShop";
 import UserWallet from "./pages/Wallet/UserWallet";
@@ -158,6 +159,10 @@ export default function App() {
             <Route
               path="admin/challenge"
               element={<AdminChallengeDashboard />}
+            />
+            <Route
+              path="admin/challenge/:id"
+              element={<AdminChallengeDetail />}
             />
           </Route>
 

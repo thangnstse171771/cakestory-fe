@@ -86,6 +86,16 @@ export default function UserWallet() {
     return () => clearInterval(statusCheckRef.current);
   }, [showModal, paymentStatus, orderId]);
 
+  // Auto close modal after success
+  useEffect(() => {
+    if (showModal && paymentStatus === "success") {
+      const timeout = setTimeout(() => {
+        closeModal();
+      }, 2000); // Đóng modal sau 2 giây
+      return () => clearTimeout(timeout);
+    }
+  }, [showModal, paymentStatus]);
+
   const updateBalance = async () => {
     try {
       const res = await fetchWalletBalance();
@@ -198,7 +208,7 @@ export default function UserWallet() {
     setCustom("");
     setError("");
 
-    // Update balance in case payment was successful
+    // Luôn update balance khi đóng modal
     await updateBalance();
   };
 
