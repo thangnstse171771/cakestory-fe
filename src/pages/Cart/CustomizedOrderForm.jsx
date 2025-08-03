@@ -15,6 +15,7 @@ const toppingOptions = [
   { id: "cream_cheese", name: "Kem phô mai", price: 60000, emoji: "🧀" },
   { id: "fruit_mix", name: "Trái cây tổng hợp", price: 70000, emoji: "🥝" },
   { id: "macarons", name: "Macaron trang trí", price: 80000, emoji: "🌈" },
+  { id: "chips", name: "Chips khoai tây", price: 8000, emoji: "🌈" },
 ];
 
 export default function CustomizeModal({
