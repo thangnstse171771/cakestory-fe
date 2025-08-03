@@ -17,6 +17,7 @@ import { authAPI } from "../../api/auth";
 import CreateAlbumPost from "./AlbumPost/CreateAlbumPost";
 import UpdateAlbum from "./UpdateAlbum";
 import UpdateAlbumPost from "./AlbumPost/UpdateAlbumPost";
+import AlbumPostDetail from "./AlbumPost/AlbumPostDetail";
 
 const AlbumDetail = () => {
   const { id } = useParams();
@@ -27,6 +28,7 @@ const AlbumDetail = () => {
   const [viewMode, setViewMode] = useState("grid");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isUpdatePostOpen, setIsUpdatePostOpen] = useState(false);
+  const [isAlbumPostOpen, setIsAlbumPostOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
 
@@ -201,17 +203,25 @@ const AlbumDetail = () => {
                       <img
                         src={firstImage.image_url}
                         alt={post.title}
-                        className="w-full h-64 object-cover"
+                        className="w-full h-64 object-cover cursor-pointer"
+                        onClick={() => {
+                          setSelectedPost(post);
+                          setIsAlbumPostOpen(true);
+                        }}
                       />
                     );
                   } else if (firstVideo) {
                     return (
                       <video
                         src={firstVideo.video_url}
-                        className="w-full h-64 object-cover"
+                        className="w-full h-64 object-cover cursor-pointer"
                         muted
                         autoPlay
                         loop
+                        onClick={() => {
+                          setSelectedPost(post);
+                          setIsAlbumPostOpen(true);
+                        }}
                       />
                     );
                   } else {
@@ -219,13 +229,17 @@ const AlbumDetail = () => {
                       <img
                         src="https://placehold.co/600x400?text=No+Media"
                         alt={post.title}
-                        className="w-full h-64 object-cover"
+                        className="w-full h-64 object-cover cursor-pointer"
+                        onClick={() => {
+                          setSelectedPost(post);
+                          setIsAlbumPostOpen(true);
+                        }}
                       />
                     );
                   }
                 })()}
 
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                {/* <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
                   <div className="opacity-0 group-hover:opacity-100 flex space-x-2">
                     <button className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100 transition-colors">
                       <Heart className="w-4 h-4" />
@@ -237,7 +251,7 @@ const AlbumDetail = () => {
                       <Share className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
+                </div> */}
               </div>
               <div className="p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -441,6 +455,11 @@ const AlbumDetail = () => {
         isOpen={isUpdatePostOpen}
         onClose={() => setIsUpdatePostOpen(false)}
         onUpdate={fetchAlbum}
+        post={selectedPost}
+      />
+      <AlbumPostDetail
+        isOpen={isAlbumPostOpen}
+        onClose={() => setIsAlbumPostOpen(false)}
         post={selectedPost}
       />
     </div>

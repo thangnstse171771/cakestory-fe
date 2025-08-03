@@ -183,4 +183,9 @@ export const authAPI = {
   return response.data;
   },
 
+  getAlbumPostById: async (postId) => {
+    const response = await axiosInstance.get(`/albums/posts/${postId}`);
+    return response.data;
+  }
+
 };
