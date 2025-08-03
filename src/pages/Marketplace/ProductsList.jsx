@@ -8,6 +8,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
+import CustomizeModal from "../Cart/CustomizedOrderForm";
 
 function ProductDetailModal({ isOpen, product, onClose }) {
   if (!isOpen || !product) return null;
@@ -166,6 +167,8 @@ const ProductsList = ({ products = [] }) => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [customizeProduct, setCustomizeProduct] = useState(null);
 
   const filteredProducts = useMemo(() => {
     return products.filter((item) => {
@@ -317,9 +320,11 @@ const ProductsList = ({ products = [] }) => {
                     View Details
                   </button>
                   <button
-                    className="relative overflow-hidden px-4 py-2 rounded-lg bg-gradient-to-r from-gray-700 to-gray-900 text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
+                    className="relative overflow-hidden px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
                     onClick={(e) => {
                       e.stopPropagation();
+                      setCustomizeProduct(item);
+                      setShowCustomize(true);
                     }}
                   >
                     <span className="relative z-10 flex items-center gap-2">
@@ -334,6 +339,28 @@ const ProductsList = ({ products = [] }) => {
           );
         })}
       </div>
+      {/* Customize Modal - render at root to avoid multiple modals */}
+      <CustomizeModal
+        isOpen={showCustomize}
+        product={
+          customizeProduct && {
+            ...customizeProduct,
+            basePrice: customizeProduct.price || 200000,
+            image:
+              (customizeProduct.Post &&
+                customizeProduct.Post.media &&
+                customizeProduct.Post.media[0]?.image_url) ||
+              customizeProduct.image ||
+              "/placeholder.svg",
+            name:
+              (customizeProduct.Post && customizeProduct.Post.title) ||
+              customizeProduct.name ||
+              "Bánh kem",
+          }
+        }
+        onClose={() => setShowCustomize(false)}
+        onConfirm={() => setShowCustomize(false)}
+      />
     </div>
   );
 };
