@@ -17,6 +17,7 @@ import {
   Menu,
   SquareLibrary,
   ListOrdered,
+  MessageSquareWarning,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -37,6 +38,7 @@ const Sidebar = () => {
     { icon: Trophy, label: "Challenge", path: "/challenge" },
     { icon: Wallet, label: "Nạp tiền", path: "/wallet" },
     { icon: ListOrdered, label: "Track Orders", path: "/order-tracking" },
+    { icon: MessageSquareWarning, label: "Khiếu nại", path: "/complaints" },
   ];
   // Menu cho user thường
   const userMenu = [
