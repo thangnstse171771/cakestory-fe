@@ -1,4 +1,4 @@
-import { Image, Info } from "lucide-react";
+import { Image, Info, Send, SendHorizonal, X } from "lucide-react";
 import React, { use, useEffect, useRef, useState } from "react";
 import {
   arrayUnion,
@@ -17,6 +17,7 @@ import ChatInfo from "./ChatInfo";
 import { message } from "antd";
 import { useAuth } from "../../contexts/AuthContext";
 import dayjs from "dayjs";
+import upload from "./libs/upload";
 
 const OPPOSING_USER = {
   avatar:
@@ -36,6 +37,9 @@ const ChatArea = () => {
   const { chatId, user } = useChatStore();
   const endRef = useRef(null);
   const [firebaseUserId, setFirebaseUserId] = useState(null);
+  const [image, setImage] = useState(null);
+  const fileInputRef = useRef(null);
+  const [isSending, setIsSending] = useState(false);
 
   console.log("check user", user);
 
@@ -81,17 +85,37 @@ const ChatArea = () => {
     };
   }, [chatId]);
 
+  const handleRemoveImage = () => {
+    setImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null; // Reset the input
+    }
+  };
+
   const handleSend = async () => {
-    if (text === "") return;
-    const firebaseUserId = await getFirebaseUserIdFromPostgresId(currentUserId);
-    if (!firebaseUserId) return;
+    if (!text && !image) return;
+    if (isSending) return; // Prevent double sends
+
+    setIsSending(true);
 
     try {
+      let imageUrl = null;
+
+      const firebaseUserId = await getFirebaseUserIdFromPostgresId(
+        currentUserId
+      );
+      if (!firebaseUserId) return;
+
+      if (image) {
+        imageUrl = await upload(image);
+      }
+
       await updateDoc(doc(db, "chats", chatId), {
         messages: arrayUnion({
           senderId: firebaseUserId,
           text,
           createdAt: new Date(),
+          ...(imageUrl && { img: imageUrl }),
         }),
       });
 
@@ -108,9 +132,8 @@ const ChatArea = () => {
             (c) => c.chatId === chatId
           );
 
-          userChatsData.chats[chatIndex].lastMessage = text;
-          userChatsData.chats[chatIndex].isSeen =
-            id === firebaseUserId ? true : false;
+          userChatsData.chats[chatIndex].lastMessage = text || "Hình ảnh";
+          userChatsData.chats[chatIndex].isSeen = id === firebaseUserId;
           userChatsData.chats[chatIndex].updatedAt = Date.now();
 
           await updateDoc(userChatsRef, {
@@ -118,8 +141,15 @@ const ChatArea = () => {
           });
         }
       });
+
+      // Clear inputs
+      setText("");
+      setImage(null);
+      if (fileInputRef.current) fileInputRef.current.value = null;
     } catch (error) {
       console.error("Error sending message:", error);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -139,7 +169,6 @@ const ChatArea = () => {
             />
             <div>
               <h3 className="font-semibold text-gray-800">{user.username}</h3>
-              <span className="text-sm text-green-500">Online</span>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -248,6 +277,23 @@ const ChatArea = () => {
         </div>
 
         <div className="p-4 border-t border-gray-200">
+          {image && (
+            <div className="relative w-full max-w-[120px] mb-4">
+              <img
+                src={URL.createObjectURL(image)}
+                alt="Preview"
+                className="rounded-lg shadow w-full object-cover"
+              />
+              <button
+                onClick={handleRemoveImage}
+                className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full text-red-500 hover:text-red-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Input and buttons */}
           <div className="flex items-center space-x-2">
             <input
               type="text"
@@ -256,15 +302,29 @@ const ChatArea = () => {
               onChange={(e) => setText(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             />
-            <button className="p-2 text-pink-500 hover:text-pink-600 rounded-lg">
+            <label className="p-2 text-pink-500 hover:text-pink-600 rounded-lg cursor-pointer">
               <Image className="w-8 h-8" />
-            </button>
-            <button
-              className="bg-pink-500 text-white px-6 py-2 rounded-lg hover:bg-pink-600 transition-colors"
-              onClick={handleSend}
-            >
-              Send
-            </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImage(e.target.files[0])}
+                hidden
+              />
+            </label>
+            {(text.trim() !== "" || image) && (
+              <button
+                onClick={handleSend}
+                disabled={isSending}
+                className={`p-2 rounded-lg ${
+                  isSending
+                    ? "text-gray-400 cursor-not-allowed"
+                    : "text-pink-500 hover:text-pink-600"
+                }`}
+              >
+                <SendHorizonal className="w-8 h-8" />
+              </button>
+            )}
           </div>
         </div>
       </div>
