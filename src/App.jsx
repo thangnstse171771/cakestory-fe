@@ -47,6 +47,7 @@ import SuggestedUsers from "./pages/Home/SuggestedUsers";
 import MyAlbum from "./pages/MyAlbum/MyAlbum";
 import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
 import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
+import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -135,6 +136,7 @@ export default function App() {
             <Route path="wallet" element={<UserWallet />} />
             <Route path="suggested-users" element={<SuggestedUsers />} />
             <Route path="album/:id" element={<AlbumDetail />} />
+            <Route path="complaints" element={<ComplaintList />} />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}

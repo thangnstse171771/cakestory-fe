@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ComplaintModal from "../ComplaintManagement/ComplaintModal";
 import {
   User,
   Package,
@@ -49,9 +50,12 @@ export default function OrderTrackingForm({
   onUpdateStatus,
   onBackToList,
 }) {
+  // Local state để cập nhật trạng thái động
+  const [orderDetail, setOrderDetail] = useState(order);
   const [note, setNote] = useState("");
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
 
-  if (!order) {
+  if (!orderDetail) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8">
         <h2 className="text-2xl font-bold mb-4">Không tìm thấy đơn hàng</h2>
@@ -68,9 +72,25 @@ export default function OrderTrackingForm({
     );
   }
 
-  const currentStatusIndex = Object.keys(statusMap).indexOf(order.status);
+  const currentStatusIndex = Object.keys(statusMap).indexOf(orderDetail.status);
   const progressPercentage =
     (currentStatusIndex / (Object.keys(statusMap).length - 1)) * 100;
+
+  // Hàm cập nhật trạng thái đơn hàng local
+  const handleUpdateStatus = (orderId, newStatus, newHistoryEntry) => {
+    setOrderDetail((prev) => {
+      if (!prev) return prev;
+      const updated = {
+        ...prev,
+        status: newStatus,
+        history: newHistoryEntry
+          ? [...prev.history, newHistoryEntry]
+          : prev.history,
+      };
+      return updated;
+    });
+    if (onUpdateStatus) onUpdateStatus(orderId, newStatus, newHistoryEntry);
+  };
 
   const handleAddNote = () => {
     if (note.trim()) {
@@ -80,10 +100,10 @@ export default function OrderTrackingForm({
           hour: "2-digit",
           minute: "2-digit",
         }),
-        status: order.status,
+        status: orderDetail.status,
         note: note.trim(),
       };
-      onUpdateStatus(order.id, order.status, newHistoryEntry);
+      handleUpdateStatus(orderDetail.id, orderDetail.status, newHistoryEntry);
       setNote("");
     }
   };
@@ -98,19 +118,18 @@ export default function OrderTrackingForm({
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
-          <div className="pb-4 border-b border-pink-100 mb-6">
-            <div className="text-2xl font-bold text-pink-700 flex items-center justify-between">
-              <span>Đơn hàng {order.orderNumber}</span>
-              <span className="bg-pink-500 text-white text-sm px-3 py-1 rounded-lg">
-                {statusMap[order.status]?.label || order.status}
-              </span>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">
-              Đặt vào: {new Date(order.placedDate).toLocaleDateString("vi-VN")}
-            </p>
-          </div>
+        {/* Hiện nút khiếu nại nếu trạng thái là delivered hoặc completed */}
+        {(orderDetail.status === "delivered" ||
+          orderDetail.status === "completed") && (
+          <button
+            className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+            onClick={() => setShowComplaintModal(true)}
+          >
+            Tạo khiếu nại
+          </button>
+        )}
 
+        <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
           {/* Progress Bar */}
           <div className="relative pt-1 mb-8">
             <div className="flex mb-2 items-center justify-between text-xs font-semibold text-gray-600">
@@ -148,15 +167,16 @@ export default function OrderTrackingForm({
             </h3>
             <ul className="space-y-1 text-gray-800">
               <li>
-                <span className="font-medium">Tên:</span> {order.customerName}
+                <span className="font-medium">Tên:</span>{" "}
+                {orderDetail.customerName}
               </li>
               <li>
                 <span className="font-medium">Email:</span>{" "}
-                {order.customerEmail}
+                {orderDetail.customerEmail}
               </li>
               <li>
                 <span className="font-medium">Điện thoại:</span>{" "}
-                {order.customerPhone}
+                {orderDetail.customerPhone}
               </li>
             </ul>
           </div>
@@ -168,7 +188,7 @@ export default function OrderTrackingForm({
               Sản phẩm đơn hàng
             </h3>
             <ul className="space-y-3">
-              {order.items?.map((item, index) => (
+              {orderDetail.items?.map((item, index) => (
                 <li
                   key={index}
                   className="flex justify-between items-start border-b border-pink-100 pb-3 last:border-b-0 last:pb-0"
@@ -200,7 +220,7 @@ export default function OrderTrackingForm({
             </ul>
             <div className="flex justify-between items-center mt-4 p-4 bg-pink-100 rounded-lg font-bold text-lg text-pink-800">
               <span>Tổng cộng:</span>
-              <span>{order.total.toLocaleString("vi-VN")}đ</span>
+              <span>{orderDetail.total.toLocaleString("vi-VN")}đ</span>
             </div>
           </div>
 
@@ -214,9 +234,9 @@ export default function OrderTrackingForm({
               {Object.keys(statusMap).map((statusKey) => (
                 <button
                   key={statusKey}
-                  onClick={() => onUpdateStatus(order.id, statusKey)}
+                  onClick={() => handleUpdateStatus(orderDetail.id, statusKey)}
                   className={`px-4 py-2 rounded-lg font-semibold border transition-colors duration-200 ${
-                    order.status === statusKey
+                    orderDetail.status === statusKey
                       ? "bg-pink-500 text-white border-pink-500 hover:bg-pink-600"
                       : "bg-transparent border-pink-300 text-pink-600 hover:bg-pink-100"
                   }`}
@@ -246,7 +266,7 @@ export default function OrderTrackingForm({
               Lịch sử trạng thái:
             </h4>
             <ul className="space-y-3">
-              {order.history.map((entry, index) => (
+              {orderDetail.history.map((entry, index) => (
                 <li
                   key={index}
                   className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm border border-pink-50"
@@ -276,6 +296,16 @@ export default function OrderTrackingForm({
           </div>
         </div>
       </div>
+
+      {/* Hiện form khiếu nại nếu showComplaintModal true */}
+      {showComplaintModal && (
+        <ComplaintModal
+          isOpen={showComplaintModal}
+          onClose={() => setShowComplaintModal(false)}
+          order={orderDetail}
+          onSubmit={() => setShowComplaintModal(false)}
+        />
+      )}
     </div>
   );
 }
