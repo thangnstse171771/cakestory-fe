@@ -169,7 +169,6 @@ const ChatArea = () => {
             />
             <div>
               <h3 className="font-semibold text-gray-800">{user.username}</h3>
-              <span className="text-sm text-green-500">Online</span>
             </div>
           </div>
           <div className="flex items-center space-x-2">
