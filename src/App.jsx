@@ -46,6 +46,7 @@ import SyncUserIdToStore from "./pages/Chat/libs/SyncUserIdToStore";
 import SuggestedUsers from "./pages/Home/SuggestedUsers";
 import MyAlbum from "./pages/MyAlbum/MyAlbum";
 import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
+import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -115,6 +116,12 @@ export default function App() {
               element={<ShopAnalystic onBack={() => window.history.back()} />}
             />
             <Route path="events" element={<Events />} />
+            <Route
+              path="order-tracking"
+              element={
+                <OrderTrackingList orders={[]} onSelectOrder={() => {}} />
+              }
+            />
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="ai-generated-images" element={<AIGenGalleryPage />} />
             <Route path="challenge" element={<ChallengeList />} />
