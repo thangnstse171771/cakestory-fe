@@ -18,7 +18,16 @@ import {
 import { useState } from "react";
 
 export default function ComplaintDetails({ complaint, onBack }) {
-  const [status, setStatus] = useState(complaint?.status || "pending");
+  // Thêm ảnh ví dụ nếu chưa có
+  const exampleImg = "/Cake Design/Base Cake Layer/Tier 1 Round.png";
+  const complaintWithImage = {
+    ...complaint,
+    images:
+      complaint?.images && complaint.images.length > 0
+        ? complaint.images
+        : [exampleImg],
+  };
+  const [status, setStatus] = useState(complaintWithImage?.status || "pending");
   const [response, setResponse] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -163,28 +172,27 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   </div>
                 )}
 
-                {/* Admin Response Section */}
-                <div className="border-t pt-6">
-                  <h3 className="font-semibold text-gray-800 mb-4">
-                    Phản hồi từ cửa hàng
-                  </h3>
-                  <div className="space-y-4">
-                    <textarea
-                      className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                      rows="4"
-                      placeholder="Nhập phản hồi cho khách hàng..."
-                      value={response}
-                      onChange={(e) => setResponse(e.target.value)}
-                    />
-                    <button
-                      onClick={handleSendResponse}
-                      disabled={isUpdating || !response.trim()}
-                      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {isUpdating ? "Đang gửi..." : "Gửi phản hồi"}
-                    </button>
-                  </div>
-                </div>
+                {/* User Report Images */}
+                {complaintWithImage.images &&
+                  complaintWithImage.images.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5 text-red-600" />
+                        Hình ảnh báo cáo từ khách hàng
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {complaintWithImage.images.map((img, idx) => (
+                          <div key={idx} className="relative group">
+                            <img
+                              src={img}
+                              alt={`Báo cáo ${idx + 1}`}
+                              className="w-full h-48 object-cover rounded-lg border border-gray-200 group-hover:shadow-lg transition-shadow"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
 
               {/* Right Column - Customer Info & Actions */}
@@ -228,8 +236,6 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   </div>
                 </div>
 
-
-
                 {/* Accept/Reject Actions */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4">
@@ -245,12 +251,14 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     />
                     <button
                       className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-semibold"
-                      disabled={isUpdating || !response.trim() || status === 'complete'}
+                      disabled={
+                        isUpdating || !response.trim() || status === "complete"
+                      }
                       onClick={() => {
                         setIsUpdating(true);
                         setTimeout(() => {
                           setIsUpdating(false);
-                          setStatus('complete');
+                          setStatus("complete");
                           alert(
                             "Đã chấp nhận hoàn tiền cho khách hàng. Hệ thống sẽ tự động hoàn tiền.\nLý do: " +
                               response
@@ -259,22 +267,32 @@ export default function ComplaintDetails({ complaint, onBack }) {
                         }, 1000);
                       }}
                     >
-                      {isUpdating ? "Đang xử lý..." : status === 'complete' ? "Đã hoàn tiền" : "Chấp nhận hoàn tiền"}
+                      {isUpdating
+                        ? "Đang xử lý..."
+                        : status === "complete"
+                        ? "Đã hoàn tiền"
+                        : "Chấp nhận hoàn tiền"}
                     </button>
                     <button
                       className="w-full bg-gray-300 text-gray-800 py-2 rounded-lg hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed transition-colors font-semibold"
-                      disabled={isUpdating || !response.trim() || status === 'rejected'}
+                      disabled={
+                        isUpdating || !response.trim() || status === "rejected"
+                      }
                       onClick={() => {
                         setIsUpdating(true);
                         setTimeout(() => {
                           setIsUpdating(false);
-                          setStatus('rejected');
+                          setStatus("rejected");
                           alert("Đã từ chối khiếu nại.\nLý do: " + response);
                           setResponse("");
                         }, 1000);
                       }}
                     >
-                      {isUpdating ? "Đang xử lý..." : status === 'rejected' ? "Đã từ chối" : "Từ chối khiếu nại"}
+                      {isUpdating
+                        ? "Đang xử lý..."
+                        : status === "rejected"
+                        ? "Đã từ chối"
+                        : "Từ chối khiếu nại"}
                     </button>
                   </div>
                 </div>
