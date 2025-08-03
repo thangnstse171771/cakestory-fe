@@ -16,6 +16,7 @@ import {
   Trophy,
   Menu,
   SquareLibrary,
+  ListOrdered,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -34,7 +35,8 @@ const Sidebar = () => {
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: Trophy, label: "Challenge", path: "/challenge" },
-    { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho public
+    { icon: Wallet, label: "Nạp tiền", path: "/wallet" },
+    { icon: ListOrdered, label: "Track Orders", path: "/order-tracking" },
   ];
   // Menu cho user thường
   const userMenu = [
