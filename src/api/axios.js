@@ -128,7 +128,50 @@ export const depositToWallet = async (amount) => {
 };
 
 export const fetchWalletBalance = async () => {
-  const response = await axiosInstance.get("/wallet/balance");
+  try {
+    console.log("Gọi API fetchWalletBalance...");
+    const response = await axiosInstance.get("/wallet/balance");
+    console.log("API response từ /wallet/balance:", response);
+    console.log("Response data:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchWalletBalance:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+export const fetchWalletBalanceByUserId = async (userId) => {
+  const response = await axiosInstance.get(`/wallet/balance/${userId}`);
+  return response.data;
+};
+
+// PayOS webhook để xử lý callback thanh toán
+export const handlePayOSWebhook = async (webhookData) => {
+  const response = await axiosInstance.post(
+    "/wallet/payos-webhook",
+    webhookData
+  );
+  return response.data;
+};
+
+// Lấy thông tin PayOS webhook
+export const getPayOSWebhook = async () => {
+  try {
+    console.log("Gọi API getPayOSWebhook...");
+    const response = await axiosInstance.get("/wallet/payos-webhook");
+    console.log("PayOS webhook response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi getPayOSWebhook:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Kiểm tra trạng thái thanh toán
+export const checkPaymentStatus = async (orderId) => {
+  const response = await axiosInstance.get(`/wallet/payment-status/${orderId}`);
   return response.data;
 };
 
