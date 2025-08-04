@@ -60,15 +60,60 @@ const ConversationList = () => {
           const items = res.data().chats;
 
           const promises = items.map(async (item) => {
-            const userDocRef = doc(db, "users", item.receiverId);
-            const userDocSnap = await getDoc(userDocRef);
-            const user = userDocSnap.data();
+            if (item.receiverId) {
+              // 1-on-1 chat
+              const userDocRef = doc(db, "users", item.receiverId);
+              const userDocSnap = await getDoc(userDocRef);
+              const user = userDocSnap.data();
 
-            return { ...item, user };
+              return {
+                ...item,
+                user,
+                isGroup: false,
+              };
+            } else {
+              // Group chat
+              const groupChatRef = doc(db, "groupChats", item.chatId);
+              const groupSnap = await getDoc(groupChatRef);
+
+              if (!groupSnap.exists()) return null;
+
+              const groupData = groupSnap.data();
+
+              // 💡 If I'm a shop member, show customer details instead of shop
+              let displayUser = {
+                username: groupData.shopName || "Group Chat",
+                avatar: groupData.shopAvatar,
+              };
+
+              if (item.role === "shopMember" && groupData.customerId) {
+                const customerRef = doc(db, "users", groupData.customerId);
+                const customerSnap = await getDoc(customerRef);
+                if (customerSnap.exists()) {
+                  const customerData = customerSnap.data();
+                  displayUser = {
+                    username: customerData.username || "Customer",
+                    avatar:
+                      customerData.avatar ||
+                      "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+                  };
+                }
+              }
+
+              return {
+                ...item,
+                user: displayUser,
+                isGroup: true,
+              };
+            }
           });
 
           const chatData = await Promise.all(promises);
-          setChats(chatData.sort((a, b) => b.updatedAt - a.updatedAt));
+          setChats(
+            chatData
+              .filter(Boolean)
+              .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+          );
         }
       );
 
@@ -110,7 +155,7 @@ const ConversationList = () => {
 
   const handleSelect = async (chat) => {
     const userChats = chats.map((item) => {
-      const { user, ...rest } = item;
+      const { user, isGroup, ...rest } = item; // Exclude isGroup and user from Firebase update
       return rest;
     });
 
@@ -247,17 +292,34 @@ const ConversationList = () => {
             >
               <div className="flex items-center space-x-3">
                 <img
-                  src={chat.user.avatar || "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"}
-                  alt={chat.user.username}
+                  src={
+                    chat.user?.avatar ||
+                    "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                  }
+                  alt={chat.user?.username || "Chat"}
                   className="w-12 h-12 rounded-full"
                 />
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-800 truncate">
-                      {chat.user.username}
-                    </h3>
-                    <span className="text-xs text-gray-500">{chat.time}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h3 className="font-semibold text-gray-800 truncate max-w-[150px]">
+                        {chat.user?.username || "Chat"}
+                      </h3>
+
+                      {chat.role === "customer" && (
+                        <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          Shop
+                        </span>
+                      )}
+                      {chat.role === "shopMember" && (
+                        <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          Customer
+                        </span>
+                      )}
+                    </div>
                   </div>
+
                   <p
                     className={`text-sm truncate ${
                       isUnread ? "text-gray-900 font-medium" : "text-gray-600"
