@@ -123,8 +123,16 @@ export const deleteMarketplacePost = async (postId) => {
 };
 
 export const depositToWallet = async (amount) => {
-  const response = await axiosInstance.post("/wallet/deposit", { amount });
-  return response.data;
+  try {
+    console.log("Gửi yêu cầu nạp tiền với amount:", amount);
+    const response = await axiosInstance.post("/wallet/deposit", { amount });
+    console.log("Response từ /wallet/deposit:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi depositToWallet:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
 };
 
 export const fetchWalletBalance = async () => {
@@ -147,12 +155,25 @@ export const fetchWalletBalanceByUserId = async (userId) => {
 };
 
 // PayOS webhook để xử lý callback thanh toán
-export const handlePayOSWebhook = async (webhookData) => {
-  const response = await axiosInstance.post(
-    "/wallet/payos-webhook",
-    webhookData
-  );
-  return response.data;
+export const handlePayOSWebhook = async (webhookData, signature) => {
+  try {
+    console.log("Xử lý PayOS webhook:", webhookData);
+    const response = await axiosInstance.post(
+      "/wallet/payos-webhook",
+      webhookData,
+      {
+        headers: {
+          "x-payos-signature": signature,
+        },
+      }
+    );
+    console.log("PayOS webhook response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi xử lý PayOS webhook:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
 };
 
 // Lấy thông tin PayOS webhook
@@ -169,10 +190,36 @@ export const getPayOSWebhook = async () => {
   }
 };
 
+// Kiểm tra trạng thái thanh toán qua deposit record
+export const checkDepositStatus = async (depositCode) => {
+  try {
+    console.log("Kiểm tra trạng thái deposit cho depositCode:", depositCode);
+    const response = await axiosInstance.get(
+      `/wallet/deposit-status/${depositCode}`
+    );
+    console.log("Deposit status response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi kiểm tra deposit status:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
 // Kiểm tra trạng thái thanh toán
 export const checkPaymentStatus = async (orderId) => {
-  const response = await axiosInstance.get(`/wallet/payment-status/${orderId}`);
-  return response.data;
+  try {
+    console.log("Kiểm tra trạng thái thanh toán cho orderId:", orderId);
+    const response = await axiosInstance.get(
+      `/wallet/payment-status/${orderId}`
+    );
+    console.log("Payment status response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi kiểm tra payment status:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
 };
 
 export const joinChallenge = async (challengeId) => {

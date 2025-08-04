@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle, Shield, Zap, X, Clock, AlertCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { depositToWallet, fetchWalletBalance } from "../../api/axios";
+import {
+  depositToWallet,
+  fetchWalletBalance,
+  checkPaymentStatus,
+} from "../../api/axios";
 
 const popularAmounts = [
   10000, 20000, 30000, 50000, 100000, 200000, 500000, 1000000,
@@ -16,10 +20,12 @@ export default function UserWallet() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState("");
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState("pending"); // pending, success, failed, expired, cancelled
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [orderId, setOrderId] = useState("");
+  const [initialBalance, setInitialBalance] = useState(0); // Thêm state để lưu balance ban đầu
 
   const timerRef = useRef(null);
   const statusCheckRef = useRef(null);
@@ -104,32 +110,64 @@ export default function UserWallet() {
     return () => clearInterval(timerRef.current);
   }, [showModal, paymentStatus, timeLeft]);
 
-  // Status checking (polling every 5 seconds)
+  // Status checking (polling balance every 5 seconds)
   useEffect(() => {
     if (showModal && paymentStatus === "pending" && orderId) {
+      console.log("Bắt đầu auto check balance cho orderId:", orderId);
+      console.log("Initial balance:", initialBalance);
+
       statusCheckRef.current = setInterval(async () => {
         try {
-          // Giả sử có API check status
-          // const statusRes = await checkPaymentStatus(orderId);
-          // Tạm thời comment vì chưa có API này
-          // if (statusRes?.status === "PAID") {
-          //   setPaymentStatus("success");
-          //   await updateBalance();
-          // } else if (statusRes?.status === "CANCELLED") {
-          //   setPaymentStatus("cancelled");
-          // } else if (statusRes?.status === "FAILED") {
-          //   setPaymentStatus("failed");
-          // }
+          console.log("Checking balance change...");
+          const balanceRes = await fetchWalletBalance();
+
+          let currentBalance = 0;
+          if (balanceRes?.wallet?.balance !== undefined) {
+            currentBalance =
+              typeof balanceRes.wallet.balance === "string"
+                ? parseFloat(balanceRes.wallet.balance)
+                : balanceRes.wallet.balance;
+          } else if (balanceRes?.balance !== undefined) {
+            currentBalance =
+              typeof balanceRes.balance === "string"
+                ? parseFloat(balanceRes.balance)
+                : balanceRes.balance;
+          } else if (balanceRes?.data?.balance !== undefined) {
+            currentBalance =
+              typeof balanceRes.data.balance === "string"
+                ? parseFloat(balanceRes.data.balance)
+                : balanceRes.data.balance;
+          }
+
+          console.log(
+            "Current balance:",
+            currentBalance,
+            "Initial balance:",
+            initialBalance
+          );
+
+          // Nếu balance tăng lên = thanh toán thành công
+          if (currentBalance > initialBalance) {
+            console.log(
+              "✅ Thanh toán thành công! Balance tăng từ",
+              initialBalance,
+              "lên",
+              currentBalance
+            );
+            setPaymentStatus("success");
+            setBalance(currentBalance); // Update balance ngay
+          }
         } catch (e) {
-          console.error("Error checking payment status:", e);
+          console.error("Error checking balance:", e);
+          // Không set error để tránh làm gián đoạn flow
         }
-      }, 5000);
+      }, 5000); // Check mỗi 5 giây
     } else {
       clearInterval(statusCheckRef.current);
     }
 
     return () => clearInterval(statusCheckRef.current);
-  }, [showModal, paymentStatus, orderId]);
+  }, [showModal, paymentStatus, orderId, initialBalance]);
 
   // Auto close modal after success
   useEffect(() => {
@@ -264,13 +302,55 @@ export default function UserWallet() {
     try {
       const res = await depositToWallet(amount);
       console.log("Deposit response:", res);
+      console.log("Response data structure:", JSON.stringify(res, null, 2));
 
-      if (res?.data?.paymentUrl) {
-        setPaymentUrl(res.data.paymentUrl);
-        setOrderId(res.data.orderId || `order_${Date.now()}`);
+      // Kiểm tra các field có thể có trong response
+      const qrCode =
+        res?.data?.qrCodeImageUrl ||
+        res?.data?.qrCode ||
+        res?.qrCode ||
+        res?.data?.qr_code ||
+        res?.qr_code;
+      const paymentLink =
+        res?.data?.paymentUrl ||
+        res?.paymentUrl ||
+        res?.data?.payment_url ||
+        res?.payment_url;
+      const orderCode =
+        res?.data?.depositRecord?.depositCode ||
+        res?.data?.orderId ||
+        res?.orderId ||
+        res?.data?.order_id ||
+        res?.order_id ||
+        res?.data?.depositRecord?.id;
+
+      console.log("Extracted values:", {
+        qrCode: qrCode ? `${qrCode.substring(0, 50)}...` : null,
+        paymentLink,
+        orderCode,
+      });
+
+      if (qrCode || paymentLink) {
+        // Lưu balance hiện tại trước khi thanh toán
+        setInitialBalance(balance);
+        console.log("Lưu initial balance:", balance);
+
+        setPaymentUrl(paymentLink || "");
+        setQrCodeUrl(qrCode || paymentLink || "");
+        setOrderId(orderCode || `order_${Date.now()}`);
         setPaymentStatus("pending");
         setTimeLeft(300); // Reset timer to 5 minutes
         setShowModal(true);
+
+        // Debug QR code type
+        if (qrCode) {
+          console.log("QR Code type:", typeof qrCode);
+          console.log(
+            "QR Code starts with data:image?",
+            qrCode.startsWith("data:image")
+          );
+          console.log("QR Code length:", qrCode.length);
+        }
       } else {
         setError("Không lấy được link thanh toán. Vui lòng thử lại.");
       }
@@ -289,7 +369,9 @@ export default function UserWallet() {
     clearInterval(statusCheckRef.current);
     setShowModal(false);
     setPaymentUrl("");
+    setQrCodeUrl("");
     setOrderId("");
+    setInitialBalance(0);
     setPaymentStatus("pending");
     setTimeLeft(300);
 
@@ -380,34 +462,89 @@ export default function UserWallet() {
                   </div>
                 </div>
 
-                {/* QR Code iframe */}
-                <div className="w-full">
-                  <iframe
-                    src={paymentUrl}
-                    title="Thanh toán VietQR"
-                    className="rounded-xl border border-pink-200 w-full h-[500px] min-h-[400px]"
-                    allowFullScreen
-                    sandbox="allow-same-origin allow-scripts allow-forms"
-                    onError={(e) => {
-                      console.log("Iframe error (ignored):", e);
-                      e.preventDefault();
-                    }}
-                    style={{
-                      filter: "none",
-                    }}
-                  />
-                </div>
+                {/* QR Code Image */}
+                {qrCodeUrl ? (
+                  <div className="w-full flex justify-center">
+                    <div className="bg-white rounded-xl border border-pink-200 p-6 shadow-sm">
+                      <div className="text-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Quét mã QR để thanh toán
+                        </h3>
+                      </div>
+                      <img
+                        src={qrCodeUrl}
+                        alt="QR Code thanh toán"
+                        className="w-80 h-80 object-contain mx-auto border rounded-lg bg-white"
+                        onError={(e) => {
+                          console.error("QR Code image error:", e);
+                          console.error(
+                            "QR URL:",
+                            qrCodeUrl?.substring(0, 100)
+                          );
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "block";
+                        }}
+                        onLoad={() => {
+                          console.log("QR Code loaded successfully");
+                        }}
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "100%",
+                        }}
+                      />
+                      <div
+                        className="text-center text-gray-500 py-20 hidden"
+                        style={{ display: "none" }}
+                      >
+                        <p>❌ Không thể tải mã QR</p>
+                        <p className="text-sm">Vui lòng thử lại sau</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full flex justify-center">
+                    <div className="bg-gray-50 rounded-xl border border-gray-200 p-6 text-center">
+                      <p className="text-gray-500">⏳ Đang tạo mã QR...</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Instructions */}
-                <div className="mt-4 text-center text-sm text-gray-600 max-w-md">
-                  <p className="mb-2">
-                    📱 Quét mã QR bằng ứng dụng ngân hàng của bạn
-                  </p>
-                  <p className="mb-2">
-                    💳 Hoặc chuyển khoản theo thông tin hiển thị
-                  </p>
+                <div className="mt-6 text-center text-sm text-gray-600 max-w-md">
+                  <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                    <p className="mb-2 font-medium text-blue-800">
+                      🏦 Hướng dẫn thanh toán:
+                    </p>
+                    <p className="mb-2 text-blue-700">
+                      📱 Mở ứng dụng ngân hàng và quét mã QR
+                    </p>
+                    <p className="mb-2 text-blue-700">
+                      � Kiểm tra số tiền: {getAmount().toLocaleString()} VND
+                    </p>
+                    <p className="text-blue-700">
+                      ✅ Xác nhận thanh toán trong ứng dụng
+                    </p>
+                  </div>
+
+                  {/* Auto check status indicator */}
+                  <div className="bg-green-50 rounded-lg p-3 mb-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-green-700 text-xs font-medium">
+                        Đang tự động kiểm tra số dư ví...
+                      </span>
+                    </div>
+                    <p className="text-green-600 text-xs mt-1">
+                      Hệ thống sẽ tự động cập nhật khi phát hiện thay đổi số dư
+                    </p>
+                  </div>
+
                   <p className="text-orange-600 font-medium">
-                    ⏰ Giao dịch sẽ tự động hủy sau {formatTime(timeLeft)}
+                    ⏰ Mã QR sẽ hết hạn sau {formatTime(timeLeft)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Sau khi thanh toán thành công, số dư sẽ được cập nhật tự
+                    động
                   </p>
                 </div>
               </>
