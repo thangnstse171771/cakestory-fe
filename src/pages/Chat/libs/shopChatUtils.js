@@ -74,7 +74,8 @@ export async function getOrCreateShopChat(
   const q = query(
     collection(db, "groupChats"),
     where("shopId", "==", shopId),
-    where("type", "==", "shop")
+    where("type", "==", "shop"),
+    where("customerId", "==", customerFirebaseId)
   );
   const snapshot = await getDocs(q);
   if (!snapshot.empty) {
@@ -91,14 +92,20 @@ export async function getOrCreateShopChat(
     customerId: customerFirebaseId,
     shopMemberIds: shopMemberFirebaseIds,
     createdAt: Date.now(),
-    updatedAt: Date.now(), // ADD THIS
+    updatedAt: Date.now(),
     lastMessage: "",
   });
 
+  // ✅ CREATE chats/{chatId} document
+  await setDoc(doc(db, "chats", docRef.id), {
+    createdAt: Date.now(),
+    messages: [], // optional; just for structure
+  });
+
+  console.log("✅ chats/{chatId} initialized");
+
   // 🔥 Add group chat to each user's "userchats"
   await createGroupChat(docRef.id, memberIds, customerFirebaseId);
-
-  return docRef.id;
 }
 
 export async function getShopChatsForUser(currentUserFirebaseId) {

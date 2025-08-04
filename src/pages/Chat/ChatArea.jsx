@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useChatStore } from "./libs/useChatStore";
+import { getOrCreateShopChat } from "./libs/shopChatUtils";
 import ChatInfo from "./ChatInfo";
 import { message } from "antd";
 import { useAuth } from "../../contexts/AuthContext";
@@ -40,8 +41,26 @@ const ChatArea = () => {
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
   const [isSending, setIsSending] = useState(false);
+  const [currentUserChatEntry, setCurrentUserChatEntry] = useState(null);
 
   console.log("check user", user);
+
+  useEffect(() => {
+    const fetchCurrentUserChatEntry = async () => {
+      if (!firebaseUserId || !chatId) return;
+
+      const userChatsRef = doc(db, "userchats", firebaseUserId);
+      const userChatsSnapshot = await getDoc(userChatsRef);
+
+      if (userChatsSnapshot.exists()) {
+        const chats = userChatsSnapshot.data().chats || [];
+        const entry = chats.find((c) => c.chatId === chatId);
+        setCurrentUserChatEntry(entry);
+      }
+    };
+
+    fetchCurrentUserChatEntry();
+  }, [firebaseUserId, chatId]);
 
   useEffect(() => {
     const fetchFirebaseId = async () => {
@@ -77,12 +96,25 @@ const ChatArea = () => {
     if (!chatId) return;
     const chatIdStr = String(chatId);
 
-    const unSub = onSnapshot(doc(db, "chats", chatIdStr), (res) => {
-      setChat(res.data());
+    const unsub = onSnapshot(doc(db, "chats", chatIdStr), async (res) => {
+      const chatData = res.data();
+      if (!chatData) return;
+
+      const groupChatDoc = await getDoc(doc(db, "groupChats", chatIdStr));
+      chatData.isGroup = groupChatDoc.exists();
+
+      if (chatData.isGroup) {
+        const groupChatData = groupChatDoc.data();
+
+        chatData.shopMemberIds = groupChatData.shopMemberIds || [];
+        chatData.customerId = groupChatData.customerId || null;
+        chatData.members = groupChatData.members || []; // optional
+      }
+
+      setChat(chatData);
     });
-    return () => {
-      unSub();
-    };
+
+    return () => unsub();
   }, [chatId]);
 
   const handleRemoveImage = () => {
@@ -184,7 +216,29 @@ const ChatArea = () => {
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-4">
             {chat?.messages?.map((message) => {
-              const isOwnMessage = message.senderId === firebaseUserId;
+              const isOwnMessage = (() => {
+                const isGroup = chat?.isGroup;
+                // const isSenderCustomer = message.senderId === chat?.customerId;
+                const isSenderShopMember = chat?.shopMemberIds?.includes(
+                  message.senderId
+                );
+                const isCurrentUserShopMember =
+                  isGroup && currentUserChatEntry?.role === "shopMember";
+
+                // If not a group chat, use default logic
+                if (!isGroup) {
+                  return message.senderId === firebaseUserId;
+                }
+
+                // If current user is a shop member
+                if (isCurrentUserShopMember) {
+                  // Messages from any shop member (including self) are "own"
+                  return isSenderShopMember;
+                }
+
+                // If current user is a customer, use default logic
+                return message.senderId === firebaseUserId;
+              })();
 
               return isOwnMessage ? (
                 <div
