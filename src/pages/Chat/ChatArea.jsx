@@ -206,14 +206,14 @@ const ChatArea = () => {
           <div className="flex items-center space-x-3">
             <img
               src={
-                user.avatar ||
+                user?.avatar ||
                 "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
               }
-              alt={user.username}
+              alt={user?.username || "Unknown User"}
               className="w-10 h-10 rounded-full"
             />
             <div>
-              <h3 className="font-semibold text-gray-800">{user.username}</h3>
+              <h3 className="font-semibold text-gray-800">{user?.username}</h3>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -301,10 +301,10 @@ const ChatArea = () => {
                 >
                   <img
                     src={
-                      user.avatar ||
+                      user?.avatar ||
                       "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                     }
-                    alt={user.username}
+                    alt={user?.username}
                     className="w-10 h-10 rounded-full"
                   />
                   <div className="flex flex-col items-start gap-2">
@@ -421,8 +421,8 @@ const ChatArea = () => {
       <ChatInfo
         open={showUserInfo}
         onClose={() => setShowUserInfo(false)}
-        avatar={user.avatar}
-        name={user.username}
+        avatar={user?.avatar}
+        name={user?.username}
         images={OPPOSING_USER.images}
       />
     </div>
