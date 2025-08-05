@@ -1,11 +1,22 @@
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle, Shield, Zap, X, Clock, AlertCircle } from "lucide-react";
+import {
+  CheckCircle,
+  Shield,
+  Zap,
+  X,
+  Clock,
+  AlertCircle,
+  History,
+  ArrowUpRight,
+} from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   depositToWallet,
   fetchWalletBalance,
   checkPaymentStatus,
 } from "../../api/axios";
+import PaymentHistory from "./PaymentHistory";
 
 const popularAmounts = [
   10000, 20000, 30000, 50000, 100000, 200000, 500000, 1000000,
@@ -14,6 +25,7 @@ const popularLabels = [50000, 100000, 200000];
 
 export default function UserWallet() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [balance, setBalance] = useState(0);
   const [selected, setSelected] = useState(null);
   const [custom, setCustom] = useState("");
@@ -26,6 +38,8 @@ export default function UserWallet() {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
   const [orderId, setOrderId] = useState("");
   const [initialBalance, setInitialBalance] = useState(0); // Thêm state để lưu balance ban đầu
+  const [refreshHistory, setRefreshHistory] = useState(0); // Trigger refresh lịch sử giao dịch
+  const [showHistoryModal, setShowHistoryModal] = useState(false); // Modal lịch sử giao dịch
 
   const timerRef = useRef(null);
   const statusCheckRef = useRef(null);
@@ -156,6 +170,7 @@ export default function UserWallet() {
             );
             setPaymentStatus("success");
             setBalance(currentBalance); // Update balance ngay
+            setRefreshHistory((prev) => prev + 1); // Trigger refresh lịch sử giao dịch
           }
         } catch (e) {
           console.error("Error checking balance:", e);
@@ -612,28 +627,46 @@ export default function UserWallet() {
             <div className="text-gray-500 text-sm">{user?.email || ""}</div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-gray-600 text-sm">Số dư hiện tại</div>
-          <div className="text-2xl font-bold text-pink-600">
-            {(() => {
-              console.log(
-                "Hiển thị balance:",
-                balance,
-                "Type:",
-                typeof balance
-              );
-              if (typeof balance === "number" && !isNaN(balance)) {
-                return balance.toLocaleString();
-              } else if (
-                typeof balance === "string" &&
-                !isNaN(parseFloat(balance))
-              ) {
-                return parseFloat(balance).toLocaleString();
-              } else {
-                return "0";
-              }
-            })()}{" "}
-            đ
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-gray-600 text-sm">Số dư hiện tại</div>
+            <div className="text-2xl font-bold text-pink-600">
+              {(() => {
+                console.log(
+                  "Hiển thị balance:",
+                  balance,
+                  "Type:",
+                  typeof balance
+                );
+                if (typeof balance === "number" && !isNaN(balance)) {
+                  return balance.toLocaleString();
+                } else if (
+                  typeof balance === "string" &&
+                  !isNaN(parseFloat(balance))
+                ) {
+                  return parseFloat(balance).toLocaleString();
+                } else {
+                  return "0";
+                }
+              })()}{" "}
+              đ
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/withdraw")}
+              className="bg-orange-100 hover:bg-orange-200 rounded-2xl w-16 h-16 flex items-center justify-center transition-colors group"
+              title="Rút tiền"
+            >
+              <ArrowUpRight className="w-6 h-6 text-orange-600 group-hover:text-orange-700" />
+            </button>
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              className="bg-blue-100 hover:bg-blue-200 rounded-2xl w-16 h-16 flex items-center justify-center transition-colors group"
+              title="Xem lịch sử giao dịch"
+            >
+              <History className="w-6 h-6 text-blue-600 group-hover:text-blue-700" />
+            </button>
           </div>
         </div>
       </div>
@@ -746,6 +779,28 @@ export default function UserWallet() {
           </div>
         </div>
       </div>
+
+      {/* Modal lịch sử giao dịch */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-2xl shadow-xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-bold text-gray-800">
+                Lịch Sử Giao Dịch
+              </h2>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              <PaymentHistory refreshTrigger={refreshHistory} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
