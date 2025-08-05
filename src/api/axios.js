@@ -222,6 +222,176 @@ export const checkPaymentStatus = async (orderId) => {
   }
 };
 
+// Lấy lịch sử giao dịch của user
+export const fetchWalletHistory = async () => {
+  try {
+    console.log("Gọi API fetchWalletHistory...");
+    const response = await axiosInstance.get("/wallet/AllDepositHistoryUser");
+    console.log("Wallet history response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchWalletHistory:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Tạo yêu cầu rút tiền
+export const createWithdrawRequest = async (
+  amount,
+  bankName,
+  accountNumber
+) => {
+  try {
+    console.log("Tạo yêu cầu rút tiền:", { amount, bankName, accountNumber });
+    const response = await axiosInstance.post("/wallet/withdraw", {
+      amount,
+      bank_name: bankName,
+      account_number: accountNumber,
+    });
+    console.log("Withdraw request response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi tạo yêu cầu rút tiền:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Lấy lịch sử yêu cầu rút tiền của user
+export const fetchWithdrawHistory = async () => {
+  try {
+    console.log("Gọi API fetchWithdrawHistory...");
+    const response = await axiosInstance.get("/wallet/withdrawAll-historyUser");
+    console.log("Withdraw history response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchWithdrawHistory:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Admin: Lấy thông tin yêu cầu rút tiền cụ thể theo ID
+export const fetchWithdrawRequestById = async (id) => {
+  try {
+    console.log("Gọi API fetchWithdrawRequestById với id:", id);
+    const response = await axiosInstance.get(
+      `/wallet/withdraw-historyAdmin/${id}`
+    );
+    console.log("Withdraw request by ID response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchWithdrawRequestById:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Admin: Lấy tất cả lịch sử rút tiền
+export const fetchAllWithdrawHistory = async () => {
+  try {
+    console.log("Gọi API fetchAllWithdrawHistory...");
+    const response = await axiosInstance.get("/wallet/withdrawAll-history");
+    console.log("All withdraw history response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchAllWithdrawHistory:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Lấy lịch sử rút tiền cụ thể theo ID user
+export const fetchWithdrawHistoryByUserId = async (userId) => {
+  try {
+    console.log("Gọi API fetchWithdrawHistoryByUserId với userId:", userId);
+    const response = await axiosInstance.get(
+      `/wallet/withdraw-historyUserId/${userId}`
+    );
+    console.log("Withdraw history by user ID response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchWithdrawHistoryByUserId:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Hủy yêu cầu rút tiền
+export const cancelWithdrawRequest = async (withdrawId) => {
+  try {
+    console.log("Hủy yêu cầu rút tiền với withdrawId:", withdrawId);
+    const response = await axiosInstance.put(
+      `/wallet/cancel-withdraw/${withdrawId}`
+    );
+    console.log("Cancel withdraw response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi hủy yêu cầu rút tiền:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Lấy tổng số tiền chờ rút của user hiện tại
+export const fetchTotalPendingWithdraw = async () => {
+  try {
+    console.log("Gọi API fetchTotalPendingWithdraw...");
+    const response = await axiosInstance.get("/wallet/totalWithdrawUser");
+    console.log("Total pending withdraw response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchTotalPendingWithdraw:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Admin: Lấy tổng số dư ví admin
+export const fetchAdminWalletBalance = async () => {
+  try {
+    console.log("Gọi API fetchAdminWalletBalance...");
+    const response = await axiosInstance.get("/wallet/AdminWallet");
+    console.log("Admin wallet balance response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchAdminWalletBalance:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Admin: Lấy tất cả ví của user
+export const fetchAllUserWallets = async () => {
+  try {
+    console.log("Gọi API fetchAllUserWallets...");
+    const response = await axiosInstance.get("/wallet/allWalletAdmin");
+    console.log("All user wallets response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchAllUserWallets:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Admin: Lấy thông tin ví của user cụ thể theo ID
+export const fetchUserWalletById = async (userId) => {
+  try {
+    console.log("Gọi API fetchUserWalletById với userId:", userId);
+    const response = await axiosInstance.get(
+      `/wallet/getUserWalletbyId/${userId}`
+    );
+    console.log("User wallet by ID response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchUserWalletById:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
 export const joinChallenge = async (challengeId) => {
   const response = await axiosInstance.post("/challenge-entries", {
     challenge_id: challengeId,

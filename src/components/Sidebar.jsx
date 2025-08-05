@@ -18,6 +18,7 @@ import {
   SquareLibrary,
   ListOrdered,
   MessageSquareWarning,
+  ArrowDownToLine,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -36,7 +37,6 @@ const Sidebar = () => {
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
     { icon: Calendar, label: "Events", path: "/events" },
     { icon: Trophy, label: "Challenge", path: "/challenge" },
-    { icon: Wallet, label: "Nạp tiền", path: "/wallet" },
     { icon: ListOrdered, label: "Track Orders", path: "/order-tracking" },
     { icon: MessageSquareWarning, label: "Khiếu nại", path: "/complaints" },
   ];
@@ -47,6 +47,7 @@ const Sidebar = () => {
     { icon: SquareLibrary, label: "My Album", path: "/myalbum" },
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
+    { icon: ArrowDownToLine, label: "Rút tiền", path: "/withdraw" },
   ];
   // Menu cho admin/staff
   const adminMenu = [
@@ -64,15 +65,9 @@ const Sidebar = () => {
   let menuItems = publicMenu;
   if (user) {
     if (["admin", "account_staff", "staff"].includes(user.role)) {
-      menuItems = [
-        ...publicMenu.filter((item) => item.path !== "/wallet"),
-        ...adminMenu,
-      ]; // Ẩn mục Nạp tiền cho admin
+      menuItems = [...publicMenu, ...adminMenu];
     } else {
-      menuItems = [
-        ...publicMenu.filter((item) => item.path !== "/wallet"),
-        ...userMenu,
-      ];
+      menuItems = [...publicMenu, ...userMenu];
     }
   }
 
