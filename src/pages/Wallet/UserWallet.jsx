@@ -30,15 +30,60 @@ export default function UserWallet() {
   useEffect(() => {
     const fetchBalance = async () => {
       try {
+        console.log("Đang fetch balance cho user:", user);
         const res = await fetchWalletBalance();
-        if (typeof res?.balance === "number") setBalance(res.balance);
-        else setBalance(0);
+        console.log("Response từ fetchWalletBalance:", res);
+
+        // Kiểm tra cấu trúc response
+        if (res && typeof res === "object") {
+          let balanceValue = 0;
+
+          // Kiểm tra nếu có wallet.balance (cấu trúc từ API doc)
+          if (res.wallet && typeof res.wallet.balance !== "undefined") {
+            balanceValue =
+              typeof res.wallet.balance === "string"
+                ? parseFloat(res.wallet.balance)
+                : res.wallet.balance;
+            console.log("Balance tìm thấy trong wallet:", balanceValue);
+          }
+          // Kiểm tra nếu balance trực tiếp trong response
+          else if (typeof res.balance === "number") {
+            balanceValue = res.balance;
+            console.log("Balance tìm thấy (number):", balanceValue);
+          }
+          // Nếu balance là string và có thể parse thành number
+          else if (
+            typeof res.balance === "string" &&
+            !isNaN(parseFloat(res.balance))
+          ) {
+            balanceValue = parseFloat(res.balance);
+            console.log("Balance tìm thấy (string -> number):", balanceValue);
+          }
+          // Nếu response có cấu trúc khác trong data
+          else if (res.data && typeof res.data.balance !== "undefined") {
+            balanceValue =
+              typeof res.data.balance === "string"
+                ? parseFloat(res.data.balance)
+                : res.data.balance;
+            console.log("Balance tìm thấy trong data:", balanceValue);
+          } else {
+            console.log("Không tìm thấy balance trong response, set về 0");
+          }
+
+          console.log("Final balance value:", balanceValue);
+          setBalance(balanceValue);
+        } else {
+          console.log("Response không hợp lệ, set balance về 0");
+          setBalance(0);
+        }
       } catch (e) {
+        console.error("Lỗi khi fetch balance:", e);
+        console.error("Error details:", e.response?.data || e.message);
         setBalance(0);
       }
     };
     fetchBalance();
-  }, []);
+  }, [user]);
 
   // Timer countdown
   useEffect(() => {
@@ -98,10 +143,55 @@ export default function UserWallet() {
 
   const updateBalance = async () => {
     try {
+      console.log("Đang update balance...");
       const res = await fetchWalletBalance();
-      if (typeof res?.balance === "number") setBalance(res.balance);
+      console.log("Response khi update balance:", res);
+
+      if (res && typeof res === "object") {
+        let balanceValue = 0;
+
+        // Kiểm tra nếu có wallet.balance (cấu trúc từ API doc)
+        if (res.wallet && typeof res.wallet.balance !== "undefined") {
+          balanceValue =
+            typeof res.wallet.balance === "string"
+              ? parseFloat(res.wallet.balance)
+              : res.wallet.balance;
+          console.log("Update balance từ wallet:", balanceValue);
+        }
+        // Kiểm tra nếu balance trực tiếp trong response
+        else if (typeof res.balance === "number") {
+          balanceValue = res.balance;
+          console.log("Update balance (number):", balanceValue);
+        }
+        // Nếu balance là string và có thể parse thành number
+        else if (
+          typeof res.balance === "string" &&
+          !isNaN(parseFloat(res.balance))
+        ) {
+          balanceValue = parseFloat(res.balance);
+          console.log("Update balance (string -> number):", balanceValue);
+        }
+        // Nếu response có cấu trúc khác trong data
+        else if (res.data && typeof res.data.balance !== "undefined") {
+          balanceValue =
+            typeof res.data.balance === "string"
+              ? parseFloat(res.data.balance)
+              : res.data.balance;
+          console.log("Update balance từ data:", balanceValue);
+        } else {
+          console.log("Không update được balance, giữ nguyên");
+          return;
+        }
+
+        console.log("Final update balance value:", balanceValue);
+        setBalance(balanceValue);
+      }
     } catch (e) {
       console.error("Error updating balance:", e);
+      console.error(
+        "Update balance error details:",
+        e.response?.data || e.message
+      );
     }
   };
 
@@ -297,6 +387,14 @@ export default function UserWallet() {
                     title="Thanh toán VietQR"
                     className="rounded-xl border border-pink-200 w-full h-[500px] min-h-[400px]"
                     allowFullScreen
+                    sandbox="allow-same-origin allow-scripts allow-forms"
+                    onError={(e) => {
+                      console.log("Iframe error (ignored):", e);
+                      e.preventDefault();
+                    }}
+                    style={{
+                      filter: "none",
+                    }}
                   />
                 </div>
 
@@ -362,7 +460,25 @@ export default function UserWallet() {
         <div className="text-right">
           <div className="text-gray-600 text-sm">Số dư hiện tại</div>
           <div className="text-2xl font-bold text-pink-600">
-            {typeof balance === "number" ? balance.toLocaleString() : "0"} đ
+            {(() => {
+              console.log(
+                "Hiển thị balance:",
+                balance,
+                "Type:",
+                typeof balance
+              );
+              if (typeof balance === "number" && !isNaN(balance)) {
+                return balance.toLocaleString();
+              } else if (
+                typeof balance === "string" &&
+                !isNaN(parseFloat(balance))
+              ) {
+                return parseFloat(balance).toLocaleString();
+              } else {
+                return "0";
+              }
+            })()}{" "}
+            đ
           </div>
         </div>
       </div>
