@@ -240,20 +240,38 @@ export default function UserWallet() {
   };
 
   const handleCustomChange = (e) => {
-    const value = e.target.value.replace(/\D/g, "");
-    setCustom(value);
-    setSelected(null);
+    // Loại bỏ tất cả ký tự không phải số (bao gồm dấu phẩy)
+    let value = e.target.value.replace(/[^\d]/g, "");
 
+    // Nếu không có gì thì return luôn
     if (value === "") {
+      setCustom("");
+      setSelected(null);
       setError("");
       return;
     }
 
+    // Convert to number để kiểm tra giá trị
     const numericValue = Number(value);
-    if (numericValue < MIN_AMOUNT || numericValue > MAX_AMOUNT) {
-      setError(
-        `Số tiền nạp phải từ ${MIN_AMOUNT.toLocaleString()} đến ${MAX_AMOUNT.toLocaleString()} VND`
-      );
+
+    // Nếu vượt quá MAX_AMOUNT thì set về MAX_AMOUNT
+    if (numericValue > MAX_AMOUNT) {
+      value = MAX_AMOUNT.toString();
+    }
+
+    // Giới hạn tối đa 8 chữ số sau khi đã xử lý MAX_AMOUNT
+    if (value.length > 8) {
+      value = value.substring(0, 8);
+    }
+
+    setCustom(value);
+    setSelected(null);
+
+    const finalValue = Number(value);
+    if (finalValue < MIN_AMOUNT) {
+      setError(`Số tiền nạp tối thiểu là ${MIN_AMOUNT.toLocaleString()} VND`);
+    } else if (finalValue > MAX_AMOUNT) {
+      setError(`Số tiền nạp tối đa là ${MAX_AMOUNT.toLocaleString()} VND`);
     } else {
       setError("");
     }
@@ -664,17 +682,23 @@ export default function UserWallet() {
               inputMode="numeric"
               pattern="[0-9]*"
               placeholder={`Nhập số tiền (${MIN_AMOUNT.toLocaleString()} - ${MAX_AMOUNT.toLocaleString()} VND)`}
-              value={custom}
+              value={custom ? Number(custom).toLocaleString() : ""}
               onChange={handleCustomChange}
               className={`w-full border-2 rounded-lg px-4 py-3 text-lg focus:ring-2 focus:ring-pink-100 outline-none transition-colors
                 ${custom ? "border-pink-500" : "border-pink-200"}
                 ${error ? "border-red-300" : ""}
               `}
               autoComplete="off"
+              maxLength="11" // Tối đa 11 ký tự bao gồm dấu phẩy (20,000,000)
             />
             <div className="text-xs text-gray-400 mt-1">
               Số tiền nạp tối thiểu là {MIN_AMOUNT.toLocaleString()} VND, tối đa{" "}
               {MAX_AMOUNT.toLocaleString()} VND
+              {custom && Number(custom) === MAX_AMOUNT && (
+                <span className="block text-orange-500 font-medium mt-1">
+                  ⚠️ Đã đạt giới hạn tối đa
+                </span>
+              )}
             </div>
             {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
           </div>
