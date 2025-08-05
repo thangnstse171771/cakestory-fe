@@ -8,6 +8,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import CustomizeModal from "../Cart/CustomizedOrderForm";
 
 function ProductDetailModal({ isOpen, product, onClose }) {
@@ -164,6 +165,7 @@ const FILTERS = [
 ];
 
 const ProductsList = ({ products = [] }) => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -323,8 +325,21 @@ const ProductsList = ({ products = [] }) => {
                     className="relative overflow-hidden px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setCustomizeProduct(item);
-                      setShowCustomize(true);
+                      // Navigate to CustomizedOrderDetails with shop_id
+                      const shopId = item.shop_id || item.shop?.id;
+                      if (shopId) {
+                        navigate(`/order/customize/${shopId}`, {
+                          state: {
+                            shopData: item.shop,
+                            productData: item,
+                          },
+                        });
+                      } else {
+                        console.error("No shop_id found for this product");
+                        // Fallback to old modal
+                        setCustomizeProduct(item);
+                        setShowCustomize(true);
+                      }
                     }}
                   >
                     <span className="relative z-10 flex items-center gap-2">

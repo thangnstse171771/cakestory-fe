@@ -1,8 +1,19 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Plus, Minus, Check } from "lucide-react";
+import { fetchIngredients } from "../../api/ingredients";
 
 export default function CakeShop() {
-  // Mock data cho bánh kem dâu
+  const { shopId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // State for ingredients/toppings from API
+  const [ingredients, setIngredients] = useState([]);
+  const [loadingIngredients, setLoadingIngredients] = useState(true);
+  const [errorIngredients, setErrorIngredients] = useState("");
+
+  // Mock data cho bánh kem dâu - sẽ được thay thế bằng data từ shop
   const mockCake = {
     id: 1,
     name: "Bánh Kem Dâu",
@@ -11,20 +22,61 @@ export default function CakeShop() {
     basePrice: 200000,
     category: "Bánh sinh nhật",
     image: "/cake-strawberry.jpg",
-    toppings: [
-      { id: 1, name: "Viên socola", price: 20000 },
-      { id: 2, name: "Dâu thêm", price: 30000 },
-      { id: 3, name: "Lớp phủ socola dâu", price: 75000 },
-      { id: 4, name: "Donut", price: 15000 },
-      { id: 5, name: "Thêm chữ (tên)", price: 15000 },
-    ],
+    toppings: ingredients, // Sử dụng ingredients từ API
   };
 
-  const [cake] = useState(mockCake);
+  const [cake, setCake] = useState(mockCake);
   const [quantity, setQuantity] = useState(1);
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [showCheckout, setShowCheckout] = useState(false);
   const [cart, setCart] = useState([]);
+
+  // Fetch ingredients when component mounts or shopId changes
+  useEffect(() => {
+    const loadIngredients = async () => {
+      if (!shopId) return;
+
+      setLoadingIngredients(true);
+      setErrorIngredients("");
+
+      try {
+        console.log("Fetching ingredients for shop:", shopId);
+        const data = await fetchIngredients(shopId);
+        console.log("Ingredients data:", data);
+        console.log("Raw ingredients array:", data.ingredients || data);
+
+        // Transform ingredients data to match toppings structure
+        const transformedIngredients = (data.ingredients || data || []).map(
+          (ingredient) => {
+            console.log("Processing ingredient:", ingredient);
+            return {
+              id: ingredient.id,
+              name: ingredient.name,
+              price: ingredient.price,
+              description: ingredient.description,
+              image: ingredient.image,
+            };
+          }
+        );
+
+        console.log("Transformed ingredients:", transformedIngredients);
+        setIngredients(transformedIngredients);
+
+        // Update cake data with new ingredients
+        setCake((prev) => ({
+          ...prev,
+          toppings: transformedIngredients,
+        }));
+      } catch (error) {
+        console.error("Error fetching ingredients:", error);
+        setErrorIngredients("Không thể tải ingredients cho shop này");
+      } finally {
+        setLoadingIngredients(false);
+      }
+    };
+
+    loadIngredients();
+  }, [shopId]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -90,7 +142,10 @@ export default function CakeShop() {
     navigate("/order/payment", {
       state: {
         orders: cart,
-        shopData: location.state.shopData,
+        shopData: {
+          id: shopId,
+          ...(location.state?.shopData || {}),
+        },
       },
     });
   };
@@ -245,16 +300,19 @@ export default function CakeShop() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <button className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+              <button
+                onClick={() => navigate(-1)}
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Quay lại</span>
               </button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {cake.name}
+                  Customized Order - Shop #{shopId}
                 </h1>
                 <p className="text-sm text-gray-600">
-                  Chi tiết sản phẩm và tùy chọn
+                  Tùy chỉnh bánh với ingredients từ shop này
                 </p>
               </div>
             </div>
@@ -311,63 +369,117 @@ export default function CakeShop() {
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">Tùy Chọn Thêm</h3>
                 <p className="text-gray-600 text-sm">
-                  Chọn các topping bạn muốn thêm vào bánh
+                  Chọn các ingredients/topping từ shop này
                 </p>
               </div>
-              <div className="p-6 space-y-4">
-                {cake.toppings.map((topping) => {
-                  const selectedTopping = selectedToppings.find(
-                    (t) => t.id === topping.id
-                  );
-                  const currentQuantity = selectedTopping
-                    ? selectedTopping.quantity
-                    : 0;
-
-                  return (
-                    <div
-                      key={topping.id}
-                      className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">{topping.name}</div>
-                        <p className="text-sm text-gray-600">
-                          +{formatCurrency(topping.price)} / cái
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() =>
-                            handleToppingChange(
-                              topping,
-                              Math.max(0, currentQuantity - 1)
-                            )
-                          }
-                          disabled={currentQuantity <= 0}
-                          className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </button>
-                        <input
-                          type="number"
-                          value={currentQuantity}
-                          onChange={(e) =>
-                            handleToppingChange(topping, e.target.value)
-                          }
-                          className="w-16 text-center border rounded px-2 py-1"
-                          min="0"
-                        />
-                        <button
-                          onClick={() =>
-                            handleToppingChange(topping, currentQuantity + 1)
-                          }
-                          className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-100 transition-colors"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      </div>
+              <div className="p-6 space-y-4 max-h-96 overflow-y-auto">
+                {loadingIngredients ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin w-8 h-8 border-2 border-pink-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <div className="text-gray-500">Đang tải ingredients...</div>
+                  </div>
+                ) : errorIngredients ? (
+                  <div className="text-center py-8">
+                    <div className="text-red-500 mb-2">
+                      ❌ {errorIngredients}
                     </div>
-                  );
-                })}
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="text-sm text-blue-500 hover:underline"
+                    >
+                      Thử lại
+                    </button>
+                  </div>
+                ) : cake.toppings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">🍰</div>
+                    <div className="text-gray-500">
+                      Shop này chưa có ingredients nào
+                    </div>
+                    <p className="text-sm text-gray-400 mt-2">
+                      Vui lòng liên hệ shop để biết thêm chi tiết
+                    </p>
+                  </div>
+                ) : (
+                  cake.toppings.map((topping) => {
+                    const selectedTopping = selectedToppings.find(
+                      (t) => t.id === topping.id
+                    );
+                    const currentQuantity = selectedTopping
+                      ? selectedTopping.quantity
+                      : 0;
+
+                    return (
+                      <div
+                        key={topping.id}
+                        className="flex items-center space-x-4 p-4 border rounded-xl hover:bg-gray-50 hover:border-pink-200 transition-all duration-200 shadow-sm"
+                      >
+                        {/* Ingredient Image */}
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 shadow-inner">
+                          {topping.image ? (
+                            <img
+                              src={topping.image}
+                              alt={topping.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                                e.target.nextSibling.style.display = "flex";
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className="w-full h-full bg-gradient-to-br from-pink-100 to-rose-200 flex items-center justify-center text-2xl"
+                            style={{ display: topping.image ? "none" : "flex" }}
+                          >
+                            🧁
+                          </div>
+                        </div>
+
+                        {/* Ingredient Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-gray-800">
+                            {topping.name}
+                          </div>
+                          <p className="text-sm text-pink-600 font-medium">
+                            +{formatCurrency(topping.price)} / cái
+                          </p>
+                          {topping.description && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {topping.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Quantity Controls */}
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <button
+                            onClick={() =>
+                              handleToppingChange(
+                                topping,
+                                Math.max(0, currentQuantity - 1)
+                              )
+                            }
+                            disabled={currentQuantity <= 0}
+                            className="w-8 h-8 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:bg-red-50 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            <Minus className="h-3 w-3 text-red-500" />
+                          </button>
+                          <div className="w-16 h-8 flex items-center justify-center bg-gray-50 border rounded-lg font-semibold text-sm">
+                            {currentQuantity}
+                          </div>
+                          <button
+                            onClick={() =>
+                              handleToppingChange(topping, currentQuantity + 1)
+                            }
+                            className="w-8 h-8 flex items-center justify-center border-2 border-gray-300 rounded-lg hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+                          >
+                            <Plus className="h-3 w-3 text-green-500" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
