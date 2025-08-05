@@ -11,6 +11,9 @@ import {
   Phone,
   Globe,
   Tag,
+  Store,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -19,6 +22,7 @@ import FollowersFollowingModal from "../components/FollowersFollowingModal";
 import useAdminLoader from "../hooks/useAdminLoader";
 import { useAuth } from "../contexts/AuthContext";
 import { authAPI } from "../api/auth";
+import { fetchAllShopMembers, activateShopMember } from "../api/shopMembers";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -27,7 +31,10 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
-  const { followers, following, fetchFollowers, fetchFollowing } = usePersonalFollowersFollowing(user?.id);
+  const [shopInvitations, setShopInvitations] = useState([]);
+  const [loadingInvitations, setLoadingInvitations] = useState(true);
+  const { followers, following, fetchFollowers, fetchFollowing } =
+    usePersonalFollowersFollowing(user?.id);
   const adminLoader = useAdminLoader();
 
   const userStats = [
@@ -72,6 +79,36 @@ const Profile = () => {
       description: "Assorted mini cupcakes collection",
     },
   ];
+
+  const fetchShopInvitations = async () => {
+    if (!user) return;
+    setLoadingInvitations(true);
+    try {
+      const data = await fetchAllShopMembers();
+      // Filter to show only invitations for the current user where is_active is false
+      const userInvitations = data.members.filter(
+        (member) => member.user_id === user.id && !member.is_active
+      );
+      setShopInvitations(userInvitations);
+    } catch (error) {
+      console.error("Error fetching shop invitations:", error);
+      setShopInvitations([]);
+    } finally {
+      setLoadingInvitations(false);
+    }
+  };
+
+  const handleAcceptInvitation = async (shopId) => {
+    try {
+      await activateShopMember();
+      // After accepting one invitation, clear all invitations since user can only be in one shop
+      setShopInvitations([]);
+      // Show success message or toast notification here if needed
+    } catch (error) {
+      console.error("Error accepting shop invitation:", error);
+      // Show error message here if needed
+    }
+  };
 
   const recentPhotos = [
     {
@@ -127,6 +164,7 @@ const Profile = () => {
         setProfile(data.user);
         await fetchFollowers();
         await fetchFollowing();
+        await fetchShopInvitations();
       } catch (e) {
         setProfile(null);
       } finally {
@@ -215,12 +253,28 @@ const Profile = () => {
               </div>
 
               <div className="grid grid-cols-4 gap-4">
-                <div className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer" onClick={() => { fetchFollowers(); setShowFollowers(true); }}>
-                  <div className="text-2xl font-bold text-pink-500">{followers.length}</div>
+                <div
+                  className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer"
+                  onClick={() => {
+                    fetchFollowers();
+                    setShowFollowers(true);
+                  }}
+                >
+                  <div className="text-2xl font-bold text-pink-500">
+                    {followers.length}
+                  </div>
                   <div className="text-sm text-gray-600">Followers</div>
                 </div>
-                <div className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer" onClick={() => { fetchFollowing(); setShowFollowing(true); }}>
-                  <div className="text-2xl font-bold text-pink-500">{following.length}</div>
+                <div
+                  className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer"
+                  onClick={() => {
+                    fetchFollowing();
+                    setShowFollowing(true);
+                  }}
+                >
+                  <div className="text-2xl font-bold text-pink-500">
+                    {following.length}
+                  </div>
                   <div className="text-sm text-gray-600">Following</div>
                 </div>
                 <div className="text-center bg-pink-50 rounded-xl p-4">
@@ -294,6 +348,64 @@ const Profile = () => {
             ))}
           </div>
         </div>
+
+        {/* Shop Invitations */}
+        {shopInvitations.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+              <Store className="w-6 h-6 text-pink-400 mr-3" />
+              Shop Invitations
+              <span className="ml-2 bg-pink-100 text-pink-600 text-sm px-3 py-1 rounded-full">
+                {shopInvitations.length}
+              </span>
+            </h2>
+            <div className="space-y-4">
+              {loadingInvitations ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-500">Loading invitations...</div>
+                </div>
+              ) : (
+                shopInvitations.map((invitation) => (
+                  <div
+                    key={`${invitation.shop_id}-${invitation.user_id}`}
+                    className="flex items-center justify-between p-6 bg-pink-50 rounded-xl border border-pink-100"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-pink-200 rounded-full flex items-center justify-center">
+                        <Store className="w-6 h-6 text-pink-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Shop #{invitation.shop_id}
+                        </h3>
+                        <p className="text-gray-600">
+                          You have been invited to join this shop
+                        </p>
+                        <div className="flex items-center space-x-2 mt-2">
+                          <Clock className="w-4 h-4 text-orange-500" />
+                          <span className="text-sm text-orange-600 font-medium">
+                            Pending Invitation
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() =>
+                          handleAcceptInvitation(invitation.shop_id)
+                        }
+                        className="bg-green-500 text-white px-6 py-2 rounded-xl hover:bg-green-600 transition-colors flex items-center space-x-2"
+                      >
+                        <CheckCircle className="w-5 h-5" />
+                        <span>Accept</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Albums */}
         <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">

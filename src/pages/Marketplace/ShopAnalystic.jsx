@@ -164,6 +164,8 @@ const ShopAnalystic = ({ onBack }) => {
           role: m.is_admin ? "Owner" : "Staff",
           avatar: "",
           joined: m.joined_at ? new Date(m.joined_at).toLocaleDateString() : "",
+          status: m.is_active ? "active" : "pending",
+          is_active: m.is_active,
         }))
       );
       setShowDeleteModal(false);
@@ -192,6 +194,18 @@ const ShopAnalystic = ({ onBack }) => {
         <Tag color={role === "Owner" ? "gold" : "blue"}>{role}</Tag>
       ),
       width: 100,
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      render: (status, record) => {
+        if (!record.is_active) {
+          return <Tag color="orange">Đang chờ chấp nhận</Tag>;
+        }
+        return <Tag color="green">Đã là thành viên</Tag>;
+      },
+      width: 150,
     },
     { title: "Joined", dataIndex: "joined", key: "joined", width: 120 },
     {
@@ -266,6 +280,8 @@ const ShopAnalystic = ({ onBack }) => {
             joined: m.joined_at
               ? new Date(m.joined_at).toLocaleDateString()
               : "",
+            status: m.is_active ? "active" : "pending",
+            is_active: m.is_active,
           }))
         );
       });
@@ -288,6 +304,8 @@ const ShopAnalystic = ({ onBack }) => {
               joined: m.joined_at
                 ? new Date(m.joined_at).toLocaleDateString()
                 : "",
+              status: m.is_active ? "active" : "pending",
+              is_active: m.is_active,
             }))
           );
         })
