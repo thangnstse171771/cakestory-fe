@@ -1,6 +1,90 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useChatStore } from "../../pages/Chat/libs/useChatStore";
+import { useAuth } from "../../contexts/AuthContext";
+import { authAPI } from "../../api/auth";
+import { getOrCreateShopChat } from "../../pages/Chat/libs/shopChatUtils";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../firebase";
 
 const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const setChatId = useChatStore((state) => state.changeChat);
+  const getFirebaseUserIdFromPostgresId = useChatStore(
+    (state) => state.getFirebaseUserIdFromPostgresId
+  );
+  const [loadingChat, setLoadingChat] = useState(false);
+
+  const handleChatClick = async () => {
+    try {
+      setLoadingChat(true);
+      const data = await authAPI.getShopMembersByShopId(shop.id);
+      const active = data.members.filter((member) => member.is_active);
+
+      // Get Firebase IDs for all shop Members
+      let shopMemberFirebaseIds = await Promise.all(
+        active.map((m) => getFirebaseUserIdFromPostgresId(m.user_id))
+      );
+      shopMemberFirebaseIds = shopMemberFirebaseIds.filter(Boolean);
+
+      // Debug log
+      // console.log("shopMemberFirebaseIds:", shopMemberFirebaseIds);
+
+      const customerFirebaseId = await getFirebaseUserIdFromPostgresId(user.id);
+
+      const memberFirebaseIds = [
+        customerFirebaseId,
+        ...shopMemberFirebaseIds,
+      ].filter(Boolean);
+
+      const chatId = await getOrCreateShopChat(
+        shop.id,
+        memberFirebaseIds,
+        shop.name,
+        shop.avatar,
+        customerFirebaseId,
+        shopMemberFirebaseIds
+      );
+
+      // Fetch the group chat data to get the complete shop information
+      const groupChatRef = doc(db, "groupChats", chatId);
+      const groupChatSnap = await getDoc(groupChatRef);
+
+      let shopUser = {
+        id: shop.id,
+        username: shop.name,
+        avatar:
+          shop.avatar ||
+          "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+        isShop: true,
+      };
+
+      // If group chat exists, use its data
+      if (groupChatSnap.exists()) {
+        const groupData = groupChatSnap.data();
+        console.log("🔍 Group chat data:", groupData);
+        shopUser = {
+          id: groupData.shopId || shop.id, // Use shopId from Firestore if available
+          username: groupData.shopName || shop.name,
+          avatar:
+            groupData.shopAvatar ||
+            shop.avatar ||
+            "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+          isShop: true,
+        };
+        console.log("✅ Created shopUser object:", shopUser);
+      }
+
+      setChatId(chatId, shopUser);
+      navigate("/chat");
+    } catch (error) {
+      console.error("Error fetching shop members or creating chat:", error);
+    } finally {
+      setLoadingChat(false); // Always stop loading
+    }
+  };
+
   return (
     <>
       {/* Shop Background */}
@@ -39,7 +123,28 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
       </div>
 
       {/* Header */}
-      <div className="bg-pink-100/90 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-lg border border-pink-300 hover:shadow-xl transition-all duration-300">
+      <div className="relative bg-pink-100/90 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-lg border border-pink-300 hover:shadow-xl transition-all duration-300">
+        {/* Chat Button - Top Right */}
+        <button
+          className="absolute top-4 right-4 flex items-center gap-2 bg-white border border-pink-300 text-pink-700 font-semibold px-4 py-2 rounded-full shadow hover:shadow-md transition-all duration-300 z-10"
+          onClick={handleChatClick}
+          disabled={loadingChat}
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8-1.44 0-2.794-.308-4-.855L3 21l1.405-4.215A7.963 7.963 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+            />
+          </svg>
+          {loadingChat ? "Opening..." : "Chat"}
+        </button>
         <div className="flex flex-col md:flex-row items-center gap-8">
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-300 to-purple-300 rounded-full opacity-75 group-hover:opacity-100 blur transition duration-500"></div>

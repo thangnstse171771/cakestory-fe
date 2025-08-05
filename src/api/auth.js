@@ -186,6 +186,10 @@ export const authAPI = {
   getAlbumPostById: async (postId) => {
     const response = await axiosInstance.get(`/albums/posts/${postId}`);
     return response.data;
-  }
+  },
 
+  getShopMembersByShopId: async (shopId) => {
+    const response = await axiosInstance.get(`/shop-members/shop/${shopId}`); 
+    return response.data;
+  },
 };
