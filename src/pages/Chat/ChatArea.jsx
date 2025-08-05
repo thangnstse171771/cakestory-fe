@@ -126,7 +126,7 @@ const ChatArea = () => {
 
   const handleSend = async () => {
     if (!text && !image) return;
-    if (isSending) return; // Prevent double sends
+    if (isSending) return;
 
     setIsSending(true);
 
@@ -142,39 +142,52 @@ const ChatArea = () => {
         imageUrl = await upload(image);
       }
 
+      // Determine sender role from currentUserChatEntry
+      // const senderRole = currentUserChatEntry?.role || "customer"; // Fallback to 'customer' if undefined
+      const senderRole = currentUserChatEntry?.role;
+
       await updateDoc(doc(db, "chats", chatId), {
         messages: arrayUnion({
           senderId: firebaseUserId,
           text,
           createdAt: new Date(),
+          ...(senderRole && { senderRole }),
           ...(imageUrl && { img: imageUrl }),
         }),
       });
 
-      const userIDs = [firebaseUserId, user.id];
+      // Get full participant list from chat data
+      const participantIds = chat?.isGroup
+        ? [...(chat?.shopMemberIds || []), chat?.customerId].filter(Boolean)
+        : [firebaseUserId, user.id]; // fallback for 1-on-1 chats
 
-      userIDs.forEach(async (id) => {
-        const userChatsRef = doc(db, "userchats", id);
-        const userChatsSnapshot = await getDoc(userChatsRef);
+      await Promise.all(
+        participantIds.map(async (id) => {
+          const userChatsRef = doc(db, "userchats", id);
+          const userChatsSnapshot = await getDoc(userChatsRef);
 
-        if (userChatsSnapshot.exists()) {
+          if (!userChatsSnapshot.exists()) return;
+
           const userChatsData = userChatsSnapshot.data();
 
           const chatIndex = userChatsData.chats.findIndex(
             (c) => c.chatId === chatId
           );
 
+          if (chatIndex === -1) return;
+
+          const isSender = id === firebaseUserId;
+
           userChatsData.chats[chatIndex].lastMessage = text || "Hình ảnh";
-          userChatsData.chats[chatIndex].isSeen = id === firebaseUserId;
           userChatsData.chats[chatIndex].updatedAt = Date.now();
+          userChatsData.chats[chatIndex].isSeen = isSender;
 
           await updateDoc(userChatsRef, {
             chats: userChatsData.chats,
           });
-        }
-      });
+        })
+      );
 
-      // Clear inputs
       setText("");
       setImage(null);
       if (fileInputRef.current) fileInputRef.current.value = null;
@@ -216,27 +229,49 @@ const ChatArea = () => {
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-4">
             {chat?.messages?.map((message) => {
+              // const isOwnMessage = (() => {
+              //   const isGroup = chat?.isGroup;
+              //   // const isSenderCustomer = message.senderId === chat?.customerId;
+              //   const isSenderShopMember = chat?.shopMemberIds?.includes(
+              //     message.senderId
+              //   );
+              //   const isCurrentUserShopMember =
+              //     isGroup && currentUserChatEntry?.role === "shopMember";
+
+              //   // If not a group chat, use default logic
+              //   if (!isGroup) {
+              //     return message.senderId === firebaseUserId;
+              //   }
+
+              //   // If current user is a shop member
+              //   if (isCurrentUserShopMember) {
+              //     // Messages from any shop member (including self) are "own"
+              //     return isSenderShopMember;
+              //   }
+
+              //   // If current user is a customer, use default logic
+              //   return message.senderId === firebaseUserId;
+              // })();
+
               const isOwnMessage = (() => {
                 const isGroup = chat?.isGroup;
-                // const isSenderCustomer = message.senderId === chat?.customerId;
-                const isSenderShopMember = chat?.shopMemberIds?.includes(
-                  message.senderId
-                );
-                const isCurrentUserShopMember =
-                  isGroup && currentUserChatEntry?.role === "shopMember";
 
-                // If not a group chat, use default logic
                 if (!isGroup) {
+                  // In 1-on-1 chat, just compare sender IDs
                   return message.senderId === firebaseUserId;
                 }
 
-                // If current user is a shop member
-                if (isCurrentUserShopMember) {
-                  // Messages from any shop member (including self) are "own"
-                  return isSenderShopMember;
+                // Prefer senderRole when present
+                if (message.senderRole && currentUserChatEntry?.role) {
+                  return message.senderRole === currentUserChatEntry.role;
                 }
 
-                // If current user is a customer, use default logic
+                // Fallback: if current user is a shop member, treat all shop messages as "own"
+                if (currentUserChatEntry?.role === "shopMember") {
+                  return chat?.shopMemberIds?.includes(message.senderId);
+                }
+
+                // Default fallback to senderId
                 return message.senderId === firebaseUserId;
               })();
 
@@ -272,7 +307,7 @@ const ChatArea = () => {
                     alt={user.username}
                     className="w-10 h-10 rounded-full"
                   />
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col items-start gap-2">
                     {message.img && (
                       <img
                         src={message.img}
