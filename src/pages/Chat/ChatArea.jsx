@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useChatStore } from "./libs/useChatStore";
+import { getOrCreateShopChat } from "./libs/shopChatUtils";
 import ChatInfo from "./ChatInfo";
 import { message } from "antd";
 import { useAuth } from "../../contexts/AuthContext";
@@ -40,8 +41,26 @@ const ChatArea = () => {
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
   const [isSending, setIsSending] = useState(false);
+  const [currentUserChatEntry, setCurrentUserChatEntry] = useState(null);
 
   console.log("check user", user);
+
+  useEffect(() => {
+    const fetchCurrentUserChatEntry = async () => {
+      if (!firebaseUserId || !chatId) return;
+
+      const userChatsRef = doc(db, "userchats", firebaseUserId);
+      const userChatsSnapshot = await getDoc(userChatsRef);
+
+      if (userChatsSnapshot.exists()) {
+        const chats = userChatsSnapshot.data().chats || [];
+        const entry = chats.find((c) => c.chatId === chatId);
+        setCurrentUserChatEntry(entry);
+      }
+    };
+
+    fetchCurrentUserChatEntry();
+  }, [firebaseUserId, chatId]);
 
   useEffect(() => {
     const fetchFirebaseId = async () => {
@@ -77,12 +96,25 @@ const ChatArea = () => {
     if (!chatId) return;
     const chatIdStr = String(chatId);
 
-    const unSub = onSnapshot(doc(db, "chats", chatIdStr), (res) => {
-      setChat(res.data());
+    const unsub = onSnapshot(doc(db, "chats", chatIdStr), async (res) => {
+      const chatData = res.data();
+      if (!chatData) return;
+
+      const groupChatDoc = await getDoc(doc(db, "groupChats", chatIdStr));
+      chatData.isGroup = groupChatDoc.exists();
+
+      if (chatData.isGroup) {
+        const groupChatData = groupChatDoc.data();
+
+        chatData.shopMemberIds = groupChatData.shopMemberIds || [];
+        chatData.customerId = groupChatData.customerId || null;
+        chatData.members = groupChatData.members || []; // optional
+      }
+
+      setChat(chatData);
     });
-    return () => {
-      unSub();
-    };
+
+    return () => unsub();
   }, [chatId]);
 
   const handleRemoveImage = () => {
@@ -94,7 +126,7 @@ const ChatArea = () => {
 
   const handleSend = async () => {
     if (!text && !image) return;
-    if (isSending) return; // Prevent double sends
+    if (isSending) return;
 
     setIsSending(true);
 
@@ -110,39 +142,52 @@ const ChatArea = () => {
         imageUrl = await upload(image);
       }
 
+      // Determine sender role from currentUserChatEntry
+      // const senderRole = currentUserChatEntry?.role || "customer"; // Fallback to 'customer' if undefined
+      const senderRole = currentUserChatEntry?.role;
+
       await updateDoc(doc(db, "chats", chatId), {
         messages: arrayUnion({
           senderId: firebaseUserId,
           text,
           createdAt: new Date(),
+          ...(senderRole && { senderRole }),
           ...(imageUrl && { img: imageUrl }),
         }),
       });
 
-      const userIDs = [firebaseUserId, user.id];
+      // Get full participant list from chat data
+      const participantIds = chat?.isGroup
+        ? [...(chat?.shopMemberIds || []), chat?.customerId].filter(Boolean)
+        : [firebaseUserId, user.id]; // fallback for 1-on-1 chats
 
-      userIDs.forEach(async (id) => {
-        const userChatsRef = doc(db, "userchats", id);
-        const userChatsSnapshot = await getDoc(userChatsRef);
+      await Promise.all(
+        participantIds.map(async (id) => {
+          const userChatsRef = doc(db, "userchats", id);
+          const userChatsSnapshot = await getDoc(userChatsRef);
 
-        if (userChatsSnapshot.exists()) {
+          if (!userChatsSnapshot.exists()) return;
+
           const userChatsData = userChatsSnapshot.data();
 
           const chatIndex = userChatsData.chats.findIndex(
             (c) => c.chatId === chatId
           );
 
+          if (chatIndex === -1) return;
+
+          const isSender = id === firebaseUserId;
+
           userChatsData.chats[chatIndex].lastMessage = text || "Hình ảnh";
-          userChatsData.chats[chatIndex].isSeen = id === firebaseUserId;
           userChatsData.chats[chatIndex].updatedAt = Date.now();
+          userChatsData.chats[chatIndex].isSeen = isSender;
 
           await updateDoc(userChatsRef, {
             chats: userChatsData.chats,
           });
-        }
-      });
+        })
+      );
 
-      // Clear inputs
       setText("");
       setImage(null);
       if (fileInputRef.current) fileInputRef.current.value = null;
@@ -161,14 +206,14 @@ const ChatArea = () => {
           <div className="flex items-center space-x-3">
             <img
               src={
-                user.avatar ||
+                user?.avatar ||
                 "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
               }
-              alt={user.username}
+              alt={user?.username || "Unknown User"}
               className="w-10 h-10 rounded-full"
             />
             <div>
-              <h3 className="font-semibold text-gray-800">{user.username}</h3>
+              <h3 className="font-semibold text-gray-800">{user?.username}</h3>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -184,7 +229,51 @@ const ChatArea = () => {
         <div className="flex-1 p-4 overflow-y-auto">
           <div className="space-y-4">
             {chat?.messages?.map((message) => {
-              const isOwnMessage = message.senderId === firebaseUserId;
+              // const isOwnMessage = (() => {
+              //   const isGroup = chat?.isGroup;
+              //   // const isSenderCustomer = message.senderId === chat?.customerId;
+              //   const isSenderShopMember = chat?.shopMemberIds?.includes(
+              //     message.senderId
+              //   );
+              //   const isCurrentUserShopMember =
+              //     isGroup && currentUserChatEntry?.role === "shopMember";
+
+              //   // If not a group chat, use default logic
+              //   if (!isGroup) {
+              //     return message.senderId === firebaseUserId;
+              //   }
+
+              //   // If current user is a shop member
+              //   if (isCurrentUserShopMember) {
+              //     // Messages from any shop member (including self) are "own"
+              //     return isSenderShopMember;
+              //   }
+
+              //   // If current user is a customer, use default logic
+              //   return message.senderId === firebaseUserId;
+              // })();
+
+              const isOwnMessage = (() => {
+                const isGroup = chat?.isGroup;
+
+                if (!isGroup) {
+                  // In 1-on-1 chat, just compare sender IDs
+                  return message.senderId === firebaseUserId;
+                }
+
+                // Prefer senderRole when present
+                if (message.senderRole && currentUserChatEntry?.role) {
+                  return message.senderRole === currentUserChatEntry.role;
+                }
+
+                // Fallback: if current user is a shop member, treat all shop messages as "own"
+                if (currentUserChatEntry?.role === "shopMember") {
+                  return chat?.shopMemberIds?.includes(message.senderId);
+                }
+
+                // Default fallback to senderId
+                return message.senderId === firebaseUserId;
+              })();
 
               return isOwnMessage ? (
                 <div
@@ -212,13 +301,13 @@ const ChatArea = () => {
                 >
                   <img
                     src={
-                      user.avatar ||
+                      user?.avatar ||
                       "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                     }
-                    alt={user.username}
+                    alt={user?.username}
                     className="w-10 h-10 rounded-full"
                   />
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col items-start gap-2">
                     {message.img && (
                       <img
                         src={message.img}
@@ -332,8 +421,8 @@ const ChatArea = () => {
       <ChatInfo
         open={showUserInfo}
         onClose={() => setShowUserInfo(false)}
-        avatar={user.avatar}
-        name={user.username}
+        avatar={user?.avatar}
+        name={user?.username}
         images={OPPOSING_USER.images}
       />
     </div>
