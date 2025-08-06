@@ -8,6 +8,7 @@ import {
   AlertCircle,
   History,
   ArrowUpRight,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -615,19 +616,20 @@ export default function UserWallet() {
         </div>
       )}
 
-      <div className="w-full max-w-2xl bg-pink-50 rounded-2xl flex items-center p-6 mb-8 shadow">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="bg-pink-200 rounded-full w-16 h-16 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-pink-600" />
-          </div>
-          <div>
-            <div className="font-semibold text-lg text-pink-700">
-              {user?.full_name || user?.username || "Chưa đăng nhập"}
+      <div className="w-full max-w-2xl bg-pink-50 rounded-2xl p-6 mb-8 shadow">
+        {/* Thông tin ví và số dư nằm ngang */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="bg-pink-200 rounded-full w-16 h-16 flex items-center justify-center">
+              <CheckCircle className="w-8 h-8 text-pink-600" />
             </div>
-            <div className="text-gray-500 text-sm">{user?.email || ""}</div>
+            <div>
+              <div className="font-semibold text-lg text-pink-700">
+                {user?.full_name || user?.username || "Chưa đăng nhập"}
+              </div>
+              <div className="text-gray-500 text-sm">{user?.email || ""}</div>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-gray-600 text-sm">Số dư hiện tại</div>
             <div className="text-2xl font-bold text-pink-600">
@@ -652,22 +654,31 @@ export default function UserWallet() {
               đ
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/withdraw")}
-              className="bg-orange-100 hover:bg-orange-200 rounded-2xl w-16 h-16 flex items-center justify-center transition-colors group"
-              title="Rút tiền"
-            >
-              <ArrowUpRight className="w-6 h-6 text-orange-600 group-hover:text-orange-700" />
-            </button>
-            <button
-              onClick={() => setShowHistoryModal(true)}
-              className="bg-blue-100 hover:bg-blue-200 rounded-2xl w-16 h-16 flex items-center justify-center transition-colors group"
-              title="Xem lịch sử giao dịch"
-            >
-              <History className="w-6 h-6 text-blue-600 group-hover:text-blue-700" />
-            </button>
-          </div>
+        </div>
+
+        {/* Các button nằm bên dưới */}
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={() => navigate("/withdraw")}
+            className="bg-orange-100 hover:bg-orange-200 rounded-2xl w-16 h-16 flex items-center justify-center transition-colors group"
+            title="Rút tiền"
+          >
+            <ArrowUpRight className="w-6 h-6 text-orange-600 group-hover:text-orange-700" />
+          </button>
+          <button
+            onClick={() => setShowHistoryModal(true)}
+            className="bg-blue-100 hover:bg-blue-200 rounded-2xl w-16 h-16 flex items-center justify-center transition-colors group"
+            title="Xem lịch sử giao dịch"
+          >
+            <History className="w-6 h-6 text-blue-600 group-hover:text-blue-700" />
+          </button>
+          <button
+            onClick={() => navigate("/all-transactions")}
+            className="bg-purple-100 hover:bg-purple-200 rounded-2xl w-16 h-16 flex items-center justify-center transition-colors group"
+            title="Tất cả giao dịch"
+          >
+            <Receipt className="w-6 h-6 text-purple-600 group-hover:text-purple-700" />
+          </button>
         </div>
       </div>
 

@@ -25,18 +25,36 @@ const PaymentHistory = ({ refreshTrigger = 0 }) => {
     setLoading(true);
     setError("");
     try {
+      console.log("=== PaymentHistory - Starting loadTransactionHistory ===");
       const data = await fetchWalletHistory();
-      console.log("Transaction history data:", data);
+      console.log("=== PaymentHistory - Raw API Response ===", data);
+      console.log("=== PaymentHistory - Data Type ===", typeof data);
+      console.log("=== PaymentHistory - Is Array ===", Array.isArray(data));
+      if (data && typeof data === "object") {
+        console.log("=== PaymentHistory - Data Keys ===", Object.keys(data));
+      }
 
       // Xử lý data từ API - có thể là array hoặc object chứa array
       let transactionList = [];
 
       if (Array.isArray(data)) {
         transactionList = data;
+        console.log(
+          "PaymentHistory: Using direct array, length:",
+          transactionList.length
+        );
       } else if (data && Array.isArray(data.transactions)) {
         transactionList = data.transactions;
+        console.log(
+          "PaymentHistory: Using data.transactions, length:",
+          transactionList.length
+        );
       } else if (data && Array.isArray(data.deposits)) {
         transactionList = data.deposits;
+        console.log(
+          "PaymentHistory: Using data.deposits, length:",
+          transactionList.length
+        );
       } else if (data && typeof data === "object") {
         // Nếu data là object, tìm property đầu tiên là array
         const arrayProperty = Object.values(data).find((value) =>
@@ -44,10 +62,22 @@ const PaymentHistory = ({ refreshTrigger = 0 }) => {
         );
         if (arrayProperty) {
           transactionList = arrayProperty;
+          console.log(
+            "PaymentHistory: Using found array property, length:",
+            transactionList.length
+          );
         }
       }
 
-      console.log("Processed transaction list:", transactionList);
+      console.log(
+        "=== PaymentHistory - Final Transaction List ===",
+        transactionList
+      );
+      console.log("PaymentHistory: Final count:", transactionList.length);
+      if (transactionList.length > 0) {
+        console.log("PaymentHistory: Sample transaction:", transactionList[0]);
+      }
+
       setTransactions(transactionList);
     } catch (error) {
       console.error("Error loading transaction history:", error);
