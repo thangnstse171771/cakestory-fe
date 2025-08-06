@@ -19,6 +19,7 @@ import {
   ListOrdered,
   MessageSquareWarning,
   ArrowDownToLine,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -48,6 +49,7 @@ const Sidebar = () => {
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
     { icon: ArrowDownToLine, label: "Rút tiền", path: "/withdraw" },
+    { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
   ];
   // Menu cho admin/staff
   const adminMenu = [
