@@ -192,4 +192,14 @@ export const authAPI = {
     const response = await axiosInstance.get(`/shop-members/shop/${shopId}`); 
     return response.data;
   },
+
+  deleteAlbum: async (albumId) => {
+    const response = await axiosInstance.delete(`/albums/${albumId}`);
+    return response.data;
+  },
+
+  deleteAlbumPost: async (postId) => {
+    const response = await axiosInstance.delete(`/albums/posts/${postId}`);
+    return response.data;
+  },
 };
