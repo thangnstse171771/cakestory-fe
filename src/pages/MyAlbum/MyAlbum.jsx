@@ -16,6 +16,7 @@ import CreateAlbum from "./CreateAlbum";
 import { useAuth } from "../../contexts/AuthContext";
 import { authAPI } from "../../api/auth";
 import UpdateAlbum from "./UpdateAlbum";
+import DeleteAlbum from "./DeleteAlbum";
 
 const MyAlbum = () => {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ const MyAlbum = () => {
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [isCreateAlbumOpen, setIsCreateAlbumOpen] = useState(false);
   const [isUpdateAlbumOpen, setIsUpdateAlbumOpen] = useState(false);
+  const [isDeleteAlbumOpen, setIsDeleteAlbumOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -48,6 +50,24 @@ const MyAlbum = () => {
       setAlbums(formatted);
     } catch (error) {
       console.error("Error fetching albums:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAlbum = async () => {
+    if (!selectedAlbum) return;
+    setLoading(true);
+    try {
+      await authAPI.deleteAlbum(selectedAlbum.id);
+      setIsDeleteAlbumOpen(false); // close popup
+      setAlbums((prevAlbums) =>
+        prevAlbums.filter((p) => p.id !== selectedAlbum.id)
+      );
+      setSelectedAlbum(null);
+    } catch (error) {
+      console.error("Delete album failed:", error);
+      setError("Failed to album post");
     } finally {
       setLoading(false);
     }
@@ -190,7 +210,7 @@ const MyAlbum = () => {
                       <button
                         onClick={() => {
                           setOpenDropdown(null);
-                          // setIsDeleteAlbumOpen(true);
+                          setIsDeleteAlbumOpen(true);
                           setSelectedAlbum(album);
                         }}
                         className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
@@ -273,6 +293,7 @@ const MyAlbum = () => {
                         <button
                           onClick={() => {
                             setOpenDropdown(null);
+                            setIsDeleteAlbumOpen(true);
                             setSelectedAlbum(album);
                           }}
                           className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
@@ -342,6 +363,12 @@ const MyAlbum = () => {
         onClose={() => setIsUpdateAlbumOpen(false)}
         album={selectedAlbum}
         onUpdate={fetchAlbums}
+      />
+      <DeleteAlbum
+        isOpen={isDeleteAlbumOpen}
+        onClose={() => setIsDeleteAlbumOpen(false)}
+        onDelete={handleDeleteAlbum}
+        loading={loading}
       />
     </div>
   );
