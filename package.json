@@ -19,6 +19,7 @@
     "firebase": "^11.9.1",
     "formik": "^2.4.6",
     "framer-motion": "^12.19.2",
+    "html2canvas": "^1.4.1",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-date-range": "^2.0.1",

@@ -1,10 +1,15 @@
-import { useState, useEffect } from "react";
-import { Download, RotateCcw, Sparkles, Save } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Download, RotateCcw, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
+import html2canvas from "html2canvas";
+import { createMagicDesign } from "../api/cakeDesigns";
 
 // Import cake design assets
 const CakeDesign = () => {
+  // Ref for cake design area
+  const cakeDesignRef = useRef(null);
+
   // Design state
   const [design, setDesign] = useState({
     shape: "Round",
@@ -25,10 +30,12 @@ const CakeDesign = () => {
   // UI state
   const [selectedTab, setSelectedTab] = useState("Base");
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [diameter, setDiameter] = useState(25);
   const [height, setHeight] = useState(15);
   const [width, setWidth] = useState(20);
   const [selectedFlavors, setSelectedFlavors] = useState(["Vanilla"]);
+  const [description, setDescription] = useState("");
   const navigate = useNavigate();
 
   // Available design options
@@ -120,6 +127,7 @@ const CakeDesign = () => {
     setToppingScale(1); // Đặt lại kích thước topping
     setDecorationsPositions({}); // Đặt lại vị trí các decorations
     setDecorationsScales({}); // Đặt lại kích thước các decorations
+    setDescription(""); // Đặt lại description
   };
 
   // Toggle flavor selection
@@ -184,7 +192,7 @@ const CakeDesign = () => {
         setDecorationsPositions((prevPositions) => {
           const updatedPositions = { ...prevPositions };
           Object.keys(updatedPositions).forEach((key) => {
-            if (key.startsWith(`${decoration}_`)) {
+            if (String(key).startsWith(`${decoration}_`)) {
               delete updatedPositions[key];
             }
           });
@@ -194,7 +202,7 @@ const CakeDesign = () => {
         setDecorationsScales((prevScales) => {
           const updatedScales = { ...prevScales };
           Object.keys(updatedScales).forEach((key) => {
-            if (key.startsWith(`${decoration}_`)) {
+            if (String(key).startsWith(`${decoration}_`)) {
               delete updatedScales[key];
             }
           });
@@ -262,14 +270,116 @@ const CakeDesign = () => {
     });
   };
 
-  // Save cake design
-  const saveDesign = () => {
-    toast.success("Design saved successfully!");
-  };
+  // Export cake design as image and auto-upload to server
+  const exportDesign = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
 
-  // Export cake design
-  const exportDesign = () => {
-    toast.success("Design exported!");
+    try {
+      if (cakeDesignRef.current) {
+        // Get the current dimensions of the cake design element
+        const rect = cakeDesignRef.current.getBoundingClientRect();
+
+        // Capture the cake design as image with exact dimensions
+        const canvas = await html2canvas(cakeDesignRef.current, {
+          backgroundColor: null,
+          scale: 1, // Use 1:1 scale to match display exactly
+          width: rect.width,
+          height: rect.height,
+          useCORS: true,
+          allowTaint: false,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+        });
+
+        // Convert to blob
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const fileName = `cake-design-${design.shape}-${Date.now()}.png`;
+
+            // Create download link for local save
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Show success message for local save
+            toast.success("Cake design saved to your computer!");
+
+            // Auto-upload to server
+            try {
+              // Create design summary for description
+              const designSummary = `Base: ${String(design.shape)} - ${String(
+                design.tiers
+              )} ${design.tiers > 1 ? "tiers" : "tier"}
+Size: ${String(diameter)}cm x ${String(height)}cm${
+                design.shape !== "Round" ? ` x ${String(width)}cm` : ""
+              }
+Flavor: ${selectedFlavors.map((f) => String(f)).join(", ")}
+Frosting: ${design.frosting !== "none" ? String(design.frosting) : "None"}
+Topping: ${design.topping !== "none" ? String(design.topping) : "None"}
+Decorations: ${
+                Object.entries(design.decorations).length > 0
+                  ? Object.entries(design.decorations)
+                      .map(([decorValue, quantity]) => {
+                        const decoration = decorations.find(
+                          (d) => d.value === decorValue
+                        );
+                        const label = decoration
+                          ? String(decoration.label).split(" ")[0]
+                          : String(decorValue);
+                        return `${label} (${String(quantity)})`;
+                      })
+                      .join(", ")
+                  : "None"
+              }`;
+
+              const fullDescription =
+                description && String(description).trim()
+                  ? `${String(
+                      description
+                    )}\n\nDesign Details:\n${designSummary}`
+                  : `Design Details:\n${designSummary}`;
+
+              const formData = new FormData();
+              // Create a File object from the blob for upload
+              const imageFile = new File([blob], fileName, {
+                type: "image/png",
+              });
+              formData.append("design_image", imageFile);
+              formData.append("description", String(fullDescription));
+              formData.append("is_public", "true");
+              formData.append("ai_generated", "");
+
+              console.log("Auto-uploading to API:", {
+                description: String(fullDescription),
+                is_public: "true",
+                ai_generated: "",
+                file_name: fileName,
+              });
+
+              await createMagicDesign(formData);
+              toast.success("Design also uploaded to server successfully!");
+            } catch (uploadError) {
+              console.error("Auto-upload error:", uploadError);
+              toast.error(
+                "Failed to upload to server, but image saved locally!"
+              );
+            }
+          }
+          setIsExporting(false);
+        }, "image/png");
+      }
+    } catch (error) {
+      console.error("Error exporting design:", error);
+      toast.error("Failed to export design as image");
+      setIsExporting(false);
+    }
   };
 
   // Cập nhật kích thước cho topping
@@ -376,18 +486,14 @@ const CakeDesign = () => {
               Reset
             </button>
             <button
-              className="px-4 py-2 border border-pink-200 text-pink-600 rounded-lg text-sm hover:bg-pink-50"
-              onClick={saveDesign}
-            >
-              <Save className="w-4 h-4 mr-2 inline" />
-              Save
-            </button>
-            <button
-              className="px-4 py-2 border border-pink-200 text-pink-600 rounded-lg text-sm hover:bg-pink-50"
+              className={`px-4 py-2 border border-pink-200 text-pink-600 rounded-lg text-sm hover:bg-pink-50 ${
+                isExporting ? "opacity-50 cursor-not-allowed" : ""
+              }`}
               onClick={exportDesign}
+              disabled={isExporting}
             >
               <Download className="w-4 h-4 mr-2 inline" />
-              Export
+              {isExporting ? "Saving..." : "Save & Upload"}
             </button>
             <button
               className="px-4 py-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-lg font-semibold shadow hover:from-pink-500 hover:to-purple-500 transition-all duration-200"
@@ -411,7 +517,10 @@ const CakeDesign = () => {
                   isAnimating ? "scale-95 opacity-80" : "scale-100 opacity-100"
                 }`}
               >
-                <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-yellow-50 rounded-2xl overflow-hidden">
+                <div
+                  ref={cakeDesignRef}
+                  className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 via-white to-yellow-50 rounded-2xl overflow-hidden"
+                >
                   {/* Background pattern */}
                   <div className="absolute inset-0 opacity-10">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,182,193,0.3),transparent_50%)]"></div>
@@ -626,57 +735,6 @@ const CakeDesign = () => {
                       }}
                     />
                   </div>
-
-                  {/* Design info overlay */}
-                  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-5/6 max-w-lg">
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-pink-100">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-3">
-                            <span className="px-4 py-1.5 bg-gradient-to-r from-pink-100 to-pink-200 text-pink-700 rounded-full capitalize font-medium">
-                              {design.shape}
-                            </span>
-                            <span className="px-4 py-1.5 bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-700 rounded-full font-medium">
-                              {design.tiers} Tier{design.tiers > 1 ? "s" : ""}
-                            </span>
-                          </div>
-                          <div className="text-gray-700 font-medium text-base">
-                            {design.frosting !== "none" &&
-                              `${design.frosting} • `}
-                            {design.topping !== "none" && `${design.topping}`}
-                          </div>
-                        </div>
-                        <div className="bg-blue-50 text-blue-600 text-xs rounded p-2 flex items-center">
-                          <svg
-                            className="w-4 h-4 mr-2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                            ></path>
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                            ></path>
-                          </svg>
-                          <span>
-                            Topping và Decoration có thể được kéo thả chính xác
-                            theo vùng hình ảnh! Nhiều thành phần có thể được kéo
-                            thả độc lập và có thể di chuyển tự do trong vùng mở
-                            rộng.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -684,6 +742,62 @@ const CakeDesign = () => {
 
           {/* Design Controls */}
           <div className="w-full lg:w-96 space-y-4">
+            {/* Description Input */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+              <h3 className="font-semibold text-gray-800 mb-4">Description</h3>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe your cake design (optional)..."
+                className="w-full h-20 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+              />
+            </div>
+
+            {/* Design Summary */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 bg-gradient-to-br from-pink-100 to-yellow-100">
+              <h3 className="font-semibold text-gray-800 mb-4">
+                Design Summary
+              </h3>
+              <div className="space-y-2">
+                <div className="text-sm">
+                  <span className="font-medium">Base:</span> {design.shape} -{" "}
+                  {design.tiers} {design.tiers > 1 ? "tiers" : "tier"}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Size:</span> {diameter}cm x{" "}
+                  {height}cm {design.shape !== "Round" && `x ${width}cm`}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Flavor:</span>{" "}
+                  {selectedFlavors.join(", ")}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Frosting:</span>{" "}
+                  {design.frosting !== "none" ? design.frosting : "None"}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Topping:</span>{" "}
+                  {design.topping !== "none" ? design.topping : "None"}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Decorations:</span>{" "}
+                  {Object.entries(design.decorations).length > 0
+                    ? Object.entries(design.decorations)
+                        .map(([decorValue, quantity]) => {
+                          const decoration = decorations.find(
+                            (d) => d.value === decorValue
+                          );
+                          const label = decoration
+                            ? decoration.label.split(" ")[0]
+                            : decorValue;
+                          return `${label} (${quantity})`;
+                        })
+                        .join(", ")
+                    : "None"}
+                </div>
+              </div>
+            </div>
+
             {/* Design Options Tabs */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
               <div className="flex gap-2 mb-2">
@@ -1150,51 +1264,6 @@ const CakeDesign = () => {
                     {flavor}
                   </button>
                 ))}
-              </div>
-            </div>
-
-            {/* Design Summary */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 bg-gradient-to-br from-pink-100 to-yellow-100">
-              <h3 className="font-semibold text-gray-800 mb-4">
-                Design Summary
-              </h3>
-              <div className="space-y-2">
-                <div className="text-sm">
-                  <span className="font-medium">Base:</span> {design.shape} -{" "}
-                  {design.tiers} {design.tiers > 1 ? "tiers" : "tier"}
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">Size:</span> {diameter}cm x{" "}
-                  {height}cm {design.shape !== "Round" && `x ${width}cm`}
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">Flavor:</span>{" "}
-                  {selectedFlavors.join(", ")}
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">Frosting:</span>{" "}
-                  {design.frosting !== "none" ? design.frosting : "None"}
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">Topping:</span>{" "}
-                  {design.topping !== "none" ? design.topping : "None"}
-                </div>
-                <div className="text-sm">
-                  <span className="font-medium">Decorations:</span>{" "}
-                  {Object.entries(design.decorations).length > 0
-                    ? Object.entries(design.decorations)
-                        .map(([decorValue, quantity]) => {
-                          const decoration = decorations.find(
-                            (d) => d.value === decorValue
-                          );
-                          const label = decoration
-                            ? decoration.label.split(" ")[0]
-                            : decorValue;
-                          return `${label} (${quantity})`;
-                        })
-                        .join(", ")
-                    : "None"}
-                </div>
               </div>
             </div>
           </div>
