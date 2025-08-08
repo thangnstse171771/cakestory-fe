@@ -28,62 +28,79 @@ export default function AdminChallengeDetail() {
     navigate("/admin/challenge");
   };
 
-  useEffect(() => {
-    const fetchChallenge = async () => {
-      try {
-        setLoading(true);
-        const res = await getChallengeById(id);
-        if (res && res.challenge) {
-          // Map API data to UI-friendly format
-          const c = res.challenge;
-          const mapped = {
-            id: c.id || c._id,
-            title: c.title || "Untitled Challenge",
-            description: c.description || "",
-            adminStatus: c.admin_status || c.status || "",
-            startDate: c.start_date
-              ? new Date(c.start_date).toLocaleDateString("vi-VN")
-              : "",
-            endDate: c.end_date
-              ? new Date(c.end_date).toLocaleDateString("vi-VN")
-              : "",
-            duration: c.duration || "",
-            difficulty: c.difficulty || "",
-            prize: c.prize_description || "",
-            participants: c.participants_count || 0,
-            maxParticipants: c.max_participants || 0,
-            minParticipants: c.min_participants || 0,
-            hashtags: Array.isArray(c.hashtags)
-              ? c.hashtags
-              : c.hashtag
-              ? [c.hashtag]
-              : [],
-            image: c.image_url || "",
-            host: {
-              name: c.host_name || "Admin",
-              avatar: c.host_avatar || "",
-            },
-            rules: Array.isArray(c.rules)
-              ? c.rules.filter(Boolean)
-              : typeof c.rules === "string" && c.rules.trim()
-              ? c.rules.split("\n").filter(Boolean)
-              : [],
-            requirements: Array.isArray(c.requirements)
-              ? c.requirements.filter(Boolean)
-              : typeof c.requirements === "string" && c.requirements.trim()
-              ? c.requirements.split("\n").filter(Boolean)
-              : [],
-          };
-          setChallenge(mapped);
-        } else {
-          toast.error("Không tìm thấy thử thách");
-        }
-      } catch (err) {
-        toast.error("Lỗi khi lấy thử thách");
-      } finally {
-        setLoading(false);
+  const fetchChallenge = async () => {
+    try {
+      setLoading(true);
+      const res = await getChallengeById(id);
+      if (res && res.challenge) {
+        // Map API data to UI-friendly format
+        const c = res.challenge;
+        const mapped = {
+          id: c.id || c._id,
+          title: c.title || "Untitled Challenge",
+          description: c.description || "",
+          adminStatus: c.admin_status || c.status || "",
+          startDate: c.start_date
+            ? new Date(c.start_date).toLocaleDateString("vi-VN")
+            : "",
+          endDate: c.end_date
+            ? new Date(c.end_date).toLocaleDateString("vi-VN")
+            : "",
+          duration: c.duration || "",
+          difficulty: c.difficulty || "",
+          prize: c.prize_description || "",
+          participants: c.participants_count || 0,
+          maxParticipants: c.max_participants || 0,
+          minParticipants: c.min_participants || 0,
+          hashtags: Array.isArray(c.hashtags)
+            ? c.hashtags
+            : c.hashtag
+            ? [c.hashtag]
+            : [],
+          image: c.image_url || "",
+          host: {
+            name: c.host_name || "Admin",
+            avatar: c.host_avatar || "",
+          },
+          rules: Array.isArray(c.rules)
+            ? c.rules.filter(Boolean)
+            : typeof c.rules === "string" && c.rules.trim()
+            ? c.rules.split("\n").filter(Boolean)
+            : [],
+          requirements: Array.isArray(c.requirements)
+            ? c.requirements.filter(Boolean)
+            : typeof c.requirements === "string" && c.requirements.trim()
+            ? c.requirements.split("\n").filter(Boolean)
+            : [],
+          // Raw data for editing
+          start_date: c.start_date,
+          end_date: c.end_date,
+          prize_description: c.prize_description || "",
+        };
+        setChallenge(mapped);
+      } else {
+        toast.error("Không tìm thấy thử thách");
+        navigate("/admin/challenge");
       }
-    };
+    } catch (err) {
+      console.error("Error fetching challenge:", err);
+      toast.error("Lỗi khi lấy thử thách");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChallengeUpdated = (updatedChallenge) => {
+    console.log("Challenge updated in AdminChallengeDetail:", updatedChallenge);
+
+    // Reload challenge data from server
+    fetchChallenge();
+
+    // Show success message
+    toast.success("Thử thách đã được cập nhật thành công!");
+  };
+
+  useEffect(() => {
     fetchChallenge();
   }, [id]);
 
@@ -107,6 +124,7 @@ export default function AdminChallengeDetail() {
       challenge={challenge}
       onBack={handleBackToDashboard}
       onViewMembers={handleViewMembers}
+      onChallengeUpdated={handleChallengeUpdated}
     />
   );
 }

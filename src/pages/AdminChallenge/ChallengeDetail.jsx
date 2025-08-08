@@ -2,12 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { getChallengeParticipantCount } from "../../api/challenge";
+import ChallengeModal from "./ChallengeModal";
 
-export default function ChallengeDetail({ challenge, onBack, onViewMembers }) {
+export default function ChallengeDetail({
+  challenge,
+  onBack,
+  onViewMembers,
+  onChallengeUpdated,
+}) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [participantCount, setParticipantCount] = useState(0);
   const [loadingCount, setLoadingCount] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Fetch participant count when component mounts
   useEffect(() => {
@@ -54,6 +61,17 @@ export default function ChallengeDetail({ challenge, onBack, onViewMembers }) {
         return { background: "#fee2e2", color: "#991b1b" };
       default:
         return { background: "#f3f4f6", color: "#374151" };
+    }
+  };
+
+  // Handle challenge update success
+  const handleChallengeUpdateSuccess = (updatedChallenge) => {
+    console.log("Challenge updated successfully:", updatedChallenge);
+    setShowEditModal(false);
+
+    // Notify parent component about the update
+    if (onChallengeUpdated) {
+      onChallengeUpdated(updatedChallenge);
     }
   };
 
@@ -695,6 +713,12 @@ export default function ChallengeDetail({ challenge, onBack, onViewMembers }) {
                   👥 Xem thành viên ({loadingCount ? "..." : participantCount})
                 </button>
                 <button
+                  onClick={() => {
+                    console.log("🔧 Edit button clicked!");
+                    console.log("Challenge data:", challenge);
+                    setShowEditModal(true);
+                    console.log("showEditModal set to true");
+                  }}
                   style={{
                     width: "100%",
                     padding: "10px 16px",
@@ -1060,6 +1084,19 @@ export default function ChallengeDetail({ challenge, onBack, onViewMembers }) {
           </div>
         </div>
       )}
+
+      {/* Edit Challenge Modal */}
+      {console.log("🎯 Rendering modal with showEditModal:", showEditModal)}
+      <ChallengeModal
+        isOpen={showEditModal}
+        onClose={() => {
+          console.log("🚪 Modal close clicked");
+          setShowEditModal(false);
+        }}
+        onSuccess={handleChallengeUpdateSuccess}
+        editChallenge={challenge}
+        mode="edit"
+      />
     </div>
   );
 }

@@ -1,6 +1,11 @@
 "use client";
 
-export default function MemberCard({ user, participant }) {
+export default function MemberCard({
+  user,
+  participant,
+  onRemove,
+  isDeleting,
+}) {
   return (
     <div
       style={{
@@ -292,6 +297,30 @@ export default function MemberCard({ user, participant }) {
             }}
           >
             👁️ Xem profile
+          </button>
+          <button
+            onClick={() => onRemove && onRemove(participant)}
+            disabled={isDeleting}
+            style={{
+              padding: "8px 16px",
+              background: isDeleting ? "#9ca3af" : "#dc2626",
+              color: "white",
+              border: `1px solid ${isDeleting ? "#9ca3af" : "#dc2626"}`,
+              borderRadius: "6px",
+              fontSize: "14px",
+              cursor: isDeleting ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+              whiteSpace: "nowrap",
+              opacity: isDeleting ? 0.7 : 1,
+            }}
+            onMouseEnter={(e) =>
+              !isDeleting && (e.target.style.backgroundColor = "#b91c1c")
+            }
+            onMouseLeave={(e) =>
+              !isDeleting && (e.target.style.backgroundColor = "#dc2626")
+            }
+          >
+            {isDeleting ? "⏳ Đang xóa..." : "🗑️ Xóa khỏi challenge"}
           </button>
         </div>
       </div>

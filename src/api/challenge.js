@@ -298,3 +298,19 @@ export const deleteChallenge = async (challengeId) => {
     throw error;
   }
 };
+
+// Xóa challenge entry (remove user from challenge)
+export const deleteChallengeEntry = async (entryId) => {
+  try {
+    console.log("Gọi API deleteChallengeEntry với entryId:", entryId);
+    const response = await axiosInstance.delete(
+      `/challenge-entries/${entryId}`
+    );
+    console.log("Delete challenge entry response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi deleteChallengeEntry:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};

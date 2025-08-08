@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import MemberCard from "./MemberCard";
-import { fetchChallengeParticipants } from "../../api/challenge";
+import {
+  fetchChallengeParticipants,
+  deleteChallengeEntry,
+} from "../../api/challenge";
 
 export default function MembersList({ challenge, onBack }) {
   console.log("🚀 MembersList component mounted with challenge:", challenge);
@@ -10,6 +13,77 @@ export default function MembersList({ challenge, onBack }) {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [deletingEntryId, setDeletingEntryId] = useState(null);
+
+  // Hàm reload danh sách participants
+  const reloadParticipants = async () => {
+    if (!challenge?.id) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      console.log("Reloading participants for challenge:", challenge.id);
+      const response = await fetchChallengeParticipants(challenge.id);
+
+      let participantsList = [];
+      if (response && response.entries && Array.isArray(response.entries)) {
+        participantsList = response.entries;
+      } else if (Array.isArray(response)) {
+        participantsList = response;
+      } else if (
+        response &&
+        response.data &&
+        Array.isArray(response.data.entries)
+      ) {
+        participantsList = response.data.entries;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        participantsList = response.data;
+      }
+
+      console.log("Reloaded participants:", participantsList);
+      setParticipants(participantsList);
+    } catch (err) {
+      console.error("Error reloading participants:", err);
+      setError("Không thể tải lại danh sách thành viên.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle removing a member from challenge
+  const handleRemoveMember = async (participant) => {
+    const user = participant.User || participant.user;
+    const userName = user?.username || user?.name || user?.email || "User";
+
+    if (
+      !confirm(
+        `Bạn có chắc chắn muốn xóa ${userName} khỏi challenge này không?`
+      )
+    ) {
+      return;
+    }
+
+    if (!participant.id) {
+      alert("Không thể xóa: không tìm thấy ID của entry");
+      return;
+    }
+
+    setDeletingEntryId(participant.id);
+
+    try {
+      await deleteChallengeEntry(participant.id);
+
+      alert(`Đã xóa ${userName} khỏi challenge thành công!`);
+
+      // Reload danh sách member từ server để đảm bảo dữ liệu chính xác
+      await reloadParticipants();
+    } catch (error) {
+      console.error("Error removing member:", error);
+      alert("Có lỗi xảy ra khi xóa thành viên. Vui lòng thử lại.");
+    } finally {
+      setDeletingEntryId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchParticipants = async () => {
@@ -234,6 +308,8 @@ export default function MembersList({ challenge, onBack }) {
               key={participant.id || participant.user_id}
               user={participant.User || participant.user}
               participant={participant}
+              onRemove={handleRemoveMember}
+              isDeleting={deletingEntryId === participant.id}
             />
           ))}
         </div>
