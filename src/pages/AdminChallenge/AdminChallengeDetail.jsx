@@ -5,6 +5,19 @@ import ChallengeDetail from "./ChallengeDetail";
 import MembersList from "./MembersList";
 import toast from "react-hot-toast";
 
+function translateStatus(status) {
+  const statusMap = {
+    notStart: "Sắp diễn ra",
+    ongoing: "Đang diễn ra",
+    ended: "Đã kết thúc",
+    pending: "Chờ duyệt",
+    approved: "Đã duyệt",
+    rejected: "Bị từ chối",
+    cancelled: "Bị hủy",
+  };
+  return statusMap[status] || status;
+}
+
 export default function AdminChallengeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -39,7 +52,7 @@ export default function AdminChallengeDetail() {
           id: c.id || c._id,
           title: c.title || "Untitled Challenge",
           description: c.description || "",
-          adminStatus: c.admin_status || c.status || "",
+          adminStatus: translateStatus(c.admin_status || c.status || ""),
           startDate: c.start_date
             ? new Date(c.start_date).toLocaleDateString("vi-VN")
             : "",

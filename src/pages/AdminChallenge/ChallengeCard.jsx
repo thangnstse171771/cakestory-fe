@@ -55,6 +55,20 @@ export default function ChallengeCard({
           color: "#065f46",
           border: "1px solid #86efac",
         };
+      case "Sắp diễn ra":
+      case "notStart":
+        return {
+          background: "#fef3c7",
+          color: "#92400e",
+          border: "1px solid #fde68a",
+        };
+      case "Đã kết thúc":
+      case "ended":
+        return {
+          background: "#f3f4f6",
+          color: "#374151",
+          border: "1px solid #d1d5db",
+        };
       case "Bị hủy":
         return {
           background: "#fee2e2",
@@ -132,6 +146,9 @@ export default function ChallengeCard({
             WebkitLineClamp: "2",
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            textOverflow: "ellipsis",
+            minHeight: "calc(2 * 1.4em)", // Đảm bảo luôn có chiều cao của 2 dòng
+            maxHeight: "calc(2 * 1.4em)", // Giới hạn chiều cao tối đa
           }}
         >
           {challenge.description}
@@ -183,7 +200,7 @@ export default function ChallengeCard({
             fontSize: "14px",
           }}
         >
-          <div
+          {/* <div
             style={{
               display: "flex",
               alignItems: "center",
@@ -195,7 +212,7 @@ export default function ChallengeCard({
             <span>
               {challenge.participants}/{challenge.maxParticipants}
             </span>
-          </div>
+          </div> */}
           <div
             style={{
               display: "flex",
@@ -217,19 +234,6 @@ export default function ChallengeCard({
           >
             <span>⏰</span>
             <span>{challenge.startDate}</span>
-          </div>
-          <div
-            style={{
-              padding: "4px 8px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-              fontSize: "12px",
-              color: "#374151",
-              textAlign: "center",
-              width: "fit-content",
-            }}
-          >
-            {challenge.difficulty}
           </div>
         </div>
 

@@ -6,6 +6,14 @@ import axiosInstance from "../../api/axios";
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
 
+// Helper function to count participants
+const countParticipants = (entries, challengeId) => {
+  if (!entries || !Array.isArray(entries)) {
+    return 0;
+  }
+  return entries.filter((entry) => entry.challenge_id === challengeId).length;
+};
+
 export default function ChallengeGroup() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -18,6 +26,8 @@ export default function ChallengeGroup() {
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [participantCount, setParticipantCount] = useState(0);
+  const [isLoadingCount, setIsLoadingCount] = useState(true);
 
   // Fetch challenge info
   useEffect(() => {
@@ -39,6 +49,45 @@ export default function ChallengeGroup() {
     };
 
     fetchChallengeInfo();
+  }, [id]);
+
+  // Fetch participant count
+  useEffect(() => {
+    const fetchParticipantCount = async () => {
+      if (!id) return;
+
+      setIsLoadingCount(true);
+      try {
+        const response = await axiosInstance.get(`/challenge-entries`, {
+          params: {
+            timestamp: Date.now(),
+            _: Math.random(),
+          },
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
+
+        const entries = response.data.entries || [];
+        console.log("Fresh entries from API:", entries);
+
+        const actualCount = countParticipants(entries, parseInt(id));
+        console.log(
+          `Actual participant count for challenge ${id}:`,
+          actualCount
+        );
+
+        setParticipantCount(actualCount);
+      } catch (error) {
+        console.error("Error fetching participant count:", error);
+        setParticipantCount(0);
+      } finally {
+        setIsLoadingCount(false);
+      }
+    };
+
+    fetchParticipantCount();
   }, [id]);
 
   // Fetch challenge posts
@@ -122,8 +171,70 @@ export default function ChallengeGroup() {
     return postDate.toLocaleDateString("vi-VN");
   };
 
+  // Calculate challenge status and days left
+  const calculateChallengeStatus = () => {
+    if (!challengeInfo?.start_date || !challengeInfo?.end_date) {
+      return {
+        status: "unknown",
+        daysLeft: 0,
+        statusText: "Chưa xác định",
+        canPost: false,
+      };
+    }
+
+    const now = new Date();
+    const startDate = new Date(challengeInfo.start_date);
+    const endDate = new Date(challengeInfo.end_date);
+
+    // Calculate days left to end date
+    const diffTime = endDate.getTime() - now.getTime();
+    const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (now < startDate) {
+      // Challenge hasn't started yet
+      const daysToStart = Math.ceil(
+        (startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return {
+        status: "notStarted",
+        daysLeft: daysToStart,
+        statusText: `Challenge chưa bắt đầu (còn ${daysToStart} ngày)`,
+        canPost: false,
+      };
+    } else if (now >= startDate && now <= endDate) {
+      // Challenge is ongoing
+      return {
+        status: "ongoing",
+        daysLeft: daysLeft > 0 ? daysLeft : 0,
+        statusText: "Đang hoạt động",
+        canPost: true,
+      };
+    } else {
+      // Challenge has ended
+      return {
+        status: "ended",
+        daysLeft: 0,
+        statusText: "Đã kết thúc",
+        canPost: false,
+      };
+    }
+  };
+
   // Create new post
   const handleCreatePost = async () => {
+    // Check if posting is allowed
+    const currentStatus = calculateChallengeStatus();
+    if (!currentStatus.canPost) {
+      toast.error(
+        currentStatus.status === "notStarted"
+          ? "Challenge chưa bắt đầu, không thể đăng bài"
+          : currentStatus.status === "ended"
+          ? "Challenge đã kết thúc, không thể đăng bài"
+          : "Không thể đăng bài lúc này"
+      );
+      return;
+    }
+
     if (!newPost.content.trim()) {
       toast.error("Vui lòng nhập nội dung bài đăng");
       return;
@@ -239,8 +350,11 @@ export default function ChallengeGroup() {
   }
 
   const challengeTitle = challengeInfo?.title || `Challenge ${id}`;
-  const memberCount = challengeInfo?.participant_count || 0;
-  const daysLeft = challengeInfo?.days_left || 0;
+  const memberCount = isLoadingCount ? "Đang tải..." : participantCount;
+
+  // Get challenge status and days left
+  const challengeStatus = calculateChallengeStatus();
+  const { status, daysLeft, statusText, canPost } = challengeStatus;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FFF5F7" }}>
@@ -303,7 +417,9 @@ export default function ChallengeGroup() {
                       />
                     </svg>
                     <span className="font-semibold">
-                      {memberCount} thành viên
+                      {isLoadingCount
+                        ? "Đang tải..."
+                        : `${participantCount} thành viên`}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-700">
@@ -320,7 +436,13 @@ export default function ChallengeGroup() {
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
-                    <span>Còn {daysLeft} ngày</span>
+                    <span>
+                      {status === "notStarted"
+                        ? `Bắt đầu sau ${daysLeft} ngày`
+                        : status === "ended"
+                        ? "Đã kết thúc"
+                        : `Còn ${daysLeft} ngày`}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -329,8 +451,16 @@ export default function ChallengeGroup() {
                   <span className="bg-pink-100 text-pink-700 px-3 py-1 rounded text-xs font-medium">
                     Đã tham gia
                   </span>
-                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded text-xs font-medium">
-                    Đang hoạt động
+                  <span
+                    className={`px-3 py-1 rounded text-xs font-medium ${
+                      status === "ongoing"
+                        ? "bg-green-100 text-green-700"
+                        : status === "notStarted"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {statusText}
                   </span>
                 </div>
               </div>
@@ -341,7 +471,37 @@ export default function ChallengeGroup() {
         {/* Create Post Section */}
         <div className="mb-6 border border-gray-200 bg-white rounded-lg">
           <div className="p-4">
-            {!showCreatePost ? (
+            {!canPost ? (
+              <div className="text-center py-4">
+                <svg
+                  className="w-8 h-8 text-gray-400 mx-auto mb-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                  />
+                </svg>
+                <p className="text-gray-600 font-medium">
+                  {status === "notStarted"
+                    ? "Challenge chưa bắt đầu"
+                    : status === "ended"
+                    ? "Challenge đã kết thúc"
+                    : "Không thể đăng bài lúc này"}
+                </p>
+                <p className="text-gray-500 text-sm mt-1">
+                  {status === "notStarted"
+                    ? `Bạn có thể đăng bài khi challenge bắt đầu`
+                    : status === "ended"
+                    ? "Challenge đã kết thúc, không thể đăng bài mới"
+                    : "Vui lòng thử lại sau"}
+                </p>
+              </div>
+            ) : !showCreatePost ? (
               <button
                 onClick={() => setShowCreatePost(true)}
                 className="w-full border border-gray-300 text-gray-700 hover:bg-pink-50 px-4 py-2 rounded flex items-center justify-center"

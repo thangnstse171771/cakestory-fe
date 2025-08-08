@@ -19,6 +19,19 @@ function getStatusFromDates(startDate, endDate) {
   return "Đang diễn ra";
 }
 
+function translateStatus(status) {
+  const statusMap = {
+    notStart: "Sắp diễn ra",
+    ongoing: "Đang diễn ra",
+    ended: "Đã kết thúc",
+    pending: "Chờ duyệt",
+    approved: "Đã duyệt",
+    rejected: "Bị từ chối",
+    cancelled: "Bị hủy",
+  };
+  return statusMap[status] || status;
+}
+
 function formatDate(dateString) {
   const date = new Date(dateString);
   return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
@@ -56,10 +69,11 @@ export default function ChallengeList({ onViewDetail, onViewMembers, onEdit }) {
               id: challenge.id || challenge._id,
               title: challenge.title || "Untitled Challenge",
               description: challenge.description || "",
-              adminStatus:
+              adminStatus: translateStatus(
                 challenge.admin_status ||
-                challenge.status ||
-                getStatusFromDates(challenge.start_date, challenge.end_date),
+                  challenge.status ||
+                  getStatusFromDates(challenge.start_date, challenge.end_date)
+              ),
               startDate: formatDate(challenge.start_date),
               endDate: formatDate(challenge.end_date),
               duration: calculateDuration(
