@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-export default function MemberCard({ user }) {
+export default function MemberCard({ user, participant }) {
   return (
     <div
       style={{
@@ -10,8 +10,12 @@ export default function MemberCard({ user }) {
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
         transition: "box-shadow 0.2s",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)")}
-      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)")}
+      onMouseEnter={(e) =>
+        (e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)")
+      }
+      onMouseLeave={(e) =>
+        (e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)")
+      }
     >
       <div
         style={{
@@ -22,7 +26,14 @@ export default function MemberCard({ user }) {
           gap: "16px",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: "1" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "16px",
+            flex: "1",
+          }}
+        >
           <div
             style={{
               width: "64px",
@@ -33,8 +44,8 @@ export default function MemberCard({ user }) {
             }}
           >
             <img
-              src={user.avatar || "/placeholder.svg"}
-              alt={user.name}
+              src={user?.avatar || "/placeholder.svg"}
+              alt={user?.username || user?.name || "User"}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           </div>
@@ -48,18 +59,31 @@ export default function MemberCard({ user }) {
                 flexWrap: "wrap",
               }}
             >
-              <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", color: "#374151", margin: "0" }}>{user.name}</h3>
+              <h3
+                style={{
+                  fontSize: "1.125rem",
+                  fontWeight: "bold",
+                  color: "#374151",
+                  margin: "0",
+                }}
+              >
+                {user?.username || user?.name || "Không có tên"}
+              </h3>
               <span
                 style={{
                   padding: "4px 8px",
                   borderRadius: "4px",
                   fontSize: "12px",
                   fontWeight: "500",
-                  background: user.status === "active" ? "#d1fae5" : "#fee2e2",
-                  color: user.status === "active" ? "#065f46" : "#991b1b",
+                  background: user?.status === "active" ? "#d1fae5" : "#fee2e2",
+                  color: user?.status === "active" ? "#065f46" : "#991b1b",
                 }}
               >
-                {user.status === "active" ? "Hoạt động" : "Bị cấm"}
+                {user?.status === "active"
+                  ? "Hoạt động"
+                  : user?.status === "banned"
+                  ? "Bị cấm"
+                  : user?.status || "N/A"}
               </span>
               <span
                 style={{
@@ -71,7 +95,7 @@ export default function MemberCard({ user }) {
                   fontSize: "12px",
                 }}
               >
-                {user.level}
+                {user?.level || "Level N/A"}
               </span>
             </div>
             <div
@@ -84,22 +108,48 @@ export default function MemberCard({ user }) {
                 color: "#6b7280",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <span style={{ flexShrink: "0" }}>📧</span>
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</span>
+                <span
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {user?.email || "Không có email"}
+                </span>
               </div>
               {user.phone && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <span style={{ flexShrink: "0" }}>📱</span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {user.phone}
                   </span>
                 </div>
               )}
               {user.location && (
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
                   <span style={{ flexShrink: "0" }}>📍</span>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {user.location}
                   </span>
                 </div>
@@ -114,26 +164,75 @@ export default function MemberCard({ user }) {
                 flexWrap: "wrap",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
                 <span style={{ color: "#6b7280" }}>Tham gia: </span>
-                <span style={{ fontWeight: "500", color: "#374151" }}>{user.joinDate}</span>
+                <span style={{ fontWeight: "500", color: "#374151" }}>
+                  {participant?.entryDate
+                    ? new Date(participant.entryDate).toLocaleDateString(
+                        "vi-VN"
+                      )
+                    : user.joinDate}
+                </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              {participant && (
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <span style={{ color: "#6b7280" }}>Trạng thái entry: </span>
+                  <span
+                    style={{
+                      fontWeight: "500",
+                      color:
+                        participant.status === "submitted"
+                          ? "#059669"
+                          : participant.status === "pending"
+                          ? "#d97706"
+                          : "#6b7280",
+                    }}
+                  >
+                    {participant.status === "submitted"
+                      ? "Đã nộp"
+                      : participant.status === "pending"
+                      ? "Chờ nộp"
+                      : participant.status}
+                  </span>
+                </div>
+              )}
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
                 <span style={{ color: "#6b7280" }}>Challenges: </span>
                 <span style={{ fontWeight: "500", color: "#374151" }}>
-                  {user.completedChallenges}/{user.totalChallenges}
+                  {user.completedChallenges || 0}/{user.totalChallenges || 0}
                 </span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <span style={{ color: "#6b7280" }}>Tỷ lệ: </span>
-                <span style={{ fontWeight: "500", color: "#059669" }}>
-                  {Math.round((user.completedChallenges / user.totalChallenges) * 100)}%
-                </span>
-              </div>
+              {user.totalChallenges > 0 && (
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
+                >
+                  <span style={{ color: "#6b7280" }}>Tỷ lệ: </span>
+                  <span style={{ fontWeight: "500", color: "#059669" }}>
+                    {Math.round(
+                      ((user.completedChallenges || 0) / user.totalChallenges) *
+                        100
+                    )}
+                    %
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px", flexShrink: "0" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            flexShrink: "0",
+          }}
+        >
           {user.status === "active" ? (
             <button
               style={{
@@ -184,12 +283,12 @@ export default function MemberCard({ user }) {
               whiteSpace: "nowrap",
             }}
             onMouseEnter={(e) => {
-              e.target.style.borderColor = "#3b82f6"
-              e.target.style.color = "#3b82f6"
+              e.target.style.borderColor = "#3b82f6";
+              e.target.style.color = "#3b82f6";
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db"
-              e.target.style.color = "#374151"
+              e.target.style.borderColor = "#d1d5db";
+              e.target.style.color = "#374151";
             }}
           >
             👁️ Xem profile
@@ -197,5 +296,5 @@ export default function MemberCard({ user }) {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,13 +1,32 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getChallengeById } from "../../api/challenge";
 import ChallengeDetail from "./ChallengeDetail";
+import MembersList from "./MembersList";
 import toast from "react-hot-toast";
 
 export default function AdminChallengeDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [currentView, setCurrentView] = useState("detail"); // "detail" or "members"
+
+  const handleViewMembers = (challengeData) => {
+    console.log(
+      "🔥 AdminChallengeDetail: handleViewMembers called with:",
+      challengeData
+    );
+    setCurrentView("members");
+  };
+
+  const handleBackToDetail = () => {
+    setCurrentView("detail");
+  };
+
+  const handleBackToDashboard = () => {
+    navigate("/admin/challenge");
+  };
 
   useEffect(() => {
     const fetchChallenge = async () => {
@@ -77,5 +96,17 @@ export default function AdminChallengeDetail() {
       </div>
     );
 
-  return <ChallengeDetail challenge={challenge} />;
+  // Render Members List
+  if (currentView === "members") {
+    return <MembersList challenge={challenge} onBack={handleBackToDetail} />;
+  }
+
+  // Render Challenge Detail
+  return (
+    <ChallengeDetail
+      challenge={challenge}
+      onBack={handleBackToDashboard}
+      onViewMembers={handleViewMembers}
+    />
+  );
 }

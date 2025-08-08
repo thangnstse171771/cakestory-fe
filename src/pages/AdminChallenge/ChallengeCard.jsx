@@ -1,25 +1,73 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState, useEffect } from "react";
+import { getChallengeParticipantCount } from "../../api/challenge";
 
-export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }) {
-  const [showStatusModal, setShowStatusModal] = useState(false)
-  const [cancelReason, setCancelReason] = useState("")
+export default function ChallengeCard({
+  challenge,
+  onViewDetail,
+  onViewMembers,
+}) {
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [participantCount, setParticipantCount] = useState(0);
+
+  // Fetch participant count when component mounts
+  useEffect(() => {
+    const fetchCount = async () => {
+      if (challenge?.id) {
+        try {
+          const count = await getChallengeParticipantCount(challenge.id);
+          setParticipantCount(count);
+        } catch (error) {
+          console.error(
+            "Error fetching participant count for challenge",
+            challenge.id,
+            ":",
+            error
+          );
+          setParticipantCount(0);
+        }
+      }
+    };
+
+    fetchCount();
+  }, [challenge?.id]);
 
   const getStatusStyle = (status) => {
     switch (status) {
       case "Chờ duyệt":
-        return { background: "#fef3c7", color: "#92400e", border: "1px solid #fde68a" }
+        return {
+          background: "#fef3c7",
+          color: "#92400e",
+          border: "1px solid #fde68a",
+        };
       case "Đã duyệt":
-        return { background: "#dbeafe", color: "#1e40af", border: "1px solid #93c5fd" }
+        return {
+          background: "#dbeafe",
+          color: "#1e40af",
+          border: "1px solid #93c5fd",
+        };
       case "Đang diễn ra":
-        return { background: "#d1fae5", color: "#065f46", border: "1px solid #86efac" }
+        return {
+          background: "#d1fae5",
+          color: "#065f46",
+          border: "1px solid #86efac",
+        };
       case "Bị hủy":
-        return { background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5" }
+        return {
+          background: "#fee2e2",
+          color: "#991b1b",
+          border: "1px solid #fca5a5",
+        };
       default:
-        return { background: "#f3f4f6", color: "#374151", border: "1px solid #d1d5db" }
+        return {
+          background: "#f3f4f6",
+          color: "#374151",
+          border: "1px solid #d1d5db",
+        };
     }
-  }
+  };
 
   return (
     <div
@@ -31,8 +79,12 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
         overflow: "hidden",
         transition: "box-shadow 0.2s",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)")}
-      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)")}
+      onMouseEnter={(e) =>
+        (e.currentTarget.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)")
+      }
+      onMouseLeave={(e) =>
+        (e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)")
+      }
     >
       <div style={{ padding: "16px 16px 12px 16px" }}>
         <div
@@ -85,7 +137,14 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
         </p>
       </div>
 
-      <div style={{ padding: "0 16px 16px 16px", display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div
+        style={{
+          padding: "0 16px 16px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
         {/* Prize */}
         <div
           style={{
@@ -115,18 +174,46 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
         </div>
 
         {/* Stats */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#6b7280" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "16px",
+            fontSize: "14px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              color: "#6b7280",
+            }}
+          >
             <span>👥</span>
             <span>
               {challenge.participants}/{challenge.maxParticipants}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#6b7280" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              color: "#6b7280",
+            }}
+          >
             <span>📅</span>
             <span>{challenge.duration}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#6b7280" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              color: "#6b7280",
+            }}
+          >
             <span>⏰</span>
             <span>{challenge.startDate}</span>
           </div>
@@ -159,7 +246,8 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
           >
             <span style={{ color: "#d97706" }}>⚠️</span>
             <span style={{ fontSize: "12px", color: "#92400e" }}>
-              Cần thêm {challenge.minParticipants - challenge.participants} người để bắt đầu
+              Cần thêm {challenge.minParticipants - challenge.participants}{" "}
+              người để bắt đầu
             </span>
           </div>
         )}
@@ -212,12 +300,12 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
             }}
             onClick={() => onViewDetail(challenge)}
             onMouseEnter={(e) => {
-              e.target.style.borderColor = "#3b82f6"
-              e.target.style.color = "#3b82f6"
+              e.target.style.borderColor = "#3b82f6";
+              e.target.style.color = "#3b82f6";
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db"
-              e.target.style.color = "#374151"
+              e.target.style.borderColor = "#d1d5db";
+              e.target.style.color = "#374151";
             }}
           >
             👁️ Xem
@@ -234,12 +322,12 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
               color: "#374151",
             }}
             onMouseEnter={(e) => {
-              e.target.style.borderColor = "#8b5cf6"
-              e.target.style.color = "#8b5cf6"
+              e.target.style.borderColor = "#8b5cf6";
+              e.target.style.color = "#8b5cf6";
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db"
-              e.target.style.color = "#374151"
+              e.target.style.borderColor = "#d1d5db";
+              e.target.style.color = "#374151";
             }}
           >
             ✏️ Sửa
@@ -255,17 +343,30 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
               background: "white",
               color: "#374151",
             }}
-            onClick={() => onViewMembers(challenge)}
+            onClick={() => {
+              console.log("🎯 ChallengeCard: onViewMembers clicked", challenge);
+              console.log(
+                "🎯 ChallengeCard: onViewMembers function:",
+                onViewMembers
+              );
+              if (typeof onViewMembers === "function") {
+                onViewMembers(challenge);
+              } else {
+                console.error(
+                  "🎯 ChallengeCard: onViewMembers is not a function"
+                );
+              }
+            }}
             onMouseEnter={(e) => {
-              e.target.style.borderColor = "#06b6d4"
-              e.target.style.color = "#06b6d4"
+              e.target.style.borderColor = "#06b6d4";
+              e.target.style.color = "#06b6d4";
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db"
-              e.target.style.color = "#374151"
+              e.target.style.borderColor = "#d1d5db";
+              e.target.style.color = "#374151";
             }}
           >
-            👥 Thành viên
+            👥 Thành viên ({participantCount})
           </button>
 
           {challenge.adminStatus === "Chờ duyệt" && (
@@ -281,8 +382,12 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
                   cursor: "pointer",
                   transition: "all 0.2s",
                 }}
-                onMouseEnter={(e) => (e.target.style.backgroundColor = "#059669")}
-                onMouseLeave={(e) => (e.target.style.backgroundColor = "#10b981")}
+                onMouseEnter={(e) =>
+                  (e.target.style.backgroundColor = "#059669")
+                }
+                onMouseLeave={(e) =>
+                  (e.target.style.backgroundColor = "#10b981")
+                }
               >
                 ✅ Duyệt
               </button>
@@ -298,8 +403,12 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
                   transition: "all 0.2s",
                 }}
                 onClick={() => setShowStatusModal(true)}
-                onMouseEnter={(e) => (e.target.style.backgroundColor = "#dc2626")}
-                onMouseLeave={(e) => (e.target.style.backgroundColor = "#ef4444")}
+                onMouseEnter={(e) =>
+                  (e.target.style.backgroundColor = "#dc2626")
+                }
+                onMouseLeave={(e) =>
+                  (e.target.style.backgroundColor = "#ef4444")
+                }
               >
                 ❌ Hủy
               </button>
@@ -318,14 +427,14 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
               color: "#374151",
             }}
             onMouseEnter={(e) => {
-              e.target.style.background = "#ef4444"
-              e.target.style.color = "white"
-              e.target.style.borderColor = "#ef4444"
+              e.target.style.background = "#ef4444";
+              e.target.style.color = "white";
+              e.target.style.borderColor = "#ef4444";
             }}
             onMouseLeave={(e) => {
-              e.target.style.background = "white"
-              e.target.style.color = "#374151"
-              e.target.style.borderColor = "#d1d5db"
+              e.target.style.background = "white";
+              e.target.style.color = "#374151";
+              e.target.style.borderColor = "#d1d5db";
             }}
           >
             🗑️ Xóa
@@ -370,7 +479,16 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
                 borderBottom: "1px solid #e5e7eb",
               }}
             >
-              <h3 style={{ margin: "0", fontSize: "1.125rem", fontWeight: "600", color: "#374151" }}>Hủy Challenge</h3>
+              <h3
+                style={{
+                  margin: "0",
+                  fontSize: "1.125rem",
+                  fontWeight: "600",
+                  color: "#374151",
+                }}
+              >
+                Hủy Challenge
+              </h3>
               <button
                 style={{
                   background: "none",
@@ -391,10 +509,17 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
               </button>
             </div>
             <div style={{ padding: "16px" }}>
-              <p style={{ margin: "0 0 16px 0", color: "#374151" }}>Bạn có chắc chắn muốn hủy challenge này?</p>
+              <p style={{ margin: "0 0 16px 0", color: "#374151" }}>
+                Bạn có chắc chắn muốn hủy challenge này?
+              </p>
               <div style={{ marginBottom: "16px" }}>
                 <label
-                  style={{ display: "block", marginBottom: "4px", fontWeight: "500", color: "#374151" }}
+                  style={{
+                    display: "block",
+                    marginBottom: "4px",
+                    fontWeight: "500",
+                    color: "#374151",
+                  }}
                   htmlFor="cancelReason"
                 >
                   Lý do hủy
@@ -436,8 +561,12 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
                     transition: "all 0.2s",
                   }}
                   onClick={() => setShowStatusModal(false)}
-                  onMouseEnter={(e) => (e.target.style.backgroundColor = "#f9fafb")}
-                  onMouseLeave={(e) => (e.target.style.backgroundColor = "white")}
+                  onMouseEnter={(e) =>
+                    (e.target.style.backgroundColor = "#f9fafb")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.target.style.backgroundColor = "white")
+                  }
                 >
                   Hủy bỏ
                 </button>
@@ -451,8 +580,12 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
                     cursor: "pointer",
                     transition: "all 0.2s",
                   }}
-                  onMouseEnter={(e) => (e.target.style.backgroundColor = "#dc2626")}
-                  onMouseLeave={(e) => (e.target.style.backgroundColor = "#ef4444")}
+                  onMouseEnter={(e) =>
+                    (e.target.style.backgroundColor = "#dc2626")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.target.style.backgroundColor = "#ef4444")
+                  }
                 >
                   Xác nhận hủy
                 </button>
@@ -462,5 +595,5 @@ export default function ChallengeCard({ challenge, onViewDetail, onViewMembers }
         </div>
       )}
     </div>
-  )
+  );
 }
