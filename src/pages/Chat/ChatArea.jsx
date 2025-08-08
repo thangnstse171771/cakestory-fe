@@ -89,7 +89,37 @@ const ChatArea = () => {
   };
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const images = document.querySelectorAll(".chat-image");
+
+    if (images.length === 0) {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    let loadedCount = 0;
+
+    images.forEach((img) => {
+      if (img.complete) {
+        loadedCount++;
+      } else {
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === images.length) {
+            endRef.current?.scrollIntoView({ behavior: "smooth" });
+          }
+        };
+        img.onerror = () => {
+          loadedCount++;
+          if (loadedCount === images.length) {
+            endRef.current?.scrollIntoView({ behavior: "smooth" });
+          }
+        };
+      }
+    });
+
+    if (loadedCount === images.length) {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [chat?.messages]);
 
   useEffect(() => {
@@ -203,7 +233,7 @@ const ChatArea = () => {
     "Mình có thể xem menu được không?",
     "Mình đặt hàng như thế nào?",
     "Shop thường mất bao lâu để làm và giao bánh?",
-    "Best seller của shop mình là bánh nào ạ?"
+    "Best seller của shop mình là bánh nào ạ?",
   ];
 
   return (
@@ -292,7 +322,7 @@ const ChatArea = () => {
                     <img
                       src={message.img}
                       alt="Sent media"
-                      className="rounded-md max-w-[350px] object-cover"
+                      className="chat-image rounded-md max-w-[350px] object-cover"
                     />
                   )}
                   <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
@@ -320,7 +350,7 @@ const ChatArea = () => {
                       <img
                         src={message.img}
                         alt="Sent media"
-                        className="rounded-md max-w-[350px] object-cover"
+                        className="chat-image rounded-md max-w-[350px] object-cover"
                       />
                     )}
                     <div className="bg-gray-100 rounded-lg p-3 max-w-xs">
@@ -446,7 +476,7 @@ const ChatArea = () => {
         onClose={() => setShowUserInfo(false)}
         avatar={user?.avatar}
         name={user?.username}
-        images={chat.messages?.filter((m) => m.img).map((m) => m.img)}
+        images={chat?.messages?.filter((m) => m.img).map((m) => m.img)}
       />
     </div>
   );
