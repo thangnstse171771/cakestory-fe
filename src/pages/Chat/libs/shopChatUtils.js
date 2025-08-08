@@ -9,6 +9,7 @@ import {
   setDoc,
   updateDoc,
   arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { db } from "../../../firebase";
 
@@ -106,15 +107,143 @@ export async function getOrCreateShopChat(
 
   // 🔥 Add group chat to each user's "userchats"
   await createGroupChat(docRef.id, memberIds, customerFirebaseId);
+
+  // Return the new chat ID
+  return docRef.id;
 }
 
-export async function getShopChatsForUser(currentUserFirebaseId) {
-  const q = query(
-    collection(db, "groupChats"),
-    where("members", "array-contains", currentUserFirebaseId)
-  );
+// Helper function to check if user ID exists in array (handles trailing whitespace/newlines)
+const isUserInArray = (array, userId) => {
+  if (!array || !Array.isArray(array)) return false;
+  return array.some((id) => id?.trim() === userId?.trim());
+};
+
+export const removeUserFromGroupChatByShopId = async ({
+  firebaseUid,
+  shopId,
+}) => {
+  // 1. Find the correct group chat using shopId
+  const groupChatsRef = collection(db, "groupChats");
+  const q = query(groupChatsRef, where("shopId", "==", shopId));
+
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => {
+  if (snapshot.empty) {
+    console.warn(`No group chat found for shopId=${shopId}`);
+    return;
+  }
+
+  // for (const doc of snapshot.docs) {
+  //   const data = doc.data();
+  //   console.log("Group Chat Doc:", {
+  //     id: doc.id,
+  //     members: data.members,
+  //     shopMemberIds: data.shopMemberIds,
+  //     customerId: data.customerId,
+  //     shopId: data.shopId,
+  //   });
+  // }
+
+  // Filter to find chats where user is a member (either in members, shopMemberIds, or customerId)
+  const userChats = snapshot.docs.filter((doc) => {
+    const data = doc.data();
+
+    const isMember = isUserInArray(data.members, firebaseUid);
+    const isShopMember = isUserInArray(data.shopMemberIds, firebaseUid);
+    const isCustomer = data.customerId?.trim() === firebaseUid?.trim();
+
+    // console.log(`Checking chat ${doc.id} for user ${firebaseUid}:`, {
+    //   isMember,
+    //   isShopMember,
+    //   isCustomer,
+    //   members: data.members,
+    //   shopMemberIds: data.shopMemberIds,
+    //   customerId: data.customerId,
+    // });
+
+    return isMember || isShopMember || isCustomer;
+  });
+
+  // console.log(
+  //   `Found ${userChats.length} chats for user ${firebaseUid} in shop ${shopId}`
+  // );
+
+  if (userChats.length === 0) {
+    console.warn(
+      `No group chat found for shopId=${shopId} and user=${firebaseUid}`
+    );
+    return;
+  }
+
+  for (const groupChatDoc of userChats) {
+    const chatId = groupChatDoc.id;
+
+    // 2. Remove user from groupChats.{members, shopMemberIds}
+    // Handle potential whitespace issues in stored IDs
+    const data = groupChatDoc.data();
+    const membersToRemove =
+      data.members?.filter((id) => id?.trim() === firebaseUid?.trim()) || [];
+    const shopMembersToRemove =
+      data.shopMemberIds?.filter((id) => id?.trim() === firebaseUid?.trim()) ||
+      [];
+
+    // Remove all matching IDs (including those with whitespace)
+    for (const memberId of membersToRemove) {
+      await updateDoc(groupChatDoc.ref, {
+        members: arrayRemove(memberId),
+      });
+    }
+
+    for (const shopMemberId of shopMembersToRemove) {
+      await updateDoc(groupChatDoc.ref, {
+        shopMemberIds: arrayRemove(shopMemberId),
+      });
+    }
+
+    // 3. Remove user's chat entry from userchats
+    const userChatsRef = doc(db, "userchats", firebaseUid);
+    const userChatsSnap = await getDoc(userChatsRef);
+
+    if (userChatsSnap.exists()) {
+      const userData = userChatsSnap.data();
+      const chats = userData.chats || [];
+
+      // Find and remove the specific chat entry
+      const updatedChats = chats.filter((chat) => chat.chatId !== chatId);
+
+      if (updatedChats.length !== chats.length) {
+        console.log(
+          `Removing chat ${chatId} from userchats for user ${firebaseUid}`
+        );
+        await updateDoc(userChatsRef, {
+          chats: updatedChats,
+        });
+      } else {
+        console.log(
+          `Chat ${chatId} not found in userchats for user ${firebaseUid}`
+        );
+      }
+    } else {
+      console.log(`Userchats document not found for user ${firebaseUid}`);
+    }
+  }
+};
+
+export async function getShopChatsForUser(currentUserFirebaseId) {
+  const q = query(collection(db, "groupChats"), where("type", "==", "shop"));
+  const snapshot = await getDocs(q);
+
+  // Filter to find chats where user is a member (either in members, shopMemberIds, or customerId)
+  const userChats = snapshot.docs.filter((doc) => {
+    const data = doc.data();
+
+    return (
+      isUserInArray(data.members, currentUserFirebaseId) ||
+      isUserInArray(data.shopMemberIds, currentUserFirebaseId) ||
+      data.customerId?.trim() === currentUserFirebaseId?.trim()
+    );
+  });
+
+  return userChats.map((doc) => {
     const data = doc.data();
     return {
       chatId: doc.id,

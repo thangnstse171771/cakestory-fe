@@ -45,6 +45,9 @@ import {
   addMemberToShop,
   deleteMemberFromShop,
 } from "../../api/shopMembers";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { removeUserFromGroupChatByShopId } from "../Chat/libs/shopChatUtils";
+import { db } from "../../firebase";
 
 const fakeShopInfo = {
   name: "Sweet Cake Shop",
@@ -133,6 +136,7 @@ const COLORS = ["#f59e42", "#52c41a", "#ff7875", "#1890ff", "#fadb14"];
 const ShopAnalystic = ({ onBack }) => {
   const [tab, setTab] = useState("overview");
   const [members, setMembers] = useState([]);
+  const [shopId, setShopId] = useState(null);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeUsers, setActiveUsers] = useState([]);
@@ -148,14 +152,48 @@ const ShopAnalystic = ({ onBack }) => {
     setShowDeleteModal(true);
   };
 
+  //hàm xử lý so sánh userId với firebaseId
+  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
+    const q = query(
+      collection(db, "users"),
+      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      return querySnapshot.docs[0].id; // Firestore doc ID
+    }
+
+    return null; // not found
+  };
+
   // Hàm xử lý xóa thành viên
   const handleDeleteMember = async () => {
     if (!memberToDelete) return;
 
     setDeletingMember(true);
     try {
+      //gọi hàm so sánh id trên firebase
+      const firebaseUid = await getFirebaseUserIdFromPostgresId(
+        memberToDelete.id
+      );
+
+      // Step 2: Delete user from your own database
       await deleteMemberFromShop(memberToDelete.id);
-      // Refresh members list
+
+      // Step 3: xóa khỏi nhóm chat
+      if (firebaseUid && shopId) {
+        await removeUserFromGroupChatByShopId({
+          firebaseUid,
+          shopId,
+        });
+      } else {
+        console.warn(
+          "Could not remove from Firebase group chat: missing UID or shopId"
+        );
+      }
+
       const data = await fetchShopMembers();
       setMembers(
         data.members.map((m) => ({
@@ -168,6 +206,7 @@ const ShopAnalystic = ({ onBack }) => {
           is_active: m.is_active,
         }))
       );
+
       setShowDeleteModal(false);
       setMemberToDelete(null);
     } catch (error) {
@@ -297,6 +336,7 @@ const ShopAnalystic = ({ onBack }) => {
         .then((data) => {
           setMembers(
             data.members.map((m) => ({
+              shop_id: m.shop_id,
               id: m.user_id,
               name: m.User?.username || "",
               role: m.is_admin ? "Owner" : "Staff",
@@ -308,6 +348,7 @@ const ShopAnalystic = ({ onBack }) => {
               is_active: m.is_active,
             }))
           );
+          setShopId(data.members[0]?.shop_id);
         })
         .catch(() => setMembers([]))
         .finally(() => setLoadingMembers(false));
