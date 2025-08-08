@@ -36,7 +36,7 @@ const Sidebar = () => {
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
-    { icon: Calendar, label: "Events", path: "/events" },
+    // { icon: Calendar, label: "Events", path: "/events" },
     { icon: Trophy, label: "Challenge", path: "/challenge" },
     { icon: ListOrdered, label: "Track Orders", path: "/order-tracking" },
     { icon: MessageSquareWarning, label: "Khiếu nại", path: "/complaints" },

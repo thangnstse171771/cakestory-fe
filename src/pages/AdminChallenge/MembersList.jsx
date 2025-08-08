@@ -1,94 +1,213 @@
 import { useEffect, useState, useMemo } from "react";
 import MemberCard from "./MemberCard";
-import axiosInstance from "../../api/axios";
+import {
+  fetchChallengeParticipants,
+  deleteChallengeEntry,
+} from "../../api/challenge";
 
 export default function MembersList({ challenge, onBack }) {
+  console.log("🚀 MembersList component mounted with challenge:", challenge);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [users, setUsers] = useState([]);
-  const [entries, setEntries] = useState([]);
+  const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [deletingEntryId, setDeletingEntryId] = useState(null);
+
+  // Hàm reload danh sách participants
+  const reloadParticipants = async () => {
+    if (!challenge?.id) return;
+
+    setLoading(true);
+    setError("");
+    try {
+      console.log("Reloading participants for challenge:", challenge.id);
+      const response = await fetchChallengeParticipants(challenge.id);
+
+      let participantsList = [];
+      if (response && response.entries && Array.isArray(response.entries)) {
+        participantsList = response.entries;
+      } else if (Array.isArray(response)) {
+        participantsList = response;
+      } else if (
+        response &&
+        response.data &&
+        Array.isArray(response.data.entries)
+      ) {
+        participantsList = response.data.entries;
+      } else if (response && response.data && Array.isArray(response.data)) {
+        participantsList = response.data;
+      }
+
+      console.log("Reloaded participants:", participantsList);
+      setParticipants(participantsList);
+    } catch (err) {
+      console.error("Error reloading participants:", err);
+      setError("Không thể tải lại danh sách thành viên.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle removing a member from challenge
+  const handleRemoveMember = async (participant) => {
+    const user = participant.User || participant.user;
+    const userName = user?.username || user?.name || user?.email || "User";
+
+    if (
+      !confirm(
+        `Bạn có chắc chắn muốn xóa ${userName} khỏi challenge này không?`
+      )
+    ) {
+      return;
+    }
+
+    if (!participant.id) {
+      alert("Không thể xóa: không tìm thấy ID của entry");
+      return;
+    }
+
+    setDeletingEntryId(participant.id);
+
+    try {
+      await deleteChallengeEntry(participant.id);
+
+      alert(`Đã xóa ${userName} khỏi challenge thành công!`);
+
+      // Reload danh sách member từ server để đảm bảo dữ liệu chính xác
+      await reloadParticipants();
+    } catch (error) {
+      console.error("Error removing member:", error);
+      alert("Có lỗi xảy ra khi xóa thành viên. Vui lòng thử lại.");
+    } finally {
+      setDeletingEntryId(null);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchParticipants = async () => {
+      console.log("fetchParticipants called with challenge:", challenge);
+
+      if (!challenge?.id) {
+        console.error("Challenge or challenge.id is missing:", challenge);
+        setError("Challenge ID không hợp lệ");
+        return;
+      }
+
       setLoading(true);
+      setError("");
       try {
-        const [usersRes, entriesRes] = await Promise.all([
-          axiosInstance.get("/users"),
-          axiosInstance.get("/challenge-entries"),
-        ]);
-        setUsers(usersRes.data.users || []);
-        setEntries(entriesRes.data.entries || []);
-        // Debug log rõ ràng
-        console.log(
-          "[DEBUG USERS]",
-          JSON.stringify(usersRes.data.users, null, 2)
-        );
-        console.log(
-          "[DEBUG ENTRIES]",
-          JSON.stringify(
-            entriesRes.data.entrines || entriesRes.data.entries,
-            null,
-            2
-          )
-        );
-        console.log("[DEBUG CHALLENGE ID]", challenge.id);
+        console.log("Fetching participants for challenge:", challenge.id);
+        const response = await fetchChallengeParticipants(challenge.id);
+
+        // API trả về object có thuộc tính entries chứa array các participants
+        let participantsList = [];
+
+        // Kiểm tra structure của response
+        console.log("Raw API Response:", response);
+        console.log("Response type:", typeof response);
+        console.log("Response.entries:", response?.entries);
+
+        // Dựa vào API testing, response có cấu trúc { entries: [...] }
+        if (response && response.entries && Array.isArray(response.entries)) {
+          participantsList = response.entries;
+          console.log("✅ Using response.entries:", participantsList);
+        } else if (Array.isArray(response)) {
+          // Trường hợp API trả về array trực tiếp
+          participantsList = response;
+          console.log("✅ Using response as array:", participantsList);
+        } else if (
+          response &&
+          response.data &&
+          Array.isArray(response.data.entries)
+        ) {
+          // Trường hợp API trả về { data: { entries: [...] } }
+          participantsList = response.data.entries;
+          console.log("✅ Using response.data.entries:", participantsList);
+        } else if (response && response.data && Array.isArray(response.data)) {
+          // Trường hợp API trả về { data: [...] }
+          participantsList = response.data;
+          console.log("✅ Using response.data:", participantsList);
+        } else {
+          console.warn("❌ Unexpected API response structure:", response);
+          console.warn("Available properties:", Object.keys(response || {}));
+          participantsList = [];
+        }
+
+        console.log("Final processed participants:", participantsList);
+        console.log("Participants count:", participantsList.length);
+        setParticipants(participantsList);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching challenge participants:", err);
+        setError("Không thể tải danh sách thành viên. Vui lòng thử lại.");
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
+
+    if (challenge?.id) {
+      fetchParticipants();
+    }
   }, [challenge.id]);
 
-  // Map challenge entries to users for the current challenge
+  // Filter participants based on search and status
   const filteredUsers = useMemo(() => {
-    // Lấy các entry thuộc challenge hiện tại
-    // Lấy các entry thuộc challenge hiện tại
-    const challengeEntries = entries.filter(
-      (entry) => entry.challenge_id === challenge.id
-    );
-    // Lấy danh sách user_id đã tham gia challenge
-    const userIdsInChallenge = new Set(challengeEntries.map((e) => e.user_id));
-    // Lọc users theo user_id trong challenge
-    let filtered = users.filter((user) => userIdsInChallenge.has(user.id));
+    let filtered = participants;
 
-    // Debug log chi tiết
-    console.log(
-      "[DEBUG CHALLENGE ENTRIES]",
-      JSON.stringify(challengeEntries, null, 2)
-    );
-    console.log(
-      "[DEBUG USER IDS IN CHALLENGE]",
-      Array.from(userIdsInChallenge)
-    );
-    console.log("[DEBUG FILTERED USERS]", JSON.stringify(filtered, null, 2));
-
-    // Filter by search term
+    // Filter by search term (tìm trong thông tin user)
     if (searchTerm) {
-      filtered = filtered.filter(
-        (user) =>
-          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.level?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter((participant) => {
+        const user = participant.User || participant.user;
+        return (
+          user?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          participant?.status?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
     }
 
-    // Filter by status
+    // Filter by status (status của entry, không phải user)
     if (statusFilter !== "all") {
-      filtered = filtered.filter((user) => user.status === statusFilter);
+      filtered = filtered.filter((participant) => {
+        const user = participant.User || participant.user;
+        // Có thể filter theo entry status hoặc user status
+        return (
+          participant.status === statusFilter || user?.status === statusFilter
+        );
+      });
     }
 
+    console.log("Filtered participants:", filtered);
     return filtered;
-  }, [users, entries, challenge.id, searchTerm, statusFilter]);
+  }, [participants, searchTerm, statusFilter]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-rose-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-rose-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang tải dữ liệu...</p>
+          <p className="text-gray-600">Đang tải danh sách thành viên...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-rose-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-rose-500 text-white px-4 py-2 rounded hover:bg-rose-600"
+          >
+            Thử lại
+          </button>
         </div>
       </div>
     );
@@ -159,14 +278,24 @@ export default function MembersList({ challenge, onBack }) {
           <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
             <div className="text-3xl mb-2">✅</div>
             <p className="text-2xl font-bold text-gray-700 mb-1">
-              {filteredUsers.filter((u) => u.status === "active").length}
+              {
+                filteredUsers.filter((p) => {
+                  const user = p.User || p.user;
+                  return user?.status === "active" || p.status === "active";
+                }).length
+              }
             </p>
             <p className="text-sm text-gray-500">Đang hoạt động</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
             <div className="text-3xl mb-2">❌</div>
             <p className="text-2xl font-bold text-gray-700 mb-1">
-              {filteredUsers.filter((u) => u.status === "banned").length}
+              {
+                filteredUsers.filter((p) => {
+                  const user = p.User || p.user;
+                  return user?.status === "banned" || p.status === "banned";
+                }).length
+              }
             </p>
             <p className="text-sm text-gray-500">Bị cấm</p>
           </div>
@@ -174,8 +303,14 @@ export default function MembersList({ challenge, onBack }) {
 
         {/* Members List */}
         <div className="flex flex-col gap-4">
-          {filteredUsers.map((user) => (
-            <MemberCard key={user.id} user={user} />
+          {filteredUsers.map((participant) => (
+            <MemberCard
+              key={participant.id || participant.user_id}
+              user={participant.User || participant.user}
+              participant={participant}
+              onRemove={handleRemoveMember}
+              isDeleting={deletingEntryId === participant.id}
+            />
           ))}
         </div>
 

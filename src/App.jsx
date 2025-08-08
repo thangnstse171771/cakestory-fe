@@ -51,6 +51,7 @@ import MyAlbum from "./pages/MyAlbum/MyAlbum";
 import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
 import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
 import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
+import AllShopCakes from "./pages/AllShopCakes";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -109,6 +110,10 @@ export default function App() {
             <Route path="home" element={<Home />} />
             <Route path="marketplace" element={<Marketplace />} />
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
+            <Route
+              path="marketplace/shop/:id/all-cakes"
+              element={<AllShopCakes />}
+            />
             <Route path="marketplace/create-shop" element={<CreateShop />} />
             <Route
               path="order/customize/:shopId"

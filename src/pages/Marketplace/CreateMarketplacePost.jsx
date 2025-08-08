@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, Upload } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Upload, Plus, Trash2 } from "lucide-react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { createMarketplacePost, updateMarketplacePost } from "../../api/axios";
@@ -9,16 +9,24 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../firebase";
 
 const CreateMarketplacePostSchema = Yup.object().shape({
-  title: Yup.string().required("Title is required"),
-  description: Yup.string().max(
-    1000,
-    "Description cannot exceed 1000 characters"
-  ),
-  price: Yup.number()
-    .min(0, "Price must be >= 0")
-    .required("Price is required"),
+  title: Yup.string()
+    .min(3, "Title must be at least 3 characters")
+    .max(100, "Title cannot exceed 100 characters")
+    .required("Title is required"),
+  description: Yup.string()
+    .min(10, "Description must be at least 10 characters")
+    .max(1000, "Description cannot exceed 1000 characters")
+    .required("Description is required"),
   available: Yup.boolean().required(),
-  expiry_date: Yup.string().required("Expiry date is required"),
+  expiry_date: Yup.string()
+    .required("Expiry date is required")
+    .test("future-date", "Expiry date must be in the future", function (value) {
+      if (!value) return false;
+      const selectedDate = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return selectedDate >= today;
+    }),
   media: Yup.array().min(1, "Please add at least one media file"),
 });
 
@@ -31,6 +39,86 @@ const CreateMarketplacePost = ({
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // State cho cakeSizes
+  const [cakeSizes, setCakeSizes] = useState([{ size: "", price: "" }]);
+  const [cakeSizeErrors, setCakeSizeErrors] = useState([]);
+
+  // Initialize cake sizes when editing
+  useEffect(() => {
+    if (isEdit && initialData?.cakeSizes) {
+      setCakeSizes(
+        initialData.cakeSizes.length > 0
+          ? initialData.cakeSizes
+          : [{ size: "", price: "" }]
+      );
+    }
+  }, [isEdit, initialData]);
+
+  // Validate cake sizes
+  const validateCakeSizes = () => {
+    const errors = [];
+    let hasValidSize = false;
+
+    cakeSizes.forEach((size, idx) => {
+      const error = {};
+      if (size.size.trim() && size.price) {
+        hasValidSize = true;
+        if (parseFloat(size.price) <= 0) {
+          error.price = "Price must be greater than 0";
+        }
+      } else if (size.size.trim() || size.price) {
+        if (!size.size.trim()) error.size = "Size name is required";
+        if (!size.price) error.price = "Price is required";
+      }
+      errors[idx] = error;
+    });
+
+    setCakeSizeErrors(errors);
+
+    if (!hasValidSize) {
+      return "At least one complete size with price is required";
+    }
+
+    // Check for duplicate sizes
+    const sizes = cakeSizes
+      .filter((s) => s.size.trim())
+      .map((s) => s.size.trim().toLowerCase());
+    const duplicates = sizes.filter(
+      (size, index) => sizes.indexOf(size) !== index
+    );
+    if (duplicates.length > 0) {
+      return "Duplicate size names are not allowed";
+    }
+
+    return null;
+  };
+
+  // Hàm thêm/xóa size
+  const handleAddSize = () => {
+    setCakeSizes([...cakeSizes, { size: "", price: "" }]);
+    setCakeSizeErrors([...cakeSizeErrors, {}]);
+  };
+
+  const handleRemoveSize = (idx) => {
+    if (cakeSizes.length > 1) {
+      setCakeSizes(cakeSizes.filter((_, i) => i !== idx));
+      setCakeSizeErrors(cakeSizeErrors.filter((_, i) => i !== idx));
+    }
+  };
+
+  const handleChangeSize = (idx, field, value) => {
+    const newSizes = [...cakeSizes];
+    newSizes[idx][field] = value;
+    setCakeSizes(newSizes);
+
+    // Clear error for this field
+    const newErrors = [...cakeSizeErrors];
+    if (newErrors[idx]) {
+      delete newErrors[idx][field];
+    }
+    setCakeSizeErrors(newErrors);
+  };
 
   const uploadMediaToFirebase = async (file) => {
     const mediaRef = ref(
@@ -51,278 +139,381 @@ const CreateMarketplacePost = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-10">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 m-4">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800">
-            {isEdit ? "Edit Marketplace Product" : "Create Marketplace Post"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-6 h-6 text-gray-500" />
-          </button>
+    <div className="fixed inset-0 bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[95vh] overflow-hidden shadow-2xl">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-8 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-white">
+                {isEdit ? "Edit Product" : "Create New Product"}
+              </h2>
+              <p className="text-pink-100 text-sm mt-1">
+                {isEdit
+                  ? "Update your product details"
+                  : "Add a new product to your marketplace"}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-full transition-colors duration-200"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+          </div>
         </div>
 
-        <Formik
-          enableReinitialize
-          initialValues={{
-            title: initialData?.Post?.title || "",
-            description: initialData?.Post?.description || "",
-            price: initialData?.price ?? 0,
-            available: initialData?.available ?? true,
-            expiry_date: initialData?.expiry_date || "",
-            is_public: true,
-            media: [], // always upload new files
-          }}
-          validationSchema={CreateMarketplacePostSchema}
-          onSubmit={async (
-            values,
-            { setSubmitting, resetForm, setFieldError }
-          ) => {
-            setLoading(true);
-            try {
-              // Upload files
-              const uploadedMedia = await Promise.all(
-                values.media.map(async (file) => {
-                  const url = await uploadMediaToFirebase(file);
-                  return file.type.startsWith("video")
-                    ? { video_url: url, image_url: null }
-                    : { image_url: url, video_url: null };
-                })
-              );
-
-              const payload = {
-                title: values.title,
-                description: values.description,
-                price: values.price,
-                available: values.available,
-                expiry_date: values.expiry_date,
-                is_public: true,
-                media: uploadedMedia,
-              };
-
-              if (isEdit && initialData) {
-                await updateMarketplacePost(initialData.post_id, payload);
-                if (onCreate) await onCreate();
-                onClose();
-                alert("Marketplace product updated!");
-              } else {
-                await createMarketplacePost(payload);
-                if (onCreate) await onCreate();
-                resetForm();
-                onClose();
-                alert("Marketplace post created!");
+        {/* Content */}
+        <div className="p-8 overflow-y-auto max-h-[calc(95vh-120px)]">
+          <Formik
+            enableReinitialize
+            initialValues={{
+              title: initialData?.Post?.title || "",
+              description: initialData?.Post?.description || "",
+              available: initialData?.available ?? true,
+              expiry_date: initialData?.expiry_date || "",
+              is_public: true,
+              media: [], // always upload new files
+            }}
+            validationSchema={CreateMarketplacePostSchema}
+            onSubmit={async (
+              values,
+              { setSubmitting, resetForm, setFieldError }
+            ) => {
+              // Validate cake sizes
+              const sizeError = validateCakeSizes();
+              if (sizeError) {
+                setFieldError("general", sizeError);
+                setSubmitting(false);
+                return;
               }
-            } catch (err) {
-              console.error(err);
-              setFieldError("general", "Failed to submit. Please try again.");
-            } finally {
-              setLoading(false);
-              setSubmitting(false);
-            }
-          }}
-        >
-          {({ values, setFieldValue, isSubmitting, errors }) => (
-            <Form className="space-y-6">
-              {/* Upload box */}
-              <div
-                className={`border-2 border-dashed rounded-xl p-8 text-center ${
-                  dragActive ? "border-pink-500 bg-pink-50" : "border-gray-300"
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setDragActive(false);
-                  if (e.dataTransfer.files) {
-                    setFieldValue("media", [
-                      ...values.media,
-                      ...Array.from(e.dataTransfer.files),
-                    ]);
-                  }
-                }}
-              >
-                <div className="flex flex-col items-center">
-                  <Upload className="w-12 h-12 text-gray-400 mb-2" />
-                  <p className="text-gray-600 mb-2">
-                    Drag and drop your media here
-                  </p>
-                  <p className="text-gray-400 text-sm mb-4">or</p>
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,video/*"
-                      className="hidden"
-                      onChange={(e) => {
+
+              setLoading(true);
+              try {
+                // Upload files
+                const uploadedMedia = await Promise.all(
+                  values.media.map(async (file) => {
+                    const url = await uploadMediaToFirebase(file);
+                    return file.type.startsWith("video")
+                      ? { video_url: url, image_url: null }
+                      : { image_url: url, video_url: null };
+                  })
+                );
+
+                const payload = {
+                  title: values.title,
+                  description: values.description,
+                  available: values.available,
+                  expiry_date: values.expiry_date,
+                  is_public: true,
+                  media: uploadedMedia,
+                  cakeSizes: cakeSizes.filter((s) => s.size && s.price),
+                };
+
+                if (isEdit && initialData) {
+                  await updateMarketplacePost(initialData.post_id, payload);
+                  if (onCreate) await onCreate();
+                  onClose();
+                  alert("Product updated successfully!");
+                } else {
+                  await createMarketplacePost(payload);
+                  if (onCreate) await onCreate();
+                  resetForm();
+                  setCakeSizes([{ size: "", price: "" }]);
+                  onClose();
+                  alert("Product created successfully!");
+                }
+              } catch (err) {
+                console.error(err);
+                setFieldError("general", "Failed to submit. Please try again.");
+              } finally {
+                setLoading(false);
+                setSubmitting(false);
+              }
+            }}
+          >
+            {({ values, setFieldValue, isSubmitting, errors }) => (
+              <Form className="space-y-8">
+                {/* Media Upload */}
+                <div className="space-y-4">
+                  <label className="block text-lg font-semibold text-gray-800">
+                    Product Media
+                  </label>
+                  <div
+                    className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                      dragActive
+                        ? "border-pink-500 bg-gradient-to-br from-pink-50 to-rose-50 scale-105"
+                        : "border-gray-300 hover:border-pink-400 hover:bg-gray-50"
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setDragActive(false);
+                      if (e.dataTransfer.files) {
                         setFieldValue("media", [
                           ...values.media,
-                          ...Array.from(e.target.files),
+                          ...Array.from(e.dataTransfer.files),
                         ]);
-                        e.target.value = "";
-                      }}
-                    />
-                    <span className="bg-pink-500 text-white px-6 py-2 rounded-full hover:bg-pink-600 transition-colors">
-                      Choose Files
-                    </span>
-                  </label>
-                </div>
-              </div>
-              <ErrorMessage
-                name="media"
-                component="div"
-                className="text-red-500 text-sm"
-              />
-
-              {/* Media preview */}
-              <div className="flex flex-wrap gap-4">
-                {values.media.map((file, index) => {
-                  const isVideo = file.type.startsWith("video");
-                  const url = URL.createObjectURL(file);
-
-                  return (
-                    <div key={index} className="relative w-24 h-24">
-                      {isVideo ? (
-                        <video
-                          src={url}
-                          controls
-                          className="w-full h-full object-cover rounded"
+                      }
+                    }}
+                  >
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-pink-100 to-rose-100 rounded-full flex items-center justify-center mb-4">
+                        <Upload className="w-8 h-8 text-pink-500" />
+                      </div>
+                      <p className="text-gray-700 mb-2 font-medium">
+                        Drag and drop your media here
+                      </p>
+                      <p className="text-gray-500 text-sm mb-4">
+                        or click to browse files
+                      </p>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,video/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            setFieldValue("media", [
+                              ...values.media,
+                              ...Array.from(e.target.files),
+                            ]);
+                            e.target.value = "";
+                          }}
                         />
-                      ) : (
-                        <img
-                          src={url}
-                          alt={`preview-${index}`}
-                          className="w-full h-full object-cover rounded"
-                        />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFieldValue(
-                            "media",
-                            values.media.filter((_, i) => i !== index)
-                          )
-                        }
-                        className="absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 hover:bg-red-500 hover:text-white transition"
-                        title="Remove media"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                        <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-3 rounded-full font-medium hover:from-pink-600 hover:to-rose-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                          Choose Files
+                        </span>
+                      </label>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                  <ErrorMessage
+                    name="media"
+                    component="div"
+                    className="text-red-500 text-sm font-medium"
+                  />
 
-              {/* Title */}
-              <div>
-                <label className="block text-pink-500 font-semibold mb-1">
-                  Title
-                </label>
-                <Field
-                  name="title"
-                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  placeholder="Enter product title"
-                />
-                <ErrorMessage
-                  name="title"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
+                  {/* Media preview */}
+                  {values.media.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {values.media.map((file, index) => {
+                        const isVideo = file.type.startsWith("video");
+                        const url = URL.createObjectURL(file);
 
-              {/* Description */}
-              <div>
-                <label className="block text-pink-500 font-semibold mb-1">
-                  Description
-                </label>
-                <Field
-                  as="textarea"
-                  name="description"
-                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 min-h-[80px]"
-                  placeholder="Describe your product..."
-                />
-                <ErrorMessage
-                  name="description"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
+                        return (
+                          <div key={index} className="relative group">
+                            <div className="aspect-square rounded-xl overflow-hidden border-2 border-gray-200 hover:border-pink-300 transition-colors">
+                              {isVideo ? (
+                                <video
+                                  src={url}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <img
+                                  src={url}
+                                  alt={`preview-${index}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFieldValue(
+                                  "media",
+                                  values.media.filter((_, i) => i !== index)
+                                )
+                              }
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                              title="Remove media"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
-              {/* Price */}
-              <div>
-                <label className="block text-pink-500 font-semibold mb-1">
-                  Price ($)
-                </label>
-                <Field
-                  name="price"
-                  type="number"
-                  min={0}
-                  className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
-                  placeholder="Enter price"
-                />
-                <ErrorMessage
-                  name="price"
-                  component="div"
-                  className="text-red-500 text-sm"
-                />
-              </div>
-
-              {/* Available */}
-              <div className="flex items-center gap-2">
-                <Field type="checkbox" name="available" id="available" />
-                <label
-                  htmlFor="available"
-                  className="text-pink-500 font-semibold"
-                >
-                  Available
-                </label>
-              </div>
-
-              {/* Expiry Date */}
-              {!isEdit && (
-                <div>
-                  <label className="block text-pink-500 font-semibold mb-1">
-                    Expiry Date
+                {/* Title */}
+                <div className="space-y-2">
+                  <label className="block text-lg font-semibold text-gray-800">
+                    Product Title
                   </label>
                   <Field
-                    name="expiry_date"
-                    type="date"
-                    className="w-full border border-pink-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
+                    name="title"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                    placeholder="Enter an attractive product title"
                   />
                   <ErrorMessage
-                    name="expiry_date"
+                    name="title"
                     component="div"
-                    className="text-red-500 text-sm"
+                    className="text-red-500 text-sm font-medium"
                   />
                 </div>
-              )}
 
-              {/* General error */}
-              {errors.general && (
-                <div className="text-red-500 text-sm">{errors.general}</div>
-              )}
+                {/* Description */}
+                <div className="space-y-2">
+                  <label className="block text-lg font-semibold text-gray-800">
+                    Description
+                  </label>
+                  <Field
+                    as="textarea"
+                    name="description"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 min-h-[120px] resize-none"
+                    placeholder="Describe your product in detail..."
+                  />
+                  <ErrorMessage
+                    name="description"
+                    component="div"
+                    className="text-red-500 text-sm font-medium"
+                  />
+                </div>
 
-              {/* Submit button */}
-              <button
-                type="submit"
-                disabled={isSubmitting || loading}
-                className="w-full bg-pink-500 text-white py-3 rounded-lg font-semibold hover:bg-pink-600 transition-colors shadow-lg mt-4 disabled:opacity-60"
-              >
-                {loading
-                  ? isEdit
-                    ? "Saving..."
-                    : "Creating..."
-                  : isEdit
-                  ? "Save Changes"
-                  : "Create Post"}
-              </button>
-            </Form>
-          )}
-        </Formik>
+                {/* Cake Sizes */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-lg font-semibold text-gray-800">
+                      Cake Sizes & Prices
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAddSize}
+                      className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Size
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {cakeSizes.map((row, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200"
+                      >
+                        <div className="flex gap-3 items-start">
+                          <div className="flex-1">
+                            <input
+                              type="text"
+                              placeholder="Size (e.g. Small, Medium, Large)"
+                              value={row.size}
+                              onChange={(e) =>
+                                handleChangeSize(idx, "size", e.target.value)
+                              }
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                            />
+                            {cakeSizeErrors[idx]?.size && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {cakeSizeErrors[idx].size}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <input
+                              type="number"
+                              placeholder="Price (VND)"
+                              value={row.price}
+                              onChange={(e) =>
+                                handleChangeSize(idx, "price", e.target.value)
+                              }
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                            />
+                            {cakeSizeErrors[idx]?.price && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {cakeSizeErrors[idx].price}
+                              </p>
+                            )}
+                          </div>
+                          {cakeSizes.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSize(idx)}
+                              className="p-3 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-xl transition-all duration-300"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    💡 Customers will be able to choose from different sizes
+                    with their respective prices
+                  </p>
+                </div>
+
+                {/* Available Toggle */}
+                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200">
+                  <Field
+                    type="checkbox"
+                    name="available"
+                    id="available"
+                    className="w-5 h-5 text-pink-500 rounded focus:ring-pink-500"
+                  />
+                  <label
+                    htmlFor="available"
+                    className="text-lg font-semibold text-gray-800"
+                  >
+                    Product Available for Sale
+                  </label>
+                </div>
+
+                {/* Expiry Date */}
+                {!isEdit && (
+                  <div className="space-y-2">
+                    <label className="block text-lg font-semibold text-gray-800">
+                      Expiry Date
+                    </label>
+                    <Field
+                      name="expiry_date"
+                      type="date"
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                    />
+                    <ErrorMessage
+                      name="expiry_date"
+                      component="div"
+                      className="text-red-500 text-sm font-medium"
+                    />
+                  </div>
+                )}
+
+                {/* General error */}
+                {errors.general && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p className="text-red-600 font-medium">{errors.general}</p>
+                  </div>
+                )}
+
+                {/* Submit button */}
+                <div className="pt-6">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || loading}
+                    className="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white py-4 rounded-xl font-bold text-lg hover:from-pink-600 hover:to-rose-600 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        {isEdit ? "Saving..." : "Creating..."}
+                      </div>
+                    ) : isEdit ? (
+                      "Save Changes"
+                    ) : (
+                      "Create Product"
+                    )}
+                  </button>
+                </div>
+              </Form>
+            )}
+          </Formik>
+        </div>
       </div>
     </div>
   );
