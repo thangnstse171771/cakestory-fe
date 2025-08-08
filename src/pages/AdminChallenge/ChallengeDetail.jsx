@@ -44,6 +44,12 @@ export default function ChallengeDetail({
         return { background: "#dbeafe", color: "#1e40af" };
       case "Đang diễn ra":
         return { background: "#d1fae5", color: "#065f46" };
+      case "Sắp diễn ra":
+      case "notStart":
+        return { background: "#fef3c7", color: "#92400e" };
+      case "Đã kết thúc":
+      case "ended":
+        return { background: "#f3f4f6", color: "#374151" };
       case "Bị hủy":
         return { background: "#fee2e2", color: "#991b1b" };
       default:

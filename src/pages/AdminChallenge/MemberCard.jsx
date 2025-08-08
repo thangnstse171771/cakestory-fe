@@ -1,11 +1,72 @@
 "use client";
 
+import { useState } from "react";
+import axiosInstance from "../../api/axios";
+
+// Fetch user profile by ID
+const fetchUserProfile = async (userId) => {
+  try {
+    console.log("=== FETCHING USER PROFILE ===");
+    console.log("User ID:", userId);
+
+    const response = await axiosInstance.get(`/users/${userId}`);
+
+    console.log("=== API RESPONSE ===");
+    console.log("Full response:", response);
+    console.log("Response data:", response.data);
+    console.log("Response status:", response.status);
+
+    return response.data;
+  } catch (error) {
+    console.error("=== ERROR FETCHING USER PROFILE ===");
+    console.error("Error:", error);
+    console.error("Error response:", error.response);
+    console.error("Error message:", error.message);
+    throw error;
+  }
+};
+
 export default function MemberCard({
   user,
   participant,
   onRemove,
   isDeleting,
 }) {
+  const [showProfile, setShowProfile] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  // Debug logs
+  console.log("=== MEMBER CARD DEBUG ===");
+  console.log("User prop:", user);
+  console.log("User ID:", user?.id || user?.user_id);
+  console.log("Participant prop:", participant);
+
+  const handleViewProfile = async () => {
+    if (showProfile) {
+      setShowProfile(false);
+      return;
+    }
+
+    const userId = user?.id || user?.user_id;
+    console.log("=== HANDLE VIEW PROFILE ===");
+    console.log("Attempting to fetch profile for user ID:", userId);
+
+    setIsLoadingProfile(true);
+    try {
+      const profile = await fetchUserProfile(userId);
+      console.log("=== PROFILE FETCHED SUCCESSFULLY ===");
+      console.log("Profile data:", profile);
+      setProfileData(profile);
+      setShowProfile(true);
+    } catch (error) {
+      console.error("=== FAILED TO FETCH PROFILE ===");
+      console.error("Failed to fetch profile:", error);
+      alert("Không thể tải thông tin profile");
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
   return (
     <div
       style={{
@@ -24,13 +85,14 @@ export default function MemberCard({
     >
       <div
         style={{
-          padding: "24px",
+          padding: "20px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           gap: "16px",
         }}
       >
+        {/* Basic Info */}
         <div
           style={{
             display: "flex",
@@ -41,11 +103,12 @@ export default function MemberCard({
         >
           <div
             style={{
-              width: "64px",
-              height: "64px",
+              width: "48px",
+              height: "48px",
               borderRadius: "50%",
               overflow: "hidden",
               flexShrink: "0",
+              background: "#f3f4f6",
             }}
           >
             <img
@@ -55,249 +118,70 @@ export default function MemberCard({
             />
           </div>
           <div style={{ flex: "1", minWidth: "0" }}>
-            <div
+            <h3
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                marginBottom: "8px",
-                flexWrap: "wrap",
+                fontSize: "1.125rem",
+                fontWeight: "bold",
+                color: "#374151",
+                margin: "0 0 4px 0",
               }}
             >
-              <h3
-                style={{
-                  fontSize: "1.125rem",
-                  fontWeight: "bold",
-                  color: "#374151",
-                  margin: "0",
-                }}
-              >
-                {user?.username || user?.name || "Không có tên"}
-              </h3>
-              <span
-                style={{
-                  padding: "4px 8px",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  fontWeight: "500",
-                  background: user?.status === "active" ? "#d1fae5" : "#fee2e2",
-                  color: user?.status === "active" ? "#065f46" : "#991b1b",
-                }}
-              >
-                {user?.status === "active"
-                  ? "Hoạt động"
-                  : user?.status === "banned"
-                  ? "Bị cấm"
-                  : user?.status || "N/A"}
-              </span>
-              <span
-                style={{
-                  padding: "4px 8px",
-                  border: "1px solid #fce7f3",
-                  color: "#be185d",
-                  background: "#fdf2f8",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                }}
-              >
-                {user?.level || "Level N/A"}
-              </span>
-            </div>
-            <div
+              {user?.username || user?.name || "Không có tên"}
+            </h3>
+            <p
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                gap: "16px",
-                marginBottom: "12px",
                 fontSize: "14px",
                 color: "#6b7280",
+                margin: "0",
               }}
             >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "8px" }}
-              >
-                <span style={{ flexShrink: "0" }}>📧</span>
-                <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {user?.email || "Không có email"}
-                </span>
-              </div>
-              {user.phone && (
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <span style={{ flexShrink: "0" }}>📱</span>
-                  <span
-                    style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {user.phone}
-                  </span>
-                </div>
-              )}
-              {user.location && (
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <span style={{ flexShrink: "0" }}>📍</span>
-                  <span
-                    style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {user.location}
-                  </span>
-                </div>
-              )}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "24px",
-                fontSize: "14px",
-                flexWrap: "wrap",
-              }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "4px" }}
-              >
-                <span style={{ color: "#6b7280" }}>Tham gia: </span>
-                <span style={{ fontWeight: "500", color: "#374151" }}>
-                  {participant?.entryDate
-                    ? new Date(participant.entryDate).toLocaleDateString(
-                        "vi-VN"
-                      )
-                    : user.joinDate}
-                </span>
-              </div>
-              {participant && (
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                >
-                  <span style={{ color: "#6b7280" }}>Trạng thái entry: </span>
-                  <span
-                    style={{
-                      fontWeight: "500",
-                      color:
-                        participant.status === "submitted"
-                          ? "#059669"
-                          : participant.status === "pending"
-                          ? "#d97706"
-                          : "#6b7280",
-                    }}
-                  >
-                    {participant.status === "submitted"
-                      ? "Đã nộp"
-                      : participant.status === "pending"
-                      ? "Chờ nộp"
-                      : participant.status}
-                  </span>
-                </div>
-              )}
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "4px" }}
-              >
-                <span style={{ color: "#6b7280" }}>Challenges: </span>
-                <span style={{ fontWeight: "500", color: "#374151" }}>
-                  {user.completedChallenges || 0}/{user.totalChallenges || 0}
-                </span>
-              </div>
-              {user.totalChallenges > 0 && (
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "4px" }}
-                >
-                  <span style={{ color: "#6b7280" }}>Tỷ lệ: </span>
-                  <span style={{ fontWeight: "500", color: "#059669" }}>
-                    {Math.round(
-                      ((user.completedChallenges || 0) / user.totalChallenges) *
-                        100
-                    )}
-                    %
-                  </span>
-                </div>
-              )}
-            </div>
+              ID: {user?.id || user?.user_id || "N/A"}
+            </p>
           </div>
         </div>
+
+        {/* Action Buttons */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             gap: "8px",
             flexShrink: "0",
           }}
         >
-          {user.status === "active" ? (
-            <button
-              style={{
-                padding: "8px 16px",
-                background: "#ef4444",
-                color: "white",
-                border: "1px solid #ef4444",
-                borderRadius: "6px",
-                fontSize: "14px",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => (e.target.style.backgroundColor = "#dc2626")}
-              onMouseLeave={(e) => (e.target.style.backgroundColor = "#ef4444")}
-            >
-              🚫 Cấm
-            </button>
-          ) : (
-            <button
-              style={{
-                padding: "8px 16px",
-                background: "#10b981",
-                color: "white",
-                border: "1px solid #10b981",
-                borderRadius: "6px",
-                fontSize: "14px",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => (e.target.style.backgroundColor = "#059669")}
-              onMouseLeave={(e) => (e.target.style.backgroundColor = "#10b981")}
-            >
-              ✅ Bỏ cấm
-            </button>
-          )}
           <button
+            onClick={handleViewProfile}
+            disabled={isLoadingProfile}
             style={{
               padding: "8px 16px",
               border: "1px solid #d1d5db",
               borderRadius: "6px",
               fontSize: "14px",
-              cursor: "pointer",
+              cursor: isLoadingProfile ? "not-allowed" : "pointer",
               transition: "all 0.2s",
               background: "white",
               color: "#374151",
               whiteSpace: "nowrap",
             }}
             onMouseEnter={(e) => {
-              e.target.style.borderColor = "#3b82f6";
-              e.target.style.color = "#3b82f6";
+              if (!isLoadingProfile) {
+                e.target.style.borderColor = "#3b82f6";
+                e.target.style.color = "#3b82f6";
+              }
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db";
-              e.target.style.color = "#374151";
+              if (!isLoadingProfile) {
+                e.target.style.borderColor = "#d1d5db";
+                e.target.style.color = "#374151";
+              }
             }}
           >
-            👁️ Xem profile
+            {isLoadingProfile
+              ? "⏳ Đang tải..."
+              : showProfile
+              ? "▲ Ẩn profile"
+              : "👁️ Xem profile"}
           </button>
+
           <button
             onClick={() => onRemove && onRemove(participant)}
             disabled={isDeleting}
@@ -320,10 +204,145 @@ export default function MemberCard({
               !isDeleting && (e.target.style.backgroundColor = "#dc2626")
             }
           >
-            {isDeleting ? "⏳ Đang xóa..." : "🗑️ Xóa khỏi challenge"}
+            {isDeleting ? "⏳ Đang xóa..." : "🗑️ Xóa"}
           </button>
         </div>
       </div>
+
+      {/* Profile Details (Expandable) */}
+      {showProfile && (
+        <div
+          style={{
+            borderTop: "1px solid #e5e7eb",
+            padding: "20px",
+            background: "#f9fafb",
+          }}
+        >
+          <h4
+            style={{
+              fontSize: "16px",
+              fontWeight: "600",
+              color: "#374151",
+              margin: "0 0 16px 0",
+            }}
+          >
+            Thông tin chi tiết
+          </h4>
+
+          {profileData ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+                fontSize: "14px",
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                <strong style={{ color: "#374151", minWidth: "80px" }}>
+                  Email:
+                </strong>
+                <span
+                  style={{
+                    color: "#6b7280",
+                    wordBreak: "break-all",
+                    flex: "1",
+                  }}
+                >
+                  {profileData.user?.email || "Không có"}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                <strong style={{ color: "#374151", minWidth: "80px" }}>
+                  Số điện thoại:
+                </strong>
+                <span style={{ color: "#6b7280", flex: "1" }}>
+                  {profileData.user?.phone_number || "Không có"}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                <strong style={{ color: "#374151", minWidth: "80px" }}>
+                  Họ tên:
+                </strong>
+                <span
+                  style={{
+                    color: "#6b7280",
+                    wordBreak: "break-word",
+                    flex: "1",
+                  }}
+                >
+                  {profileData.user?.full_name || "Không có"}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                <strong style={{ color: "#374151", minWidth: "80px" }}>
+                  Địa chỉ:
+                </strong>
+                <span style={{ color: "#6b7280", flex: "1" }}>
+                  {profileData.user?.address || "Không có"}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "4px",
+                  alignItems: "center",
+                }}
+              >
+                <strong style={{ color: "#374151", minWidth: "80px" }}>
+                  Role:
+                </strong>
+                <span
+                  style={{
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    background:
+                      profileData.user?.role === "admin"
+                        ? "#ddd6fe"
+                        : "#d1fae5",
+                    color:
+                      profileData.user?.role === "admin"
+                        ? "#5b21b6"
+                        : "#065f46",
+                  }}
+                >
+                  {profileData.user?.role === "admin"
+                    ? "Quản trị viên"
+                    : profileData.user?.role === "user"
+                    ? "Người dùng"
+                    : profileData.user?.role || "Không có"}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                <strong style={{ color: "#374151", minWidth: "80px" }}>
+                  Username:
+                </strong>
+                <span
+                  style={{
+                    color: "#6b7280",
+                    wordBreak: "break-all",
+                    flex: "1",
+                  }}
+                >
+                  {profileData.user?.username || "Không có"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ color: "#666", fontStyle: "italic" }}>
+              Không có dữ liệu profile
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

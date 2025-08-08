@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getChallengeById, joinChallenge } from "../../api/challenge";
 import axiosInstance from "../../api/axios";
+// import axiosInstance from "../../api/axios";
 
 const countParticipants = (entries, challengeId) => {
   if (!entries || !Array.isArray(entries)) {
@@ -10,6 +11,44 @@ const countParticipants = (entries, challengeId) => {
   }
   return entries.filter((entry) => entry.challenge_id === challengeId).length;
 };
+
+function translateStatus(status) {
+  const statusMap = {
+    notStart: "Sắp diễn ra",
+    ongoing: "Đang diễn ra",
+    ended: "Đã kết thúc",
+    pending: "Chờ duyệt",
+    approved: "Đã duyệt",
+    rejected: "Bị từ chối",
+    cancelled: "Bị hủy",
+  };
+  return statusMap[status] || status;
+}
+
+function formatDateTime(dateString) {
+  if (!dateString) return "Chưa xác định";
+
+  try {
+    const date = new Date(dateString);
+
+    // Kiểm tra nếu date không hợp lệ
+    if (isNaN(date.getTime())) {
+      return "Chưa xác định";
+    }
+
+    // Format: "DD/MM/YYYY HH:mm"
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Chưa xác định";
+  }
+}
 
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
@@ -31,16 +70,8 @@ export default function ChallengeDetailsPage() {
   // Fetch challenge details by ID
   useEffect(() => {
     const fetchChallengeDetails = async () => {
-      const challengeId = Number(id);
-      console.log(
-        "[DEBUG] id param:",
-        id,
-        "| typeof:",
-        typeof id,
-        "| as number:",
-        challengeId
-      );
-      if (!challengeId || isNaN(challengeId)) {
+      console.log("[DEBUG] id param:", id, "| typeof:", typeof id);
+      if (!id) {
         setError("ID challenge không hợp lệ");
         setLoading(false);
         return;
@@ -51,32 +82,33 @@ export default function ChallengeDetailsPage() {
         setError(null);
 
         // Sử dụng hàm getChallengeById đã import từ api/challenge
-        const result = await getChallengeById(challengeId);
+        const result = await getChallengeById(id);
 
         console.log("=== API CHALLENGE DETAILS RESULT ===");
         console.log("Full API Result:", result);
-        if (result && typeof result === "object") {
-          console.log("Result success:", result.success);
-          console.log("Result error:", result.error);
-          console.log("Challenge data:", result.challenge);
-        }
-        if (result.challenge) {
-          console.log("Challenge fields:", Object.keys(result.challenge));
-          console.log("Title:", result.challenge.title);
-          console.log("Description:", result.challenge.description);
-          console.log("Rules:", result.challenge.rules);
-          console.log("Requirements:", result.challenge.requirements);
-          console.log("Status:", result.challenge.status);
-          console.log("Prize:", result.challenge.prize_description);
-        }
-        console.log("=== END API RESULT ===");
 
-        if (result.success && result.challenge) {
-          setChallenge(result.challenge);
+        // API trả về trực tiếp challenge object hoặc có structure khác
+        if (result && result.challenge) {
+          console.log("Challenge data:", result.challenge);
+          // Translate status before setting
+          const translatedChallenge = {
+            ...result.challenge,
+            status: translateStatus(result.challenge.status),
+          };
+          setChallenge(translatedChallenge);
+        } else if (result && result.id) {
+          // API trả về trực tiếp challenge object
+          console.log("Direct challenge data:", result);
+          // Translate status before setting
+          const translatedChallenge = {
+            ...result,
+            status: translateStatus(result.status),
+          };
+          setChallenge(translatedChallenge);
         } else {
           console.error("Failed to fetch challenge:", result);
-          setError(result.error || "Không thể tải thông tin challenge");
-          toast.error(result.error || "Không thể tải thông tin challenge");
+          setError("Không thể tải thông tin challenge");
+          toast.error("Không thể tải thông tin challenge");
         }
       } catch (error) {
         console.error("Error in fetchChallengeDetails:", error);
@@ -235,16 +267,19 @@ export default function ChallengeDetailsPage() {
   };
 
   const handleBack = () => {
-    navigate("/challenges");
+    navigate("/challenge");
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case "Đang diễn ra":
+      case "ongoing":
         return "bg-green-50 text-green-700 border-green-200";
       case "Sắp diễn ra":
+      case "notStart":
         return "bg-blue-50 text-blue-700 border-blue-200";
       case "Đã kết thúc":
+      case "ended":
         return "bg-gray-50 text-gray-700 border-gray-200";
       default:
         return "bg-gray-50 text-gray-700 border-gray-200";
@@ -506,9 +541,9 @@ export default function ChallengeDetailsPage() {
                     <div>
                       <p className="text-sm text-gray-600">Bắt đầu</p>
                       <p className="font-semibold text-gray-800">
-                        {challenge.start_date ||
-                          challenge.startDate ||
-                          "Chưa xác định"}
+                        {formatDateTime(
+                          challenge.start_date || challenge.startDate
+                        )}
                       </p>
                     </div>
                   </div>
@@ -529,9 +564,9 @@ export default function ChallengeDetailsPage() {
                     <div>
                       <p className="text-sm text-gray-600">Kết thúc</p>
                       <p className="font-semibold text-gray-800">
-                        {challenge.end_date ||
-                          challenge.endDate ||
-                          "Chưa xác định"}
+                        {formatDateTime(
+                          challenge.end_date || challenge.endDate
+                        )}
                       </p>
                     </div>
                   </div>
@@ -650,7 +685,8 @@ export default function ChallengeDetailsPage() {
                       Vào nhóm Challenge
                     </button>
                   </>
-                ) : challenge.status === "Đang diễn ra" ? (
+                ) : challenge.status === "Đang diễn ra" ||
+                  challenge.status === "ongoing" ? (
                   <button
                     className="w-full bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleJoin}
@@ -658,7 +694,8 @@ export default function ChallengeDetailsPage() {
                   >
                     {isJoining ? "Đang tham gia..." : "Tham gia ngay"}
                   </button>
-                ) : challenge.status === "Sắp diễn ra" ? (
+                ) : challenge.status === "Sắp diễn ra" ||
+                  challenge.status === "notStart" ? (
                   <button
                     className="w-full bg-blue-400 hover:bg-blue-500 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleJoin}
