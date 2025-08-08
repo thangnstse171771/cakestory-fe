@@ -198,6 +198,14 @@ const ChatArea = () => {
     }
   };
 
+  const chatPrompts = [
+    "Shop mình mở từ mấy giờ ạ?",
+    "Mình có thể xem menu được không?",
+    "Mình đặt hàng như thế nào?",
+    "Shop thường mất bao lâu để làm và giao bánh?",
+    "Best seller của shop mình là bánh nào ạ?"
+  ];
+
   return (
     <div className="flex flex-1 bg-white rounded-r-xl shadow-sm border-t border-r border-b border-gray-100">
       {/* Main Chat Area */}
@@ -382,6 +390,21 @@ const ChatArea = () => {
             </div>
           )}
 
+          {/* Chat prompts */}
+          {currentUserChatEntry?.role === "customer" && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {chatPrompts.map((prompt, index) => (
+                <button
+                  key={index}
+                  onClick={() => setText(prompt)}
+                  className="bg-gray-100 hover:bg-pink-200 text-sm text-gray-800 px-3 py-1 rounded-full transition"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Input and buttons */}
           <div className="flex items-center space-x-2">
             <input
@@ -423,7 +446,7 @@ const ChatArea = () => {
         onClose={() => setShowUserInfo(false)}
         avatar={user?.avatar}
         name={user?.username}
-        images={OPPOSING_USER.images}
+        images={chat.messages?.filter((m) => m.img).map((m) => m.img)}
       />
     </div>
   );

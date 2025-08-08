@@ -228,6 +228,67 @@ export const removeUserFromGroupChatByShopId = async ({
   }
 };
 
+export const addUserToGroupChatsByShopId = async ({ firebaseUid, shopId }) => {
+  try {
+    const groupChatsRef = collection(db, "groupChats");
+    const q = query(groupChatsRef, where("shopId", "==", shopId));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      console.warn(`No group chats found for shopId=${shopId}`);
+      return;
+    }
+
+    for (const groupChatDoc of snapshot.docs) {
+      const data = groupChatDoc.data();
+      const chatId = groupChatDoc.id;
+
+      // Add user to groupChats.{members, shopMemberIds} if not already included
+      await updateDoc(groupChatDoc.ref, {
+        members: arrayUnion(firebaseUid),
+        shopMemberIds: arrayUnion(firebaseUid),
+      });
+
+      // Add to userchats
+      const userChatDocRef = doc(db, "userchats", firebaseUid);
+      const userChatSnap = await getDoc(userChatDocRef);
+      const chatEntry = {
+        chatId: chatId,
+        role: "shopMember",
+        createdAt: Date.now(),
+        isSeen: false,
+        lastMessage: "",
+      };
+
+      if (userChatSnap.exists()) {
+        const userData = userChatSnap.data();
+        const existingChats = userData.chats || [];
+        const isAlreadyInChat = existingChats.some(
+          (chat) => chat.chatId === chatId
+        );
+
+        if (!isAlreadyInChat) {
+          const updatedChats = [...existingChats, chatEntry];
+          await updateDoc(userChatDocRef, {
+            chats: updatedChats,
+          });
+        }
+      } else {
+        // Create new userchats document if it doesn't exist
+        await setDoc(userChatDocRef, {
+          chats: [chatEntry],
+        });
+      }
+    }
+
+    console.log(
+      `User ${firebaseUid} added to all group chats for shopId=${shopId}`
+    );
+  } catch (error) {
+    console.error("Error adding user to group chats:", error);
+  }
+};
+
 export async function getShopChatsForUser(currentUserFirebaseId) {
   const q = query(collection(db, "groupChats"), where("type", "==", "shop"));
   const snapshot = await getDocs(q);
