@@ -18,6 +18,7 @@ import CreateAlbumPost from "./AlbumPost/CreateAlbumPost";
 import UpdateAlbum from "./UpdateAlbum";
 import UpdateAlbumPost from "./AlbumPost/UpdateAlbumPost";
 import AlbumPostDetail from "./AlbumPost/AlbumPostDetail";
+import DeletePostPopup from "../MyPost/DeletePostPopup";
 
 const AlbumDetail = () => {
   const { id } = useParams();
@@ -29,6 +30,7 @@ const AlbumDetail = () => {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isUpdatePostOpen, setIsUpdatePostOpen] = useState(false);
   const [isAlbumPostOpen, setIsAlbumPostOpen] = useState(false);
+  const [isDeletePostOpen, setIsDeletePostOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [selectedPost, setSelectedPost] = useState(null);
 
@@ -62,6 +64,22 @@ const AlbumDetail = () => {
       setAlbum(formattedAlbum);
     } catch (error) {
       console.error("Failed to fetch album:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!selectedPost) return;
+    setLoading(true);
+    try {
+      await authAPI.deleteAlbumPost(selectedPost.id);
+      setIsDeletePostOpen(false); // close popup
+      fetchAlbum(); 
+      setSelectedPost(null);
+    } catch (error) {
+      console.error("Delete post failed:", error);
+      setError("Failed to delete post");
     } finally {
       setLoading(false);
     }
@@ -102,7 +120,7 @@ const AlbumDetail = () => {
   return (
     <div className="p-6">
       {/* Header with Back Button */}
-      <div className="flex items-center mb-6">
+      {/* <div className="flex items-center mb-6">
         <button
           onClick={() => navigate("/myalbum")}
           className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors mr-4"
@@ -110,7 +128,7 @@ const AlbumDetail = () => {
           <ArrowLeft className="w-5 h-5" />
           <span>Back to Albums</span>
         </button>
-      </div>
+      </div> */}
 
       {/* Album Header */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
@@ -281,7 +299,7 @@ const AlbumDetail = () => {
                       <button
                         onClick={() => {
                           setOpenDropdown(null);
-                          // setIsDeleteAlbumOpen(true);
+                          setIsDeletePostOpen(true);
                           setSelectedPost(post);
                         }}
                         className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
@@ -392,7 +410,8 @@ const AlbumDetail = () => {
                           <button
                             onClick={() => {
                               setOpenDropdown(null);
-                              setSelectedPost(album);
+                              setIsDeletePostOpen(true);
+                              setSelectedPost(post);
                             }}
                             className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
                           >
@@ -461,6 +480,12 @@ const AlbumDetail = () => {
         isOpen={isAlbumPostOpen}
         onClose={() => setIsAlbumPostOpen(false)}
         post={selectedPost}
+      />
+      <DeletePostPopup
+        isOpen={isDeletePostOpen}
+        onClose={() => setIsDeletePostOpen(false)}
+        onDelete={handleDeletePost}
+        loading={loading}
       />
     </div>
   );
