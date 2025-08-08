@@ -19,6 +19,19 @@ function getStatusFromDates(startDate, endDate) {
   return "Đang diễn ra";
 }
 
+function translateStatus(status) {
+  const statusMap = {
+    notStart: "Sắp diễn ra",
+    ongoing: "Đang diễn ra",
+    ended: "Đã kết thúc",
+    pending: "Chờ duyệt",
+    approved: "Đã duyệt",
+    rejected: "Bị từ chối",
+    cancelled: "Bị hủy",
+  };
+  return statusMap[status] || status;
+}
+
 function formatDate(dateString) {
   const date = new Date(dateString);
   return `${date.getDate().toString().padStart(2, "0")}/${(date.getMonth() + 1)
@@ -26,7 +39,7 @@ function formatDate(dateString) {
     .padStart(2, "0")}/${date.getFullYear()}`;
 }
 
-export default function ChallengeList({ onViewDetail, onViewMembers }) {
+export default function ChallengeList({ onViewDetail, onViewMembers, onEdit }) {
   const navigate = useNavigate();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -39,32 +52,79 @@ export default function ChallengeList({ onViewDetail, onViewMembers }) {
         setLoading(true);
         const response = await getAllChallenges();
         if (response && response.challenges) {
-          const apiChallenges = response.challenges.map((challenge) => ({
-            id: challenge.id || challenge._id,
-            title: challenge.title || "Untitled Challenge",
-            description: challenge.description || "",
-            adminStatus:
-              challenge.admin_status ||
-              getStatusFromDates(challenge.start_date, challenge.end_date),
-            startDate: formatDate(challenge.start_date),
-            endDate: formatDate(challenge.end_date),
-            duration: challenge.duration || "30 ngày",
-            difficulty: challenge.difficulty || "Trung bình",
-            prize: challenge.prize_description || "",
-            participants: challenge.participants_count || 0,
-            maxParticipants: challenge.max_participants || 100,
-            minParticipants: challenge.min_participants || 10,
-            hashtags: Array.isArray(challenge.hashtags)
-              ? challenge.hashtags
-              : [],
-            image: challenge.image_url || IMAGE_URL,
-            host: {
-              name: challenge.host_name || "Admin",
-              avatar: challenge.host_avatar || IMAGE_URL,
-            },
-            rules: challenge.rules || [],
-            requirements: challenge.requirements || [],
-          }));
+          const apiChallenges = response.challenges.map((challenge) => {
+            console.log("Raw challenge from API:", challenge);
+
+            // Calculate duration from dates
+            const calculateDuration = (startDate, endDate) => {
+              if (!startDate || !endDate) return "30 ngày";
+              const start = new Date(startDate);
+              const end = new Date(endDate);
+              const diffTime = Math.abs(end - start);
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              return `${diffDays} ngày`;
+            };
+
+            const mapped = {
+              id: challenge.id || challenge._id,
+              title: challenge.title || "Untitled Challenge",
+              description: challenge.description || "",
+              adminStatus: translateStatus(
+                challenge.admin_status ||
+                  challenge.status ||
+                  getStatusFromDates(challenge.start_date, challenge.end_date)
+              ),
+              startDate: formatDate(challenge.start_date),
+              endDate: formatDate(challenge.end_date),
+              duration: calculateDuration(
+                challenge.start_date,
+                challenge.end_date
+              ),
+              difficulty: challenge.difficulty || "Trung bình",
+              prize:
+                challenge.prize_description ||
+                challenge.prize ||
+                "Chưa có giải thưởng",
+              participants: challenge.participants_count || 0,
+              maxParticipants: challenge.max_participants || 100,
+              minParticipants: challenge.min_participants || 10,
+              hashtags: Array.isArray(challenge.hashtags)
+                ? challenge.hashtags
+                : typeof challenge.hashtag === "string"
+                ? challenge.hashtag
+                    .split(",")
+                    .map((tag) => tag.trim())
+                    .filter(Boolean)
+                : challenge.hashtag
+                ? [challenge.hashtag]
+                : [],
+              image: challenge.image_url || challenge.image || IMAGE_URL,
+              host: {
+                name: challenge.host_name || challenge.host?.name || "Admin",
+                avatar:
+                  challenge.host_avatar || challenge.host?.avatar || IMAGE_URL,
+              },
+              rules: Array.isArray(challenge.rules)
+                ? challenge.rules
+                : typeof challenge.rules === "string" && challenge.rules.trim()
+                ? challenge.rules.split("\n").filter(Boolean)
+                : [],
+              requirements: Array.isArray(challenge.requirements)
+                ? challenge.requirements
+                : typeof challenge.requirements === "string" &&
+                  challenge.requirements.trim()
+                ? challenge.requirements.split("\n").filter(Boolean)
+                : [],
+              // Raw data for editing
+              start_date: challenge.start_date,
+              end_date: challenge.end_date,
+              hashtag: challenge.hashtag,
+              prize_description: challenge.prize_description || challenge.prize,
+            };
+
+            console.log("Mapped challenge:", mapped);
+            return mapped;
+          });
           setChallenges(apiChallenges);
         } else {
           toast.error("Không có thử thách nào từ API.");
@@ -171,6 +231,7 @@ export default function ChallengeList({ onViewDetail, onViewMembers }) {
               challenge={challenge}
               onViewDetail={() => navigate(`/admin/challenge/${challenge.id}`)}
               onViewMembers={onViewMembers}
+              onEdit={onEdit}
             />
           ))}
       </div>
