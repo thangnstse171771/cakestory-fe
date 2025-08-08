@@ -7,6 +7,7 @@ export default function ChallengeCard({
   challenge,
   onViewDetail,
   onViewMembers,
+  onEdit,
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -320,6 +321,14 @@ export default function ChallengeCard({
               transition: "all 0.2s",
               background: "white",
               color: "#374151",
+            }}
+            onClick={() => {
+              console.log("🔧 ChallengeCard: Edit button clicked", challenge);
+              if (typeof onEdit === "function") {
+                onEdit(challenge);
+              } else {
+                console.error("🔧 ChallengeCard: onEdit is not a function");
+              }
             }}
             onMouseEnter={(e) => {
               e.target.style.borderColor = "#8b5cf6";

@@ -5,11 +5,14 @@ import ChallengeList from "./ChallengeList";
 import ChallengeDetail from "./ChallengeDetail";
 import MembersList from "./MembersList";
 import AnalyticsTab from "./AnalyticsTab";
+import ChallengeModal from "./ChallengeModal";
 
 export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState("dashboard");
   const [activeTab, setActiveTab] = useState("challenges");
   const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingChallenge, setEditingChallenge] = useState(null);
 
   const handleViewChallengeDetail = (challenge) => {
     setSelectedChallenge(challenge);
@@ -29,6 +32,20 @@ export default function AdminDashboard() {
 
   const handleBackToDetail = () => {
     setCurrentView("challenge-detail");
+  };
+
+  const handleEditChallenge = (challenge) => {
+    console.log("🔧 AdminDashboard: handleEditChallenge called", challenge);
+    setEditingChallenge(challenge);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = (updatedChallenge) => {
+    console.log("✅ Challenge updated successfully:", updatedChallenge);
+    setShowEditModal(false);
+    setEditingChallenge(null);
+    // Optionally refresh the challenge list here
+    alert("Challenge đã được cập nhật thành công!");
   };
 
   // Challenge Detail Page
@@ -135,12 +152,25 @@ export default function AdminDashboard() {
               <ChallengeList
                 onViewDetail={handleViewChallengeDetail}
                 onViewMembers={handleViewMembers}
+                onEdit={handleEditChallenge}
               />
             )}
             {activeTab === "analytics" && <AnalyticsTab />}
           </div>
         </div>
       </div>
+
+      {/* Edit Challenge Modal */}
+      <ChallengeModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingChallenge(null);
+        }}
+        onSuccess={handleEditSuccess}
+        editChallenge={editingChallenge}
+        mode="edit"
+      />
     </div>
   );
 }
