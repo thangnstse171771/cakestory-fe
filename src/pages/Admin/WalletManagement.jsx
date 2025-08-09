@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getAdminWallet } from "../../api/wallet";
 
-// Mock data cho các ví
+// Mock data cho các ví (sẽ được thay thế bằng dữ liệu từ API)
 const mockWalletData = {
   holding: {
     balance: 15000000, // 15 triệu
@@ -16,7 +17,7 @@ const mockWalletData = {
   accounting: {
     balance: 25000000, // 25 triệu
     currency: "VND",
-    description: "Ví doanh thu thực nhận từ gói AI",
+    description: "Doanh thu hệ thống từ gói AI",
   },
   withdraw: {
     balance: 5000000, // 5 triệu
@@ -55,12 +56,45 @@ const WalletManagement = () => {
   const [transactions, setTransactions] = useState(mockTransactions);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const totalPages = Math.ceil(transactions.length / itemsPerPage);
+
+  // Fetch admin wallet data từ API
+  const fetchAdminWalletData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getAdminWallet();
+
+      if (response.success && response.adminWallet) {
+        // Update wallet data với thông tin thực từ API
+        setWalletData((prevData) => ({
+          ...prevData,
+          accounting: {
+            balance: parseFloat(response.adminWallet) || 0,
+            currency: "VND",
+            description: "Doanh thu hệ thống từ gói AI",
+          },
+        }));
+      }
+    } catch (error) {
+      console.error("Lỗi khi fetch admin wallet:", error);
+      setError("Không thể tải thông tin ví admin");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load dữ liệu khi component mount
+  useEffect(() => {
+    fetchAdminWalletData();
+  }, []);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -129,12 +163,25 @@ const WalletManagement = () => {
           <h1 className="text-4xl font-bold text-pink-600">
             Quản Lý Ví Hệ Thống
           </h1>
-          <button
-            onClick={handleNavigateToWithdraw}
-            className="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors"
-          >
-            Xem Yêu Cầu Rút Tiền
-          </button>
+          <div className="flex items-center gap-4">
+            {loading && (
+              <div className="text-pink-600 font-medium">Đang tải...</div>
+            )}
+            {error && <div className="text-red-600 text-sm">{error}</div>}
+            <button
+              onClick={handleNavigateToWithdraw}
+              className="bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors"
+            >
+              Xem Yêu Cầu Rút Tiền
+            </button>
+            <button
+              onClick={fetchAdminWalletData}
+              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+              disabled={loading}
+            >
+              Làm Mới
+            </button>
+          </div>
         </div>
 
         {/* Wallet Overview Cards */}
@@ -163,7 +210,7 @@ const WalletManagement = () => {
               <h3 className="text-lg font-semibold text-gray-800 mb-2 capitalize">
                 {key === "holding" && "Ví Holding"}
                 {key === "floating" && "Ví Floating"}
-                {key === "accounting" && "Ví Accounting"}
+                {key === "accounting" && "Doanh Thu Hệ Thống"}
                 {key === "withdraw" && "Ví Withdraw"}
               </h3>
 
@@ -284,7 +331,7 @@ const WalletManagement = () => {
                     : selectedWallet === "floating"
                     ? "Ví Floating"
                     : selectedWallet === "accounting"
-                    ? "Ví Accounting"
+                    ? "Doanh Thu Hệ Thống"
                     : selectedWallet === "withdraw"
                     ? "Ví Withdraw"
                     : "Tất cả"
