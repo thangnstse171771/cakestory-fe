@@ -81,6 +81,20 @@ export const walletAPI = {
       throw error;
     }
   },
+
+  // 6. Lấy số dư ví admin (Admin only)
+  getAdminWallet: async () => {
+    try {
+      console.log("Lấy thông tin ví admin...");
+      const response = await axiosInstance.get("/wallet/AdminWallet");
+      console.log("Response từ /wallet/AdminWallet:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Lỗi khi lấy thông tin ví admin:", error);
+      console.error("Error response:", error.response?.data);
+      throw error;
+    }
+  },
 };
 
 // Export individual functions để backward compatibility
@@ -90,4 +104,5 @@ export const {
   checkPaymentStatus,
   handlePayOSWebhook,
   testWebhookEndpoint: getPayOSWebhook,
+  getAdminWallet,
 } = walletAPI;
