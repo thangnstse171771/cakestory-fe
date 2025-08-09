@@ -18,6 +18,7 @@ import { useChatStore } from "./libs/useChatStore";
 const ConversationList = () => {
   const [chats, setChats] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const { user } = useAuth();
   const currentUserId = user?.id?.toString();
   const { chatId, changeChat } = useChatStore();
@@ -123,36 +124,6 @@ const ConversationList = () => {
     fetchAndListenChats();
   }, [user?.id]);
 
-  // useEffect(() => {
-  //   if (!currentUserId) return;
-
-  //   const unSub = onSnapshot(
-  //     doc(db, "userchats", currentUserId),
-  //     async (res) => {
-  //       if (!res.exists()) {
-  //         setChats([]);
-  //         return;
-  //       }
-
-  //       const items = res.data().chats;
-
-  //       const promises = items.map(async (item) => {
-  //         const userDocRef = doc(db, "users", item.receiverId);
-  //         const userDocSnap = await getDoc(userDocRef);
-  //         const user = userDocSnap.data();
-
-  //         return { ...item, user };
-  //       });
-
-  //       const chatData = await Promise.all(promises);
-
-  //       setChats(chatData.sort((a, b) => b.updatedAt - a.updatedAt));
-  //     }
-  //   );
-
-  //   return () => unSub();
-  // }, [currentUserId]);
-
   const handleSelect = async (chat) => {
     const userChats = chats.map((item) => {
       const { user, isGroup, ...rest } = item; // Exclude isGroup and user from Firebase update
@@ -183,76 +154,9 @@ const ConversationList = () => {
 
   console.log("Chats:", chats);
 
-  const conversations = [
-    {
-      id: 1,
-      name: "Sarah Baker",
-      lastMessage: "Thanks for the cake recipe!",
-      time: "2m ago",
-      unread: 2,
-      avatar:
-        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
-    },
-    {
-      id: 2,
-      name: "Cake Lovers Group",
-      lastMessage: "New chocolate cake tutorial posted",
-      time: "1h ago",
-      unread: 0,
-      avatar:
-        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
-    },
-    {
-      id: 3,
-      name: "Mike Johnson",
-      lastMessage: "Can you make a custom cake for my wedding?",
-      time: "3h ago",
-      unread: 1,
-      avatar:
-        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
-    },
-    {
-      id: 4,
-      name: "Mike Johnson",
-      lastMessage: "Can you make a custom cake for my wedding?",
-      time: "3h ago",
-      unread: 1,
-      avatar:
-        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
-    },
-    // {
-    //   id: 5,
-    //   name: "Mike Johnson",
-    //   lastMessage: "Can you make a custom cake for my wedding?",
-    //   time: "3h ago",
-    //   unread: 1,
-    //   avatar: "/placeholder.svg?height=40&width=40",
-    // },
-    // {
-    //   id: 6,
-    //   name: "Mike Johnson",
-    //   lastMessage: "Can you make a custom cake for my wedding?",
-    //   time: "3h ago",
-    //   unread: 1,
-    //   avatar: "/placeholder.svg?height=40&width=40",
-    // },
-    // {
-    //   id: 7,
-    //   name: "Mike Johnson",
-    //   lastMessage: "Can you make a custom cake for my wedding?",
-    //   time: "3h ago",
-    //   unread: 1,
-    //   avatar: "/placeholder.svg?height=40&width=40",
-    // },
-    // {
-    //   id: 8,
-    //   name: "Mike Johnson",
-    //   lastMessage: "Can you make a custom cake for my wedding?",
-    //   time: "3h ago",
-    //   unread: 1,
-    //   avatar: "/placeholder.svg?height=40&width=40",
-    // },
-  ];
+  const filteredChats = chats.filter((chat) =>
+    chat?.user?.username?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-w-[180px] w-1/5 lg:w-1/4 flex flex-col bg-white rounded-l-xl shadow-sm border border-gray-100">
@@ -272,13 +176,15 @@ const ConversationList = () => {
           <input
             type="text"
             placeholder="Search conversations..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {chats.map((chat, index) => {
+        {filteredChats.map((chat, index) => {
           const isUnread = chat?.lastMessage && !chat?.isSeen;
           const isSelected = chat.chatId === chatId;
 
