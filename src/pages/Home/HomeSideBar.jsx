@@ -6,11 +6,31 @@ import {
 } from "../../data/mockData";
 import { Link } from "react-router-dom";
 import { authAPI } from "../../api/auth";
+import { getAllChallenges } from "../../api/challenge";
 import { useAuth } from "../../contexts/AuthContext";
+import dayjs from "dayjs";
+import "dayjs/locale/vi"; // import Vietnamese locale
+import { Trophy, Users } from "lucide-react";
+
+dayjs.locale("vi");
 
 const HomeSideBar = () => {
   const { user } = useAuth();
   const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [challenges, setChallenges] = useState([]);
+
+  useEffect(() => {
+    const fetchChallenges = async () => {
+      try {
+        const res = await getAllChallenges();
+        setChallenges(res.challenges || []); // Adjust based on your API response shape
+      } catch (error) {
+        console.error("Failed to fetch challenges:", error);
+      }
+    };
+
+    fetchChallenges();
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -43,13 +63,12 @@ const HomeSideBar = () => {
   }, [user?.id]);
 
   const trendingTopics = generateTrendingTopics(5);
-  const upcomingEvents = generateUpcomingEvents(4);
 
   return (
     <div className="w-45 lg:w-60 xl:w-80 space-y-4">
       {/* Trending Topics */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h3 className="font-semibold text-gray-800 mb-3">Trending Topics</h3>
+        <h3 className="font-bold text-gray-800 mb-4">Trending Topics</h3>
         <div className="space-y-2">
           {trendingTopics.map((topic, index) => (
             <div key={index} className="flex justify-between items-center">
@@ -65,7 +84,11 @@ const HomeSideBar = () => {
 
       {/* Suggestion Groups */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h3 className="font-semibold text-gray-800 mb-3">Suggested Users</h3>
+        <div className="flex flex-row items-center gap-2 mb-4">
+          <Users />
+          <h3 className="font-bold text-gray-800">Other Users</h3>
+        </div>
+
         <div className="space-y-3">
           {suggestedUsers.map((user, index) => (
             <div
@@ -112,19 +135,34 @@ const HomeSideBar = () => {
 
       {/* Upcoming Events */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h3 className="font-semibold text-gray-800 mb-3">Upcoming Events</h3>
+        <div className="flex flex-row items-center gap-2 mb-4">
+          <Trophy />
+          <h3 className="font-bold text-gray-800">Challenges</h3>
+        </div>
         <div className="space-y-2">
-          {upcomingEvents.map((event, index) => (
+          {challenges.map((chal, index) => (
             <div key={index} className="border-l-2 border-pink-200 pl-3">
-              <div className="font-medium text-gray-800 text-sm">
-                {event.name}
+              <div className="font-medium text-pink-700 text-sm">
+                <Link
+                  className=" hover:text-pink-500 cursor-pointer"
+                  to={`/challenge/details/${chal.id}`}
+                >
+                  {chal.title}
+                </Link>
               </div>
-              <div className="text-gray-500 text-xs">{event.date}</div>
+              <div className="text-gray-500 text-xs">
+                {dayjs(chal.start_date).format("D MMM, YYYY")}
+              </div>
             </div>
           ))}
         </div>
-        <button className="text-pink-500 text-sm mt-2 hover:text-pink-600">
-          View all events
+        <button className="text-pink-500 text-sm mt-3 ">
+          <Link
+            className="hover:text-pink-600 cursor-pointer"
+            to={`/challenge`}
+          >
+            View all challenges
+          </Link>
         </button>
       </div>
     </div>
