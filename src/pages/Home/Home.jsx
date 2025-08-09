@@ -10,25 +10,21 @@ import {
   ChevronRight,
   BadgeCheck,
 } from "lucide-react";
-import {
-  generateTrendingTopics,
-  generateSuggestionGroups,
-  generateUpcomingEvents,
-} from "../../data/mockData";
 import { Link, useLocation } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Navigation } from "swiper/modules";
+import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
+import "swiper/css/autoplay";
 import { authAPI } from "../../api/auth";
+import { fetchAllShops, fetchMarketplacePosts } from "../../api/axios";
 import { useAuth } from "../../contexts/AuthContext";
 import PostDetail from "../MyPost/PostDetail";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import InfiniteScroll from "react-infinite-scroll-component";
 import HomeSideBar from "./HomeSideBar";
-// import { toast } from "react-toastify";
 dayjs.extend(relativeTime);
 
 const Home = () => {
@@ -45,6 +41,40 @@ const Home = () => {
   const [selectedPost, setSelectedPost] = useState(null);
   const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
   const [firstLoaded, setFirstLoaded] = useState(false);
+  const [marketPost, setMarketPost] = useState([]);
+  const [shops, setShops] = useState([]);
+
+  useEffect(() => {
+    const getShops = async () => {
+      try {
+        const res = await fetchAllShops();
+        const shops = res?.shops;
+        console.log(shops);
+        setShops(shops);
+      } catch (error) {
+        console.error("Error fetching shop:", error);
+        setShops([]);
+      }
+    };
+
+    getShops();
+  }, []);
+
+  useEffect(() => {
+    const getMarketPosts = async () => {
+      try {
+        const res = await fetchMarketplacePosts();
+        const posts = res?.posts;
+        setMarketPost(posts);
+      } catch (error) {
+        console.error("Error fetching marketplace posts:", error);
+        // Set empty array on error to prevent undefined issues
+        setMarketPost([]);
+      }
+    };
+
+    getMarketPosts();
+  }, []);
 
   // Reset pagination state when navigating to Home
   useEffect(() => {
@@ -134,22 +164,18 @@ const Home = () => {
           },
         };
       });
-      // toast.success("This is a success message!")
     } catch (error) {
       console.error("Failed to toggle like", error);
     }
   };
 
-  const trendingTopics = generateTrendingTopics(5);
-  const suggestionGroups = generateSuggestionGroups(4);
-  const upcomingEvents = generateUpcomingEvents(4);
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex justify-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div>
           <div className="flex gap-6 max-w-6xl w-full">
             {/* Main Content */}
-            <div className="flex-1 max-w-xl">
+            <div className="flex-1 flex-col max-w-xl">
               <div className="flex items-center justify-between mb-4 gap-3">
                 <h1 className="text-2xl font-bold text-pink-600">
                   Community Feed
@@ -165,6 +191,89 @@ const Home = () => {
                   />
                 </div>
               </div>
+
+              {shops.length > 1 && (
+                <div className="bg-white w-full max-w-4xl mx-auto mb-4">
+                  {Array.isArray(shops) && shops.length > 0 && (
+                    <Swiper
+                      modules={[Navigation, Pagination, Autoplay]}
+                      spaceBetween={20}
+                      slidesPerView={1}
+                      navigation={{
+                        nextEl: ".marketplace-next",
+                        prevEl: ".marketplace-prev",
+                      }}
+                      pagination={{ clickable: true }}
+                      autoplay={{ delay: 3000, disableOnInteraction: false }}
+                      loop={shops.length > 1}
+                      className="rounded-xl shadow-lg bg-white [&_.swiper-pagination]:hidden"
+                    >
+                      {shops.map((shop, index) => (
+                        <SwiperSlide key={shop.shop_id || index}>
+                          <div className="flex justify-between items-center p-4 bg-white rounded-xl shadow-sm mx-8">
+                            {/* Avatar */}
+                            <div className="flex flex-row items-center">
+                              <img
+                                src={shop.avatar_image}
+                                alt={shop.business_name || "Shop Avatar"}
+                                className="w-20 h-20 rounded-full object-cover border-2 border-pink-500 flex-shrink-0"
+                              />
+
+                              {/* Text Info */}
+                              <div className="ml-4 flex flex-col max-w-[250px]">
+                                <p className="text-pink-500 font-bold text-lg leading-tight truncate">
+                                  <Link
+                                    className="hover:text-pink-600 cursor-pointer"
+                                    to={`/marketplace/shop/${shop.user?.id}`}
+                                  >
+                                    {shop.business_name || "Shop Name"}
+                                  </Link>
+                                </p>
+                                <h3 className="text-gray-500 text-sm leading-snug truncate">
+                                  {shop.bio || "This is a sweets shop"}
+                                </h3>
+                              </div>
+                            </div>
+
+                            <div className="text-gray-400">
+                              <Link
+                                className="hover:text-pink-600 cursor-pointer"
+                                to={`/marketplace/shop/${shop.user?.id}`}
+                              >
+                                View shop
+                              </Link>
+                            </div>
+                          </div>
+                        </SwiperSlide>
+                      ))}
+
+                      {/* Custom Navigation Buttons */}
+                      {shops.length > 1 && (
+                        <>
+                          <div className="marketplace-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg">
+                              <ChevronLeft
+                                size={20}
+                                strokeWidth={2}
+                                className="text-pink-500"
+                              />
+                            </div>
+                          </div>
+                          <div className="marketplace-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                            <div className="flex items-center justify-center w-7 h-7 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg">
+                              <ChevronRight
+                                size={20}
+                                strokeWidth={2}
+                                className="text-pink-500"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </Swiper>
+                  )}
+                </div>
+              )}
 
               <div className="min-w-[275px] space-y-4">
                 {firstLoaded ? (
@@ -193,7 +302,7 @@ const Home = () => {
                       ) : null
                     }
                   >
-                    {posts.length === 0 ? (
+                    {!loading && posts.length === 0 ? (
                       <div className="flex justify-center text-gray-500">
                         No posts found.
                       </div>
@@ -201,7 +310,7 @@ const Home = () => {
                       posts.map((post) => (
                         <div
                           key={post.id}
-                          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
+                          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-4"
                         >
                           <div className="p-4">
                             <div className="flex items-center justify-between mb-4">

@@ -23,6 +23,9 @@ import useAdminLoader from "../hooks/useAdminLoader";
 import { useAuth } from "../contexts/AuthContext";
 import { authAPI } from "../api/auth";
 import { fetchAllShopMembers, activateShopMember } from "../api/shopMembers";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { addUserToGroupChatsByShopId } from "./Chat/libs/shopChatUtils";
+import { db } from "../firebase";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -98,9 +101,33 @@ const Profile = () => {
     }
   };
 
+  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
+    const q = query(
+      collection(db, "users"),
+      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      return querySnapshot.docs[0].id; // Firestore doc ID
+    }
+
+    return null; // not found
+  };
+
   const handleAcceptInvitation = async (shopId) => {
     try {
+      const firebaseUid = await getFirebaseUserIdFromPostgresId(user.id);
       await activateShopMember();
+
+      if (firebaseUid && shopId) {
+        await addUserToGroupChatsByShopId({ firebaseUid, shopId });
+      } else {
+        console.warn(
+          "Could not add to Firebase group chat: missing UID or shopId"
+        );
+      }
       // After accepting one invitation, clear all invitations since user can only be in one shop
       setShopInvitations([]);
       // Show success message or toast notification here if needed

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import {
   arrayUnion,
@@ -21,6 +21,8 @@ const AddUser = ({ isOpen, onClose }) => {
   const [users, setUsers] = useState([]);
   const { user } = useAuth();
   const currentUserId = user?.id?.toString();
+  const [addedUserIds, setAddedUserIds] = useState([]);
+  const [disabledUserIds, setDisabledUserIds] = useState([]);
   const [existingChatUserIds, setExistingChatUserIds] = useState([]);
 
   const getFirebaseUserIdFromPostgresId = async (postgresId) => {
@@ -38,11 +40,7 @@ const AddUser = ({ isOpen, onClose }) => {
     return null; // not found
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const username = formData.get("username");
-
+  const fetchUsers = async (searchTerm = "") => {
     try {
       const currentFirebaseId = await getFirebaseUserIdFromPostgresId(
         currentUserId
@@ -52,40 +50,50 @@ const AddUser = ({ isOpen, onClose }) => {
         return;
       }
 
-      // Step 1: Fetch user's current chat partners
       const userChatsSnap = await getDoc(
         doc(db, "userchats", currentFirebaseId)
       );
       const chatUserIds = userChatsSnap.exists()
         ? userChatsSnap.data().chats.map((chat) => chat.receiverId)
         : [];
-      setExistingChatUserIds(chatUserIds); // 👈 store them in state
+      setExistingChatUserIds(chatUserIds);
 
-      // Step 2: Search by username
       const userRef = collection(db, "users");
-      const q = query(
-        userRef,
-        where("username", ">=", username),
-        where("username", "<", username + "\uf8ff")
-      );
-      const querySnapshot = await getDocs(q);
+      const allUsersSnap = await getDocs(userRef);
 
-      if (!querySnapshot.empty) {
-        const results = querySnapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() }))
-          .filter(
-            (u) => u.id !== currentFirebaseId && !chatUserIds.includes(u.id)
-          ); // 👈 exclude existing chats
-        setUsers(results);
-      } else {
-        setUsers([]);
-      }
+      const results = allUsersSnap.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter(
+          (u) =>
+            u.id !== currentFirebaseId &&
+            !chatUserIds.includes(u.id) &&
+            u.username?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+      setUsers(results);
     } catch (error) {
       console.error("Search failed:", error);
     }
   };
 
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const usernameInput = formData.get("username");
+    await fetchUsers(usernameInput);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchUsers();
+      setAddedUserIds([]); // reset when opening modal
+    }
+  }, [isOpen]);
+
   const handleAdd = async (user) => {
+    if (disabledUserIds.includes(user.id)) return; // prevent race condition
+    setDisabledUserIds((prev) => [...prev, user.id]);
+
     const chatRef = collection(db, "chats");
     const userChatsRef = collection(db, "userchats");
 
@@ -128,6 +136,8 @@ const AddUser = ({ isOpen, onClose }) => {
       });
 
       console.log("New chat created:", newChatRef.id);
+
+      setAddedUserIds((prev) => [...prev, user.id]);
     } catch (error) {
       console.error("Chat error: ", error);
     }
@@ -178,15 +188,29 @@ const AddUser = ({ isOpen, onClose }) => {
                     alt="avatar"
                     className="w-10 h-10 rounded-full"
                   />
-                  <span className="text-gray-800 font-medium">
-                    {user.username}
-                  </span>
+                  <div className="flex flex-col items-start">
+                    <span className="text-gray-800 font-medium">
+                      {user.username}
+                    </span>
+                    <span className="text-gray-500 font-light">
+                      {user.email}
+                    </span>
+                  </div>
                 </div>
                 <button
-                  className="py-1 px-3 text-sm bg-pink-500 text-white rounded hover:bg-pink-600 transition"
+                  className={`py-1 px-3 text-sm rounded transition ${
+                    addedUserIds.includes(user.id) ||
+                    disabledUserIds.includes(user.id)
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-pink-500 text-white hover:bg-pink-600"
+                  }`}
                   onClick={() => handleAdd(user)}
+                  disabled={
+                    addedUserIds.includes(user.id) ||
+                    disabledUserIds.includes(user.id)
+                  }
                 >
-                  Add
+                  {addedUserIds.includes(user.id) ? "Added" : "Add"}
                 </button>
               </div>
             ))}
