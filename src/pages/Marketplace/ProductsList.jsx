@@ -1,12 +1,4 @@
-import {
-  Star,
-  ShoppingCart,
-  Search,
-  X,
-  Clock,
-  Calendar,
-  CheckCircle,
-} from "lucide-react";
+import { Star, Search, X, Clock, Calendar, CheckCircle } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomizeModal from "../Cart/CustomizedOrderForm";
@@ -17,10 +9,14 @@ function ProductDetailModal({ isOpen, product, onClose }) {
   // Hooks phải được gọi trước bất kỳ early return nào
   const [selectedSize, setSelectedSize] = useState("");
 
-  // Cập nhật selectedSize khi product thay đổi
+  // Cập nhật selectedSize khi product thay đổi - chọn size có giá thấp nhất
   React.useEffect(() => {
     if (product?.cakeSizes && product.cakeSizes.length > 0) {
-      setSelectedSize(product.cakeSizes[0].size);
+      // Sắp xếp sizes theo giá từ thấp đến cao và chọn size đầu tiên (giá thấp nhất)
+      const sortedSizes = [...product.cakeSizes].sort(
+        (a, b) => parseFloat(a.price) - parseFloat(b.price)
+      );
+      setSelectedSize(sortedSizes[0].size);
     }
   }, [product]);
 
@@ -36,10 +32,21 @@ function ProductDetailModal({ isOpen, product, onClose }) {
 
   // Thêm chọn size và giá theo size
   const cakeSizes = product.cakeSizes || [];
+  // Sắp xếp sizes theo giá từ thấp đến cao
+  const sortedCakeSizes = [...cakeSizes].sort(
+    (a, b) => parseFloat(a.price) - parseFloat(b.price)
+  );
   const displayPrice =
-    cakeSizes.length > 0
-      ? cakeSizes.find((s) => s.size === selectedSize)?.price || product.price
+    sortedCakeSizes.length > 0
+      ? sortedCakeSizes.find((s) => s.size === selectedSize)?.price ||
+        product.price
       : product.price;
+
+  // Function to get minimum price from all sizes
+  const getMinPrice = (sizes) => {
+    if (!sizes || sizes.length === 0) return 0;
+    return Math.min(...sizes.map((size) => parseFloat(size.price) || 0));
+  };
 
   // Truncate description if too long
   const truncateText = (text, maxLength = 200) => {
@@ -125,13 +132,13 @@ function ProductDetailModal({ isOpen, product, onClose }) {
                 </div>
 
                 {/* Size Selection */}
-                {cakeSizes.length > 0 && (
+                {sortedCakeSizes.length > 0 && (
                   <div className="mb-6">
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Choose Size:
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {cakeSizes.map((s) => (
+                      {sortedCakeSizes.map((s) => (
                         <button
                           key={s.size}
                           onClick={() => setSelectedSize(s.size)}
@@ -161,6 +168,12 @@ function ProductDetailModal({ isOpen, product, onClose }) {
                   {selectedSize && (
                     <div className="text-sm text-pink-600 mt-1">
                       Price for {selectedSize} size
+                    </div>
+                  )}
+                  {sortedCakeSizes.length > 1 && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Starting from{" "}
+                      {getMinPrice(sortedCakeSizes).toLocaleString()} VND
                     </div>
                   )}
                 </div>
@@ -224,7 +237,6 @@ function ProductDetailModal({ isOpen, product, onClose }) {
                     }}
                   >
                     <span className="flex items-center justify-center gap-2">
-                      <ShoppingCart className="w-5 h-5" />
                       Add to Cart
                     </span>
                   </button>
@@ -338,11 +350,16 @@ const ProductsList = ({ products = [] }) => {
               ? firstMedia.image_url
               : "/placeholder.svg";
 
-          // Lấy giá từ size đầu tiên thay vì price base
+          // Lấy giá thấp nhất từ tất cả các size thay vì size đầu tiên
           const cakeSizes = item.cakeSizes || [];
-          const displayPrice =
-            cakeSizes.length > 0 ? cakeSizes[0].price : item.price || 0;
-          const sizeText = cakeSizes.length > 0 ? `(${cakeSizes[0].size})` : "";
+          const getMinPrice = (sizes) => {
+            if (!sizes || sizes.length === 0) return item.price || 0;
+            return Math.min(
+              ...sizes.map((size) => parseFloat(size.price) || 0)
+            );
+          };
+          const displayPrice = getMinPrice(cakeSizes);
+          const hasMultipleSizes = cakeSizes.length > 1;
 
           return (
             <div
@@ -396,9 +413,14 @@ const ProductsList = ({ products = [] }) => {
                     <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600">
                       {displayPrice.toLocaleString()} VND
                     </span>
-                    {sizeText && (
+                    {hasMultipleSizes && (
                       <span className="text-xs text-gray-500 mt-1">
-                        Starting from {sizeText}
+                        Starting from ({cakeSizes.length} sizes available)
+                      </span>
+                    )}
+                    {!hasMultipleSizes && cakeSizes.length === 1 && (
+                      <span className="text-xs text-gray-500 mt-1">
+                        {cakeSizes[0].size} size
                       </span>
                     )}
                   </div>
@@ -441,7 +463,6 @@ const ProductsList = ({ products = [] }) => {
                     }}
                   >
                     <span className="relative z-10 flex items-center gap-2">
-                      <ShoppingCart className="w-4 h-4" />
                       Add to Cart
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-pink-200 to-purple-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>

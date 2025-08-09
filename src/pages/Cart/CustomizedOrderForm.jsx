@@ -1,12 +1,7 @@
 import { useState } from "react";
-import { Plus, Minus, ShoppingCart, Cake, X, Star } from "lucide-react";
+import { Plus, Minus, Cake, X, Star } from "lucide-react";
 
-const sizeOptions = [
-  { id: "15cm", label: "15cm" },
-  { id: "20cm", label: "20cm" },
-  { id: "25cm", label: "25cm" },
-  { id: "30cm", label: "30cm" },
-];
+// Size options will be passed from props based on API data
 
 const toppingOptions = [
   { id: "strawberry", name: "Dâu tây tươi", price: 50000, emoji: "🍓" },
@@ -23,8 +18,9 @@ export default function CustomizeModal({
   onClose,
   product,
   onConfirm,
+  sizeOptions = [], // Add sizeOptions prop with default empty array
 }) {
-  const [selectedSize, setSelectedSize] = useState("20cm");
+  const [selectedSize, setSelectedSize] = useState(sizeOptions[0]?.size || "");
   const [selectedToppings, setSelectedToppings] = useState({});
   const [quantity, setQuantity] = useState(1);
 
@@ -58,8 +54,9 @@ export default function CustomizeModal({
   const calculatePrice = () => {
     if (!product) return 0;
 
-    // No multiplier, just use base price
-    const basePrice = product.basePrice;
+    // Get the selected size price from sizeOptions
+    const selectedSizeInfo = sizeOptions.find((s) => s.size === selectedSize);
+    const basePrice = selectedSizeInfo ? parseFloat(selectedSizeInfo.price) : 0;
 
     const toppingsPrice = Object.entries(selectedToppings).reduce(
       (sum, [toppingId, qty]) => {
@@ -75,7 +72,7 @@ export default function CustomizeModal({
   const handleConfirm = () => {
     if (!product) return;
 
-    const selectedSizeInfo = sizeOptions.find((s) => s.id === selectedSize);
+    const selectedSizeInfo = sizeOptions.find((s) => s.size === selectedSize);
     const selectedToppingsInfo = Object.entries(selectedToppings).map(
       ([id, qty]) => {
         const topping = toppingOptions.find((t) => t.id === id);
@@ -89,9 +86,10 @@ export default function CustomizeModal({
       price: calculatePrice(),
       quantity: 1,
       image: product.image,
-      seller: "Sweet Bakery",
+      seller: product.seller || "Sweet Bakery",
       customization: {
-        size: selectedSizeInfo.label,
+        size: selectedSizeInfo?.size || selectedSize,
+        sizePrice: selectedSizeInfo ? parseFloat(selectedSizeInfo.price) : 0,
         toppings: selectedToppingsInfo,
         orderQuantity: quantity,
       },
@@ -152,9 +150,20 @@ export default function CustomizeModal({
                     </p>
                     <div className="bg-pink-50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">Giá gốc:</span>
+                        <span className="text-sm text-gray-600">
+                          Giá theo size:
+                        </span>
                         <span className="text-lg font-semibold">
-                          {product.basePrice.toLocaleString("vi-VN")}đ
+                          {(() => {
+                            const selectedSizeInfo = sizeOptions.find(
+                              (s) => s.size === selectedSize
+                            );
+                            const sizePrice = selectedSizeInfo
+                              ? parseFloat(selectedSizeInfo.price)
+                              : 0;
+                            return sizePrice.toLocaleString("vi-VN");
+                          })()}
+                          đ
                         </span>
                       </div>
                       <div className="my-3 border-t border-pink-200" />
@@ -180,9 +189,9 @@ export default function CustomizeModal({
                 <div className="grid grid-cols-2 gap-4">
                   {sizeOptions.map((size) => (
                     <label
-                      key={size.id}
+                      key={size.id || size.size}
                       className={`flex flex-col items-center justify-center p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                        selectedSize === size.id
+                        selectedSize === size.size
                           ? "border-pink-500 bg-pink-50"
                           : "border-gray-200 hover:border-pink-300"
                       }`}
@@ -190,12 +199,15 @@ export default function CustomizeModal({
                       <input
                         type="radio"
                         name="size"
-                        value={size.id}
-                        checked={selectedSize === size.id}
-                        onChange={() => setSelectedSize(size.id)}
+                        value={size.size}
+                        checked={selectedSize === size.size}
+                        onChange={() => setSelectedSize(size.size)}
                         className="sr-only"
                       />
-                      <span className="text-lg font-bold">{size.label}</span>
+                      <span className="text-lg font-bold">{size.size}</span>
+                      <span className="text-sm text-pink-600 font-medium mt-1">
+                        {parseFloat(size.price).toLocaleString("vi-VN")}đ
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -315,7 +327,6 @@ export default function CustomizeModal({
               className="flex-1 h-12 text-base bg-pink-500 hover:bg-pink-600 rounded-lg text-white flex items-center justify-center gap-2 font-semibold"
               onClick={handleConfirm}
             >
-              <ShoppingCart className="h-5 w-5" />
               Xác nhận - {totalPrice.toLocaleString("vi-VN")}đ
             </button>
           </div>

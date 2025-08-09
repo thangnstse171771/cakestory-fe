@@ -1,6 +1,5 @@
-import { ShoppingCart, Star, Heart, Search, Plus } from "lucide-react";
+import { Star, Heart, Search, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
-import Cart from "../Cart/Cart"; // Adjust the import path as needed
 import ProductsList from "./ProductsList";
 import ShopsList from "./ShopsList";
 import { useNavigate } from "react-router-dom";
@@ -19,7 +18,6 @@ const Marketplace = () => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [errorProducts, setErrorProducts] = useState("");
   const [showCreate, setShowCreate] = useState(false);
-  const [showCart, setShowCart] = useState(false);
 
   useEffect(() => {
     const checkUserShop = async () => {
@@ -104,14 +102,6 @@ const Marketplace = () => {
           )}
         </div>
         <div className="flex-1" />
-        <button
-          className="bg-white border border-pink-300 rounded-full p-3 shadow hover:bg-pink-50 transition-colors"
-          style={{ width: 48, height: 48 }}
-          onClick={() => setShowCart(true)}
-          aria-label="Open cart"
-        >
-          <ShoppingCart className="w-6 h-6 text-pink-500" />
-        </button>
       </div>
 
       {view === "products" ? (
@@ -127,24 +117,6 @@ const Marketplace = () => {
       ) : view === "myshop" && user && hasShop ? (
         <ShopDetail id={user.id} />
       ) : null}
-      {/* Modal Cart */}
-      {showCart && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="relative bg-white rounded-2xl shadow-xl max-w-2xl w-full mx-auto p-6">
-            <button
-              className="absolute top-2 right-2 bg-white border border-gray-300 rounded-full p-2 shadow hover:bg-gray-100 z-20"
-              onClick={() => setShowCart(false)}
-              aria-label="Đóng"
-              style={{ lineHeight: 1 }}
-            >
-              <span className="text-2xl font-bold">×</span>
-            </button>
-            <div className="pt-6">
-              <Cart />
-            </div>
-          </div>
-        </div>
-      )}
 
       <CreateMarketplacePost
         isOpen={showCreate}
