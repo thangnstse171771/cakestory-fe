@@ -1,21 +1,28 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAdminWallet } from "../../api/wallet";
+import {
+  fetchAdminWalletBalance,
+  fetchAllUserWallets,
+  fetchAllDepositsAdmin,
+  fetchSystemWalletBalance,
+  fetchTotalAmountAiGenerate,
+} from "../../api/axios";
 
 // Mock data cho các ví (sẽ được thay thế bằng dữ liệu từ API)
 const mockWalletData = {
   holding: {
-    balance: 15000000, // 15 triệu
+    balance: 0, // Sẽ được cập nhật từ API
     currency: "VND",
-    description: "Ví tạm giữ tiền của user và admin",
+    description: "Tổng tiền nạp thành công",
   },
   floating: {
-    balance: 8500000, // 8.5 triệu
+    balance: 0, // Sẽ được cập nhật từ AI API
     currency: "VND",
-    description: "Ví tạm giữ cho giao dịch mua bánh",
+    description: "Doanh thu từ AI Generation",
   },
   accounting: {
-    balance: 25000000, // 25 triệu
+    balance: 0, // Sẽ được cập nhật từ admin wallet API
     currency: "VND",
     description: "Doanh thu hệ thống từ gói AI",
   },
@@ -58,7 +65,17 @@ const WalletManagement = () => {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [totalUserWalletsBalance, setTotalUserWalletsBalance] = useState(0); // Tổng số dư user wallets
   const navigate = useNavigate();
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    status: "",
+    user_id: "",
+    start_date: "",
+    end_date: "",
+  });
+  const [showFilters, setShowFilters] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,16 +83,211 @@ const WalletManagement = () => {
   const totalPages = Math.ceil(transactions.length / itemsPerPage);
 
   // Fetch admin wallet data từ API
-  const fetchAdminWalletData = async () => {
+  const fetchAdminWalletData = async (appliedFilters = {}) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getAdminWallet();
 
+      // Fetch multiple data sources bao gồm AI revenue và all user wallets
+      const [
+        systemBalanceResponse,
+        depositsResponse,
+        aiRevenueResponse,
+        allWalletsResponse,
+      ] = await Promise.allSettled([
+        fetchSystemWalletBalance(),
+        fetchAllDepositsAdmin(appliedFilters), // Pass filters to API call
+        fetchTotalAmountAiGenerate(), // Fetch AI revenue
+        fetchAllUserWallets(), // Fetch all user wallets for total balance
+      ]);
+
+      // Update wallet data với system balance (holding wallet)
+      if (systemBalanceResponse.status === "fulfilled") {
+        const systemData = systemBalanceResponse.value;
+        console.log("System data received:", systemData);
+
+        setWalletData((prev) => ({
+          ...prev,
+          holding: {
+            balance: systemData.totalSystemBalance || 0,
+            currency: "VND",
+            description: `Tổng tiền nạp thành công: ${
+              systemData.totalDeposits || 0
+            } giao dịch`,
+          },
+        }));
+      }
+
+      // Update transactions với deposit data thật
+      if (depositsResponse.status === "fulfilled") {
+        const depositsData = depositsResponse.value;
+        console.log("Deposits data:", depositsData);
+        console.log("Deposits data type:", typeof depositsData);
+        console.log("Deposits data keys:", Object.keys(depositsData || {}));
+
+        // Transform deposits thành transactions format - thêm safety check
+        let deposits = [];
+
+        // Thử nhiều cách extract deposits array theo đúng API structure
+        if (Array.isArray(depositsData)) {
+          deposits = depositsData;
+        } else if (
+          depositsData?.data?.deposits &&
+          Array.isArray(depositsData.data.deposits)
+        ) {
+          // Correct path: depositsData.data.deposits (từ console log)
+          deposits = depositsData.data.deposits;
+        } else if (
+          depositsData?.deposits &&
+          Array.isArray(depositsData.deposits)
+        ) {
+          deposits = depositsData.deposits;
+        } else if (depositsData?.data && Array.isArray(depositsData.data)) {
+          deposits = depositsData.data;
+        } else {
+          console.warn("Deposits data is not an array:", depositsData);
+          deposits = [];
+        }
+
+        console.log("Final deposits array:", deposits);
+        console.log("Deposits count:", deposits.length);
+
+        if (deposits.length > 0) {
+          const transformedTransactions = deposits.map((deposit) => ({
+            id: deposit.id,
+            userId:
+              deposit.user?.username ||
+              deposit.user?.full_name ||
+              `user${deposit.user_id}`,
+            type: "deposit",
+            amount: parseFloat(deposit.amount) || 0,
+            status:
+              deposit.status === "completed"
+                ? "completed"
+                : deposit.status === "pending"
+                ? "pending"
+                : "failed",
+            timestamp: deposit.created_at || deposit.createdAt,
+            description: "Nạp tiền vào ví",
+          }));
+
+          setTransactions(transformedTransactions);
+          console.log("Transformed transactions:", transformedTransactions);
+        } else {
+          console.log("No deposits found, keeping mock transactions");
+          // Keep mock transactions if no real data
+        }
+      }
+
+      // Update floating wallet với AI revenue data thật
+      if (aiRevenueResponse.status === "fulfilled") {
+        const aiRevenueData = aiRevenueResponse.value;
+        console.log("AI Revenue data received:", aiRevenueData);
+
+        setWalletData((prev) => ({
+          ...prev,
+          floating: {
+            balance: parseFloat(aiRevenueData.totalAmount) || 0,
+            currency: "VND",
+            description: "Doanh thu từ AI Generation",
+          },
+        }));
+      }
+
+      // Update totalUserWalletsBalance với dữ liệu từ all user wallets
+      if (allWalletsResponse.status === "fulfilled") {
+        const allWalletsData = allWalletsResponse.value;
+        console.log("All user wallets data received:", allWalletsData);
+        console.log("Type of allWalletsData:", typeof allWalletsData);
+        console.log(
+          "Keys of allWalletsData:",
+          Object.keys(allWalletsData || {})
+        );
+        console.log("allWalletsData.userWallets:", allWalletsData?.userWallets);
+        console.log(
+          "Is userWallets array?",
+          Array.isArray(allWalletsData?.userWallets)
+        );
+
+        // Tính tổng số dư của tất cả user wallets
+        let totalBalance = 0;
+        let walletArray = [];
+
+        // Extract wallet array from response
+        console.log("=== DEBUGGING WALLET ARRAY EXTRACTION ===");
+        console.log("allWalletsData exists?", !!allWalletsData);
+        console.log(
+          "allWalletsData.userWallets exists?",
+          !!allWalletsData?.userWallets
+        );
+        console.log(
+          "allWalletsData.userWallet exists?",
+          !!allWalletsData?.userWallet
+        );
+        console.log(
+          "allWalletsData.userWallets is array?",
+          Array.isArray(allWalletsData?.userWallets)
+        );
+        console.log(
+          "allWalletsData.userWallet is array?",
+          Array.isArray(allWalletsData?.userWallet)
+        );
+
+        if (
+          allWalletsData &&
+          allWalletsData.userWallets &&
+          Array.isArray(allWalletsData.userWallets)
+        ) {
+          console.log("✅ Using userWallets path");
+          walletArray = allWalletsData.userWallets;
+        } else if (
+          allWalletsData &&
+          allWalletsData.userWallet &&
+          Array.isArray(allWalletsData.userWallet)
+        ) {
+          console.log("✅ Using userWallet path (singular)");
+          walletArray = allWalletsData.userWallet;
+        } else if (Array.isArray(allWalletsData)) {
+          console.log("✅ Using direct array path");
+          walletArray = allWalletsData;
+        } else if (allWalletsData && Array.isArray(allWalletsData.data)) {
+          console.log("✅ Using data array path");
+          walletArray = allWalletsData.data;
+        } else {
+          console.log("❌ No valid array found in response");
+          // Try to force extract from userWallets even if checks fail
+          if (allWalletsData?.userWallets) {
+            console.log("🔄 Force extracting from userWallets");
+            walletArray = allWalletsData.userWallets;
+          } else if (allWalletsData?.userWallet) {
+            console.log("🔄 Force extracting from userWallet");
+            walletArray = allWalletsData.userWallet;
+          }
+        }
+
+        console.log("Wallet array extracted:", walletArray);
+        console.log("Wallet array length:", walletArray.length);
+
+        if (walletArray.length > 0) {
+          totalBalance = walletArray.reduce((sum, wallet) => {
+            // Parse balance as string or number
+            const balance = parseFloat(wallet.balance) || 0;
+            console.log(
+              `Wallet ${wallet.user_id}: balance = ${wallet.balance} -> parsed = ${balance}`
+            );
+            return sum + balance;
+          }, 0);
+        }
+
+        console.log("Total user wallets balance calculated:", totalBalance);
+        setTotalUserWalletsBalance(totalBalance);
+      }
+
+      // Keep original admin wallet fetch for accounting
+      const response = await getAdminWallet();
       if (response.success && response.adminWallet) {
-        // Update wallet data với thông tin thực từ API
-        setWalletData((prevData) => ({
-          ...prevData,
+        setWalletData((prev) => ({
+          ...prev,
           accounting: {
             balance: parseFloat(response.adminWallet) || 0,
             currency: "VND",
@@ -84,7 +296,7 @@ const WalletManagement = () => {
         }));
       }
     } catch (error) {
-      console.error("Lỗi khi fetch admin wallet:", error);
+      console.error("Lỗi khi fetch wallet data:", error);
       setError("Không thể tải thông tin ví admin");
     } finally {
       setLoading(false);
@@ -95,6 +307,94 @@ const WalletManagement = () => {
   useEffect(() => {
     fetchAdminWalletData();
   }, []);
+
+  // Handle filter changes
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // Apply filters
+  const handleApplyFilters = async () => {
+    console.log("Applying filters:", filters);
+    try {
+      setLoading(true);
+      setError(null); // Reset error state
+
+      // Nếu modal đang mở, chỉ cập nhật dữ liệu trong modal
+      if (showTransactionModal) {
+        const response = await fetchAllDepositsAdmin(filters);
+        console.log("Filtered data response:", response);
+
+        // Kiểm tra response có hợp lệ không
+        if (
+          response &&
+          response.data &&
+          Array.isArray(response.data.deposits)
+        ) {
+          // Transform deposits thành transactions format
+          const transformedTransactions = response.data.deposits.map(
+            (deposit) => ({
+              id: deposit.id,
+              userId:
+                deposit.user?.username ||
+                deposit.user?.full_name ||
+                `user${deposit.user_id}`,
+              type: "deposit",
+              amount: parseFloat(deposit.amount) || 0,
+              status:
+                deposit.status === "completed"
+                  ? "completed"
+                  : deposit.status === "pending"
+                  ? "pending"
+                  : "failed",
+              timestamp: deposit.created_at || deposit.createdAt,
+              description: "Nạp tiền vào ví",
+            })
+          );
+
+          setTransactions(transformedTransactions);
+          console.log(
+            "Filtered and transformed transactions:",
+            transformedTransactions
+          );
+        } else {
+          console.warn("Invalid response structure:", response);
+          // Nếu không có dữ liệu hợp lệ, set empty array
+          setTransactions([]);
+        }
+      } else {
+        // Nếu không có modal, cập nhật toàn bộ
+        await fetchAdminWalletData(filters);
+      }
+
+      setShowFilters(false);
+    } catch (error) {
+      console.error("Error applying filters:", error);
+      // Hiển thị thông báo lỗi cho user
+      setError("Có lỗi khi áp dụng bộ lọc. Vui lòng thử lại.");
+      // Đặt lại transactions về empty nếu có lỗi
+      if (showTransactionModal) {
+        setTransactions([]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset filters
+  const handleResetFilters = () => {
+    const resetFilters = {
+      status: "",
+      user_id: "",
+      start_date: "",
+      end_date: "",
+    };
+    setFilters(resetFilters);
+    fetchAdminWalletData(resetFilters);
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("vi-VN", {
@@ -108,7 +408,7 @@ const WalletManagement = () => {
       case "holding":
         return "🏦";
       case "floating":
-        return "💼";
+        return "🤖"; // AI icon cho doanh thu từ AI
       case "accounting":
         return "📊";
       case "withdraw":
@@ -123,7 +423,7 @@ const WalletManagement = () => {
       case "holding":
         return "bg-blue-500";
       case "floating":
-        return "bg-yellow-500";
+        return "bg-purple-500"; // Màu tím cho AI
       case "accounting":
         return "bg-green-500";
       case "withdraw":
@@ -208,17 +508,19 @@ const WalletManagement = () => {
               </div>
 
               <h3 className="text-lg font-semibold text-gray-800 mb-2 capitalize">
-                {key === "holding" && "Ví Holding"}
-                {key === "floating" && "Ví Floating"}
+                {key === "holding" && "Tổng tiền nạp vào"}
+                {key === "floating" && "Doanh Thu từ AI"}
                 {key === "accounting" && "Doanh Thu Hệ Thống"}
                 {key === "withdraw" && "Ví Withdraw"}
               </h3>
 
               <p className="text-3xl font-bold text-gray-900 mb-2">
-                {formatCurrency(wallet.balance)}
+                {formatCurrency(wallet?.balance || 0)}
               </p>
 
-              <p className="text-sm text-gray-600">{wallet.description}</p>
+              <p className="text-sm text-gray-600">
+                {wallet?.description || ""}
+              </p>
             </div>
           ))}
         </div>
@@ -231,21 +533,21 @@ const WalletManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(walletData.accounting.balance)}
+                {formatCurrency(walletData.accounting?.balance || 0)}
               </p>
               <p className="text-sm text-gray-600">Tổng Doanh Thu</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-blue-600">
-                {formatCurrency(
-                  walletData.holding.balance + walletData.floating.balance
-                )}
+                {formatCurrency(totalUserWalletsBalance)}
               </p>
-              <p className="text-sm text-gray-600">Tổng Tiền Đang Giữ</p>
+              <p className="text-sm text-gray-600">
+                Tổng Tiền Đang Giữ (Tất cả User Wallets)
+              </p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-red-600">
-                {formatCurrency(walletData.withdraw.balance)}
+                {formatCurrency(walletData.withdraw?.balance || 0)}
               </p>
               <p className="text-sm text-gray-600">Tiền Chờ Rút</p>
             </div>
@@ -327,9 +629,9 @@ const WalletManagement = () => {
                 Chi Tiết Giao Dịch -{" "}
                 {selectedWallet && selectedWallet !== "all"
                   ? selectedWallet === "holding"
-                    ? "Ví Holding"
+                    ? "Tổng tiền nạp vào"
                     : selectedWallet === "floating"
-                    ? "Ví Floating"
+                    ? "Doanh thu từ AI"
                     : selectedWallet === "accounting"
                     ? "Doanh Thu Hệ Thống"
                     : selectedWallet === "withdraw"
@@ -337,13 +639,133 @@ const WalletManagement = () => {
                     : "Tất cả"
                   : "Tất cả"}
               </h3>
-              <button
-                onClick={() => setShowTransactionModal(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    showFilters
+                      ? "bg-pink-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  🔍 Bộ Lọc
+                </button>
+                <button
+                  onClick={handleResetFilters}
+                  className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  🔄 Reset
+                </button>
+                <button
+                  onClick={() => setShowTransactionModal(false)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
             </div>
+
+            {/* Filter Panel trong Modal */}
+            {showFilters && (
+              <div className="bg-gray-50 border rounded-lg p-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Trạng Thái
+                    </label>
+                    <select
+                      value={filters.status}
+                      onChange={(e) =>
+                        handleFilterChange("status", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    >
+                      <option value="">Tất cả</option>
+                      <option value="completed">Hoàn thành</option>
+                      <option value="pending">Đang xử lý</option>
+                    </select>
+                  </div>
+
+                  {/* User ID Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      User ID
+                    </label>
+                    <input
+                      type="number"
+                      value={filters.user_id}
+                      onChange={(e) =>
+                        handleFilterChange("user_id", e.target.value)
+                      }
+                      placeholder="Nhập User ID"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    />
+                  </div>
+
+                  {/* Start Date Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Từ Ngày
+                    </label>
+                    <input
+                      type="date"
+                      value={filters.start_date}
+                      onChange={(e) =>
+                        handleFilterChange("start_date", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    />
+                  </div>
+
+                  {/* End Date Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Đến Ngày
+                    </label>
+                    <input
+                      type="date"
+                      value={filters.end_date}
+                      onChange={(e) =>
+                        handleFilterChange("end_date", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Filter Actions */}
+                <div className="flex justify-end items-center gap-2 mt-4">
+                  <button
+                    onClick={() => setShowFilters(false)}
+                    className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleApplyFilters}
+                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                  >
+                    Áp Dụng
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Error message trong modal */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center">
+                  <span className="text-red-600 text-sm">⚠️ {error}</span>
+                  <button
+                    onClick={() => setError(null)}
+                    className="ml-auto text-red-400 hover:text-red-600"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <table className="w-full">
