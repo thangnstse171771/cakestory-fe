@@ -12,6 +12,18 @@ import { useNavigate } from "react-router-dom";
 import CustomizeModal from "../Cart/CustomizedOrderForm";
 
 function ProductDetailModal({ isOpen, product, onClose }) {
+  const navigate = useNavigate();
+
+  // Hooks phải được gọi trước bất kỳ early return nào
+  const [selectedSize, setSelectedSize] = useState("");
+
+  // Cập nhật selectedSize khi product thay đổi
+  React.useEffect(() => {
+    if (product?.cakeSizes && product.cakeSizes.length > 0) {
+      setSelectedSize(product.cakeSizes[0].size);
+    }
+  }, [product]);
+
   if (!isOpen || !product) return null;
 
   const post = product.Post || product.post || {};
@@ -22,35 +34,88 @@ function ProductDetailModal({ isOpen, product, onClose }) {
       ? firstMedia.image_url
       : "/placeholder.svg";
 
+  // Thêm chọn size và giá theo size
+  const cakeSizes = product.cakeSizes || [];
+  const displayPrice =
+    cakeSizes.length > 0
+      ? cakeSizes.find((s) => s.size === selectedSize)?.price || product.price
+      : product.price;
+
+  // Truncate description if too long
+  const truncateText = (text, maxLength = 200) => {
+    if (!text) return "";
+    return text.length > maxLength
+      ? text.substring(0, maxLength) + "..."
+      : text;
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" onClick={onClose}>
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 transition-opacity"></div>
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/60 transition-opacity"></div>
 
         <div
-          className="relative inline-block w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden transform transition-all"
+          className="relative inline-block w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden transform transition-all"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex flex-col md:flex-row">
-            {/* Image Section */}
-            <div className="relative md:w-1/2">
-              <div className="aspect-w-4 aspect-h-3">
-                <img
-                  src={imageUrl}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-            </div>
+          <div className="flex flex-col lg:flex-row h-[80vh]">
+            {/* Image Section - Fixed aspect ratio and full fill */}
+            <div className="relative lg:w-1/2 h-64 lg:h-full">
+              <img
+                src={imageUrl}
+                alt={post.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
 
+              {/* Status badge */}
+              <div className="absolute top-4 left-4">
+                <div
+                  className={`px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm ${
+                    product.available
+                      ? "bg-green-500/90 text-white"
+                      : "bg-gray-500/90 text-white"
+                  }`}
+                >
+                  {product.available ? "Available" : "Out of stock"}
+                </div>
+              </div>
+            </div>{" "}
             {/* Content Section */}
-            <div className="flex-1 p-8">
+            <div className="flex-1 p-8 lg:p-10">
               <div className="mb-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-3xl font-bold text-gray-800">
-                    {post.title}
-                  </h2>
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                      {post.title}
+                    </h2>
+
+                    {/* Shop info */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 text-pink-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-500">Shop</div>
+                        <div className="font-semibold text-gray-900">
+                          {shop.business_name || shop.name || "Unknown Shop"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <button
                     onClick={onClose}
                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -59,61 +124,62 @@ function ProductDetailModal({ isOpen, product, onClose }) {
                   </button>
                 </div>
 
-                <div className="flex items-center mt-4 space-x-2">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg
-                      className="w-6 h-6 text-gray-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Shop</div>
-                    <div className="font-medium text-gray-900">
-                      {shop.business_name || shop.name || "Unknown Shop"}
+                {/* Size Selection */}
+                {cakeSizes.length > 0 && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Choose Size:
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {cakeSizes.map((s) => (
+                        <button
+                          key={s.size}
+                          onClick={() => setSelectedSize(s.size)}
+                          className={`p-3 rounded-xl border-2 transition-all duration-200 ${
+                            selectedSize === s.size
+                              ? "border-pink-500 bg-pink-50 text-pink-700"
+                              : "border-gray-200 hover:border-pink-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="font-medium">{s.size}</div>
+                          <div className="text-sm text-gray-600">
+                            {parseInt(s.price).toLocaleString()} VND
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="space-y-6">
-                {/* Price and Status */}
-                <div className="flex items-center justify-between">
+                {/* Price */}
+                <div className="p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl border border-pink-200">
                   <div className="text-3xl font-bold text-gray-900">
-                    ${product.price}
+                    {parseInt(displayPrice).toLocaleString()} VND
                   </div>
-                  <div
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${
-                      product.available
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {product.available ? "Available" : "Out of stock"}
-                  </div>
+                  {selectedSize && (
+                    <div className="text-sm text-pink-600 mt-1">
+                      Price for {selectedSize} size
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
                     Description
                   </h3>
                   <p className="text-gray-600 leading-relaxed">
-                    {post.description}
+                    {post.description
+                      ? truncateText(post.description, 300)
+                      : "No description available"}
                   </p>
                 </div>
 
                 {/* Product Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50">
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50">
                     <Calendar className="w-5 h-5 text-gray-500" />
                     <div>
                       <div className="text-sm text-gray-600">Expiry Date</div>
@@ -124,7 +190,7 @@ function ProductDetailModal({ isOpen, product, onClose }) {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50">
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-gray-50">
                     <Clock className="w-5 h-5 text-gray-500" />
                     <div>
                       <div className="text-sm text-gray-600">Created At</div>
@@ -138,13 +204,33 @@ function ProductDetailModal({ isOpen, product, onClose }) {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-4 mt-8">
-                  <button className="flex-1 bg-gradient-to-r from-gray-700 to-gray-900 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-[1.02] transition-all duration-300">
-                    Add to Cart
+                <div className="flex gap-4 mt-8 pt-6 border-t border-gray-200">
+                  <button
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-4 rounded-xl font-semibold hover:from-pink-600 hover:to-rose-600 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Navigate to CustomizedOrderDetails with shop_id
+                      const shopId = product.shop_id || product.shop?.id;
+                      if (shopId) {
+                        navigate(`/order/customize/${shopId}`, {
+                          state: {
+                            shopData: product.shop,
+                            productData: product,
+                          },
+                        });
+                      } else {
+                        console.error("No shop_id found for this product");
+                      }
+                    }}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <ShoppingCart className="w-5 h-5" />
+                      Add to Cart
+                    </span>
                   </button>
                   <button
                     onClick={onClose}
-                    className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+                    className="px-8 py-4 rounded-xl border-2 border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-300"
                   >
                     Close
                   </button>
@@ -251,6 +337,13 @@ const ProductsList = ({ products = [] }) => {
             firstMedia.image_url !== "string"
               ? firstMedia.image_url
               : "/placeholder.svg";
+
+          // Lấy giá từ size đầu tiên thay vì price base
+          const cakeSizes = item.cakeSizes || [];
+          const displayPrice =
+            cakeSizes.length > 0 ? cakeSizes[0].price : item.price || 0;
+          const sizeText = cakeSizes.length > 0 ? `(${cakeSizes[0].size})` : "";
+
           return (
             <div
               key={item.post_id}
@@ -299,10 +392,15 @@ const ProductsList = ({ products = [] }) => {
                   {post.title}
                 </h3>
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-700 to-gray-900">
-                      ${item.price}
+                  <div className="flex flex-col">
+                    <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600">
+                      {displayPrice.toLocaleString()} VND
                     </span>
+                    {sizeText && (
+                      <span className="text-xs text-gray-500 mt-1">
+                        Starting from {sizeText}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-500">
                     Exp:{" "}

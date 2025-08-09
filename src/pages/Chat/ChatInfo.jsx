@@ -24,14 +24,16 @@ const ChatInfo = ({ open, onClose, avatar, name, images }) => {
             <h3 className="font-medium text-gray-700 mb-2">Sent Images</h3>
             <div className="flex flex-wrap gap-2">
               {images?.length > 0 ? (
-                images.map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={img}
-                    alt={`Sent ${idx + 1}`}
-                    className="w-20 h-20 object-cover rounded-md border"
-                  />
-                ))
+                [...images]
+                  .reverse()
+                  .map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`Sent ${idx + 1}`}
+                      className="w-20 h-20 object-cover rounded-md border"
+                    />
+                  ))
               ) : (
                 <span className="text-gray-400 text-sm">No images sent.</span>
               )}

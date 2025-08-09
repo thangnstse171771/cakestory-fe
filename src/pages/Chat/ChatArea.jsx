@@ -89,7 +89,37 @@ const ChatArea = () => {
   };
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
+    const images = document.querySelectorAll(".chat-image");
+
+    if (images.length === 0) {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    let loadedCount = 0;
+
+    images.forEach((img) => {
+      if (img.complete) {
+        loadedCount++;
+      } else {
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === images.length) {
+            endRef.current?.scrollIntoView({ behavior: "smooth" });
+          }
+        };
+        img.onerror = () => {
+          loadedCount++;
+          if (loadedCount === images.length) {
+            endRef.current?.scrollIntoView({ behavior: "smooth" });
+          }
+        };
+      }
+    });
+
+    if (loadedCount === images.length) {
+      endRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [chat?.messages]);
 
   useEffect(() => {
@@ -198,6 +228,14 @@ const ChatArea = () => {
     }
   };
 
+  const chatPrompts = [
+    "Shop mình mở từ mấy giờ ạ?",
+    "Mình có thể xem menu được không?",
+    "Mình đặt hàng như thế nào?",
+    "Shop thường mất bao lâu để làm và giao bánh?",
+    "Best seller của shop mình là bánh nào ạ?",
+  ];
+
   return (
     <div className="flex flex-1 bg-white rounded-r-xl shadow-sm border-t border-r border-b border-gray-100">
       {/* Main Chat Area */}
@@ -284,7 +322,7 @@ const ChatArea = () => {
                     <img
                       src={message.img}
                       alt="Sent media"
-                      className="rounded-md max-w-[350px] object-cover"
+                      className="chat-image rounded-md max-w-[350px] object-cover"
                     />
                   )}
                   <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
@@ -312,7 +350,7 @@ const ChatArea = () => {
                       <img
                         src={message.img}
                         alt="Sent media"
-                        className="rounded-md max-w-[350px] object-cover"
+                        className="chat-image rounded-md max-w-[350px] object-cover"
                       />
                     )}
                     <div className="bg-gray-100 rounded-lg p-3 max-w-xs">
@@ -382,6 +420,21 @@ const ChatArea = () => {
             </div>
           )}
 
+          {/* Chat prompts */}
+          {currentUserChatEntry?.role === "customer" && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {chatPrompts.map((prompt, index) => (
+                <button
+                  key={index}
+                  onClick={() => setText(prompt)}
+                  className="bg-gray-100 hover:bg-pink-200 text-sm text-gray-800 px-3 py-1 rounded-full transition"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Input and buttons */}
           <div className="flex items-center space-x-2">
             <input
@@ -423,7 +476,7 @@ const ChatArea = () => {
         onClose={() => setShowUserInfo(false)}
         avatar={user?.avatar}
         name={user?.username}
-        images={OPPOSING_USER.images}
+        images={chat?.messages?.filter((m) => m.img).map((m) => m.img)}
       />
     </div>
   );
