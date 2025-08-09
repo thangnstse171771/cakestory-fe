@@ -141,7 +141,12 @@ export default function CakeShop() {
       try {
         setLoadingBalance(true);
         const response = await fetchWalletBalance();
-        setWalletBalance(response.balance || 0);
+        console.log("Full response in CustomizedOrderDetails:", response);
+
+        // Balance is nested in wallet object
+        const balance = response.wallet?.balance || response.balance || 0;
+        console.log("Extracted balance:", balance);
+        setWalletBalance(parseFloat(balance));
       } catch (error) {
         console.error("Error fetching wallet balance:", error);
         setWalletBalance(0);
@@ -382,6 +387,50 @@ export default function CakeShop() {
 
           {/* Right Panel - Options & Order */}
           <div className="space-y-6">
+            {/* Wallet Balance - Simple Display */}
+            {user && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-pink-100 rounded-full w-12 h-12 flex items-center justify-center">
+                      <Wallet className="w-6 h-6 text-pink-600" />
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-600">Số dư ví</div>
+                      <div className="font-semibold text-gray-800">
+                        {user?.full_name || user?.username || "User"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {loadingBalance ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-gray-500">Đang tải...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          className={`text-xl font-bold ${
+                            walletBalance >= getTotalPrice()
+                              ? "text-green-600"
+                              : "text-red-500"
+                          }`}
+                        >
+                          {formatCurrency(walletBalance)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {walletBalance >= getTotalPrice()
+                            ? "✅ Đủ số dư"
+                            : "⚠️ Không đủ số dư"}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Size Selection */}
             {availableSizes.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm">
@@ -537,28 +586,6 @@ export default function CakeShop() {
             <div className="bg-white rounded-lg shadow-sm">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">Đặt Hàng</h3>
-                {user && (
-                  <div className="mt-3 flex items-center space-x-2 text-sm">
-                    <Wallet className="h-4 w-4 text-green-600" />
-                    <span className="text-gray-600">Số dư ví:</span>
-                    {loadingBalance ? (
-                      <div className="flex items-center space-x-1">
-                        <div className="w-3 h-3 border border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-gray-500">Đang tải...</span>
-                      </div>
-                    ) : (
-                      <span
-                        className={`font-bold ${
-                          walletBalance >= getTotalPrice()
-                            ? "text-green-600"
-                            : "text-red-500"
-                        }`}
-                      >
-                        {formatCurrency(walletBalance)}
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
               <div className="p-6 space-y-6">
                 {/* Quantity */}
