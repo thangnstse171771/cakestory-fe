@@ -27,3 +27,27 @@ export const createMagicDesign = async (designData) => {
   );
   return response.data;
 };
+
+// Generate AI image for cake design
+export const generateAIImage = async (cakeDesignId) => {
+  const response = await axiosInstance.put(
+    "/cake-designs/generate-ai",
+    {
+      cake_design_id: cakeDesignId,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+};
+
+// Get cake designs with pagination
+export const getCakeDesigns = async (page = 1, limit = 10) => {
+  const response = await axiosInstance.get(
+    `/cake-designs?page=${page}&limit=${limit}`
+  );
+  return response.data;
+};
