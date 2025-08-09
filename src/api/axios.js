@@ -376,6 +376,37 @@ export const fetchAllUserWallets = async () => {
   }
 };
 
+// Admin: Lấy tổng số dư ví hệ thống (tạm giữ tiền của tất cả user)
+export const fetchSystemWalletBalance = async () => {
+  try {
+    console.log("Gọi API fetchSystemWalletBalance...");
+    const response = await axiosInstance.get("/wallet/allDepositsAdmin", {
+      params: {
+        page: 1,
+        limit: 1, // Chỉ cần lấy summary, không cần data
+      },
+    });
+    console.log("System wallet balance response:", response.data);
+
+    // Lấy completed_amount từ summary thay vì tính từ user wallets
+    const completedAmount = response.data?.data?.summary?.completed_amount || 0;
+    const totalDeposits = response.data?.data?.summary?.total_deposits || 0;
+
+    console.log("Completed amount from summary:", completedAmount);
+    console.log("Total deposits:", totalDeposits);
+
+    return {
+      totalSystemBalance: parseFloat(completedAmount),
+      totalDeposits: totalDeposits,
+      summary: response.data?.data?.summary || {},
+    };
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchSystemWalletBalance:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
 // Admin: Lấy thông tin ví của user cụ thể theo ID
 export const fetchUserWalletById = async (userId) => {
   try {
@@ -392,10 +423,53 @@ export const fetchUserWalletById = async (userId) => {
   }
 };
 
+// Admin: Lấy tất cả giao dịch nạp tiền (fetch all không pagination)
+export const fetchAllDepositsAdmin = async (filters = {}) => {
+  try {
+    console.log("Gọi API fetchAllDepositsAdmin với filters:", filters);
+
+    // Build params object
+    const params = {
+      page: filters.page || 1,
+      limit: filters.limit || 999999, // Set limit rất lớn để lấy tất cả
+    };
+
+    // Add optional filters
+    if (filters.status) params.status = filters.status;
+    if (filters.user_id) params.user_id = filters.user_id;
+    if (filters.start_date) params.start_date = filters.start_date;
+    if (filters.end_date) params.end_date = filters.end_date;
+
+    const response = await axiosInstance.get("/wallet/allDepositsAdmin", {
+      params,
+    });
+    console.log("All deposits response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchAllDepositsAdmin:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
 export const joinChallenge = async (challengeId) => {
   const response = await axiosInstance.post("/challenge-entries", {
     challenge_id: challengeId,
     user_id: JSON.parse(localStorage.getItem("user"))?.id,
   });
   return response.data;
+};
+
+// Admin: Lấy tổng doanh thu từ AI Generation
+export const fetchTotalAmountAiGenerate = async () => {
+  try {
+    console.log("Gọi API fetchTotalAmountAiGenerate...");
+    const response = await axiosInstance.get("/ai/totalAmountAiGenerate");
+    console.log("Total AI revenue response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchTotalAmountAiGenerate:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
 };
