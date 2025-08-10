@@ -623,7 +623,7 @@ const ShopAnalystic = ({ onBack }) => {
                 />
                 {showAddModal && (
                   <div
-                    className="add-member-modal-overlay"
+                    className="add-member-modal-overlay responsive-modal"
                     style={{
                       position: "fixed",
                       top: 0,
@@ -635,19 +635,27 @@ const ShopAnalystic = ({ onBack }) => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      overflowY: "auto",
+                      padding: "16px",
                     }}
                   >
                     <div
+                      className="responsive-modal-content"
                       style={{
                         background: "#fff",
-                        padding: 56,
-                        minWidth: 700,
-                        maxWidth: 1100,
-                        width: "98%",
+                        padding: "2vw 1vw",
+                        minWidth: "500px",
+                        maxWidth: "1100px",
+                        width: "100%",
                         borderRadius: 24,
                         boxShadow: "0 6px 40px rgba(245,158,66,0.18)",
                         border: "2px solid #f59e42",
                         position: "relative",
+                        maxHeight: "90vh",
+                        overflowY: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
                       }}
                     >
                       <Button
@@ -660,17 +668,19 @@ const ShopAnalystic = ({ onBack }) => {
                           fontSize: 22,
                           color: "#f59e42",
                           fontWeight: 700,
+                          zIndex: 2,
                         }}
                       >
                         ×
                       </Button>
                       <h2
                         style={{
-                          marginBottom: 32,
+                          marginBottom: "2vw",
                           textAlign: "center",
                           color: "#f59e42",
                           fontWeight: 700,
-                          fontSize: 28,
+                          fontSize: "max(20px,2vw)",
+                          wordBreak: "break-word",
                         }}
                       >
                         Thêm thành viên vào shop
@@ -777,8 +787,8 @@ const ShopAnalystic = ({ onBack }) => {
                         rowKey="id"
                         loading={loadingUsers}
                         pagination={{ pageSize: 8 }}
-                        style={{ marginTop: 8 }}
-                        scroll={{ y: 700 }}
+                        style={{ marginTop: 8, width: "100%", minWidth: 240 }}
+                        scroll={{ y: 400 }}
                       />
                     </div>
                   </div>
