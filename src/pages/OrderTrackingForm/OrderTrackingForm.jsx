@@ -394,7 +394,7 @@ export default function OrderTrackingForm({
             </div>
 
             {/* Hiển thị thông tin về flow trạng thái */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm text-blue-700">
                 <strong>Luồng trạng thái:</strong> Đang chờ xử lý → Đã tiếp nhận
                 → Sẵn sàng giao hàng → Đang vận chuyển → Hoàn tất
@@ -403,7 +403,7 @@ export default function OrderTrackingForm({
                 * API hỗ trợ cập nhật: Tiếp nhận đơn hàng, Giao hàng, Hoàn thành
                 đơn hàng, và Hủy đơn hàng
               </p>
-            </div>
+            </div> */}
             <div className="flex gap-2 mb-4">
               <input
                 type="text"
