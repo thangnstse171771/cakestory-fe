@@ -131,6 +131,10 @@ export default function App() {
                 <OrderTrackingList orders={[]} onSelectOrder={() => {}} />
               }
             />
+            <Route
+              path="order-tracking/:orderId"
+              element={<OrderTrackingList showOrderDetails={true} />}
+            />
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="ai-generated-images" element={<AIGenGalleryPage />} />
             <Route path="challenge" element={<ChallengeList />} />
