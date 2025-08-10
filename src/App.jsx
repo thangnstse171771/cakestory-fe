@@ -14,7 +14,6 @@ import Login from "./components/Login";
 import Signup from "./components/Signup";
 import Home from "./pages/Home/Home";
 import CakeDesign from "./pages/CakeDesign";
-import AIGenGalleryPage from "./pages/AIGenGalleryPage";
 import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
@@ -52,6 +51,7 @@ import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
 import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
 import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
 import AllShopCakes from "./pages/AllShopCakes";
+import AIGeneratedImages from "./pages/AIGeneratedImages";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -136,7 +136,7 @@ export default function App() {
               element={<OrderTrackingList showOrderDetails={true} />}
             />
             <Route path="cake-design" element={<CakeDesign />} />
-            <Route path="ai-generated-images" element={<AIGenGalleryPage />} />
+            <Route path="ai-generated-images" element={<AIGeneratedImages />} />
             <Route path="challenge" element={<ChallengeList />} />
             <Route path="challenge/details/:id" element={<ChallengeDetail />} />
             <Route
