@@ -292,7 +292,9 @@ export const fetchWithdrawRequestById = async (id) => {
 export const fetchAllWithdrawHistory = async () => {
   try {
     console.log("Gọi API fetchAllWithdrawHistory...");
-    const response = await axiosInstance.get("/wallet/withdrawAll-history");
+    const response = await axiosInstance.get(
+      "/wallet/withdrawAll-historyAdmin"
+    );
     console.log("All withdraw history response:", response.data);
     return response.data;
   } catch (error) {
@@ -318,18 +320,40 @@ export const fetchWithdrawHistoryByUserId = async (userId) => {
   }
 };
 
+// Admin: Duyệt yêu cầu rút tiền
+export const confirmWithdrawRequest = async (withdrawId) => {
+  try {
+    if (!withdrawId) throw new Error("Thiếu withdrawId");
+    console.log("Confirm withdraw:", withdrawId);
+    const response = await axiosInstance.put(
+      `/wallet/confirmRequestByAdmin/${withdrawId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Confirm withdraw failed:",
+      error.response?.status,
+      error.response?.data
+    );
+    throw error;
+  }
+};
+
 // Hủy yêu cầu rút tiền
 export const cancelWithdrawRequest = async (withdrawId) => {
   try {
-    console.log("Hủy yêu cầu rút tiền với withdrawId:", withdrawId);
+    if (!withdrawId) throw new Error("Thiếu withdrawId");
+    console.log("Cancel withdraw:", withdrawId);
     const response = await axiosInstance.put(
       `/wallet/cancel-withdraw/${withdrawId}`
     );
-    console.log("Cancel withdraw response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Lỗi khi hủy yêu cầu rút tiền:", error);
-    console.error("Error response:", error.response?.data);
+    console.error(
+      "Cancel withdraw failed:",
+      error.response?.status,
+      error.response?.data
+    );
     throw error;
   }
 };
@@ -434,11 +458,9 @@ export const fetchAllDepositsAdmin = async (filters = {}) => {
       limit: filters.limit || 999999, // Set limit rất lớn để lấy tất cả
     };
 
-    // Add optional filters
+    // Add optional filters (đã bỏ date filters)
     if (filters.status) params.status = filters.status;
     if (filters.user_id) params.user_id = filters.user_id;
-    if (filters.start_date) params.start_date = filters.start_date;
-    if (filters.end_date) params.end_date = filters.end_date;
 
     const response = await axiosInstance.get("/wallet/allDepositsAdmin", {
       params,

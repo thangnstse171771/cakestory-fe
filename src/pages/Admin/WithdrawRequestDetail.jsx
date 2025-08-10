@@ -1,159 +1,309 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
-
-// Fake dữ liệu trực tiếp trong file (nếu không có localStorage)
-const mockWithdrawRequests = [
-  {
-    id: 1,
-    userId: "user1",
-    username: "Nguyễn Văn A",
-    email: "user1@example.com",
-    phone: "0123456789",
-    bankName: "Vietcombank",
-    accountNumber: "1234567890",
-    accountName: "NGUYEN VAN A",
-    amount: 2000000,
-    status: "pending",
-    requestDate: "2024-01-15T10:30:00Z",
-    processedDate: null,
-    note: "Rút tiền để chi tiêu cá nhân",
-    adminNote: "",
-  },
-  {
-    id: 2,
-    userId: "user2",
-    username: "Trần Thị B",
-    email: "user2@example.com",
-    phone: "0987654321",
-    bankName: "BIDV",
-    accountNumber: "0987654321",
-    accountName: "TRAN THI B",
-    amount: 1500000,
-    status: "approved",
-    requestDate: "2024-01-14T15:20:00Z",
-    processedDate: "2024-01-15T09:15:00Z",
-    note: "Cần tiền để mua nguyên liệu làm bánh",
-    adminNote: "Đã xác minh thông tin tài khoản",
-  },
-  {
-    id: 3,
-    userId: "user3",
-    username: "Lê Văn C",
-    email: "user3@example.com",
-    phone: "0111222333",
-    bankName: "Techcombank",
-    accountNumber: "1122334455",
-    accountName: "LE VAN C",
-    amount: 3000000,
-    status: "rejected",
-    requestDate: "2024-01-13T14:45:00Z",
-    processedDate: "2024-01-14T11:30:00Z",
-    note: "Rút tiền để đầu tư",
-    adminNote: "Số tiền vượt quá hạn mức cho phép",
-  },
-  {
-    id: 4,
-    userId: "user4",
-    username: "Phạm Thị D",
-    email: "user4@example.com",
-    phone: "0222333444",
-    bankName: "ACB",
-    accountNumber: "2233445566",
-    accountName: "PHAM THI D",
-    amount: 800000,
-    status: "pending",
-    requestDate: "2024-01-15T16:00:00Z",
-    processedDate: null,
-    note: "Rút tiền để thanh toán hóa đơn",
-    adminNote: "",
-  },
-  {
-    id: 5,
-    userId: "user5",
-    username: "Nguyễn Thị E",
-    email: "user5@example.com",
-    phone: "0333444555",
-    bankName: "MB Bank",
-    accountNumber: "3344556677",
-    accountName: "NGUYEN THI E",
-    amount: 1200000,
-    status: "completed",
-    requestDate: "2024-01-12T09:30:00Z",
-    processedDate: "2024-01-13T14:20:00Z",
-    note: "Rút tiền để mua sắm",
-    adminNote: "Giao dịch đã hoàn tất",
-  },
-];
+import { useState, useEffect } from "react";
+import {
+  fetchWithdrawRequestById,
+  fetchAllUsers,
+  confirmWithdrawRequest,
+  cancelWithdrawRequest,
+} from "../../api/axios";
 
 export default function WithdrawRequestDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [requests, setRequests] = useState(mockWithdrawRequests);
-  const [adminNote, setAdminNote] = useState("");
+  const [request, setRequest] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [actionType, setActionType] = useState("");
   const [showAction, setShowAction] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // Luôn lấy được 1 request để hiển thị, nếu không có id thì lấy phần tử đầu tiên
-  const request =
-    requests.find((r) => String(r.id) === String(id)) || requests[0];
+  // Fetch users data for mapping user IDs to names
+  const fetchUsersData = async () => {
+    try {
+      const response = await fetchAllUsers();
+      let usersData = [];
+      if (response?.users && Array.isArray(response.users))
+        usersData = response.users;
+      else if (Array.isArray(response?.data)) usersData = response.data;
+      else if (Array.isArray(response)) usersData = response;
+      setUsers(usersData);
+      return usersData;
+    } catch {
+      return [];
+    }
+  };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
+  // Get user info by ID
+  const getUserInfo = (userId, usersData) => {
+    const user = usersData.find(
+      (u) => u.id === userId || u.id === parseInt(userId)
+    );
+    if (user) {
+      return {
+        username:
+          user.full_name || user.username || user.name || `User ${userId}`,
+        email: user.email || `user${userId}@example.com`,
+        phone: user.phone || "Chưa cập nhật",
+      };
+    }
+    return {
+      username: `User ${userId}`,
+      email: `user${userId}@example.com`,
+      phone: "Chưa cập nhật",
+    };
+  };
+
+  // Fetch withdraw request detail
+  const fetchWithdrawDetail = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      if (!id) {
+        setError("ID yêu cầu rút tiền không hợp lệ");
+        return;
+      }
+      const [usersData, withdrawResponse] = await Promise.all([
+        fetchUsersData(),
+        fetchWithdrawRequestById(id),
+      ]);
+      let withdrawData = null;
+      if (withdrawResponse?.withdrawHistory)
+        withdrawData = withdrawResponse.withdrawHistory;
+      else if (withdrawResponse?.data?.withdrawHistory)
+        withdrawData = withdrawResponse.data.withdrawHistory;
+      else if (withdrawResponse?.data?.withdraw)
+        withdrawData = withdrawResponse.data.withdraw;
+      else if (withdrawResponse?.withdraw)
+        withdrawData = withdrawResponse.withdraw;
+      else if (withdrawResponse?.data) withdrawData = withdrawResponse.data;
+      else if (withdrawResponse) withdrawData = withdrawResponse;
+      if (!withdrawData) {
+        setError("Không tìm thấy yêu cầu rút tiền");
+        return;
+      }
+      const userInfo = getUserInfo(
+        withdrawData.user_id || withdrawData.userId,
+        usersData
+      );
+      const transformedRequest = {
+        id: withdrawData.id,
+        userId: withdrawData.user_id || withdrawData.userId,
+        username: userInfo.username,
+        email: userInfo.email,
+        phone: userInfo.phone,
+        bankName:
+          withdrawData.bank_name || withdrawData.bankName || "Chưa cập nhật",
+        accountNumber:
+          withdrawData.account_number ||
+          withdrawData.accountNumber ||
+          "Chưa cập nhật",
+        accountName:
+          withdrawData.account_name ||
+          withdrawData.accountName ||
+          userInfo.username ||
+          "Chưa cập nhật",
+        amount: parseFloat(withdrawData.amount) || 0,
+        status:
+          withdrawData.status === "pending"
+            ? "pending"
+            : withdrawData.status === "completed"
+            ? "completed"
+            : withdrawData.status === "cancelled"
+            ? "cancelled"
+            : withdrawData.status,
+        requestDate:
+          withdrawData.created_at ||
+          withdrawData.createdAt ||
+          withdrawData.requestDate,
+        processedDate:
+          withdrawData.updated_at ||
+          withdrawData.updatedAt ||
+          withdrawData.processedDate,
+        note:
+          withdrawData.note || withdrawData.description || "Không có ghi chú",
+        adminNote: withdrawData.admin_note || withdrawData.adminNote || "",
+      };
+      setRequest(transformedRequest);
+    } catch (error) {
+      let errorMessage = "Không thể tải chi tiết yêu cầu rút tiền";
+      if (error.response?.status === 404) {
+        errorMessage =
+          "Không tìm thấy yêu cầu rút tiền với ID này. Có thể ID không tồn tại hoặc đã bị xóa.";
+        setTimeout(() => navigate("/admin/withdraw-requests"), 3000);
+      } else if (error.response?.data?.message)
+        errorMessage = error.response.data.message;
+      else if (error.response?.data?.error)
+        errorMessage = error.response.data.error;
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchWithdrawDetail();
+  }, [id]);
+
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(amount);
-  };
-
   const handleAction = (type) => {
     setActionType(type);
     setShowAction(true);
   };
 
-  const handleConfirmAction = () => {
-    if (!adminNote.trim()) {
-      alert("Vui lòng nhập ghi chú cho hành động này!");
-      return;
-    }
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === request.id
-          ? {
-              ...r,
-              status: actionType === "approve" ? "approved" : "rejected",
+  const handleConfirmAction = async () => {
+    try {
+      setActionLoading(true);
+      try {
+        if (actionType === "approve") await confirmWithdrawRequest(id);
+        else await cancelWithdrawRequest(id);
+        alert(
+          `${actionType === "approve" ? "Duyệt" : "Hủy"} yêu cầu thành công!`
+        );
+        setRequest((prev) => ({
+          ...prev,
+          status: actionType === "approve" ? "completed" : "cancelled",
+          processedDate: new Date().toISOString(),
+        }));
+        setShowAction(false);
+        setActionType("");
+        await fetchWithdrawDetail();
+      } catch (apiError) {
+        if (apiError.response?.status === 404) {
+          const continueAnyway = window.confirm(
+            `⚠️ Backend chưa hỗ trợ API ${
+              actionType === "approve" ? "duyệt" : "hủy"
+            } yêu cầu rút tiền.\n\nBạn có muốn cập nhật trạng thái local tạm thời không?\n(Lưu ý: Trạng thái này chỉ hiển thị trên frontend và sẽ bị reset khi refresh trang)`
+          );
+          if (continueAnyway) {
+            setRequest((prev) => ({
+              ...prev,
+              status: actionType === "approve" ? "completed" : "cancelled",
               processedDate: new Date().toISOString(),
-              adminNote,
-            }
-          : r
-      )
-    );
-    setShowAction(false);
-    setAdminNote("");
-    setActionType("");
+              adminNote: `[LOCAL UPDATE] ${
+                actionType === "approve" ? "Duyệt" : "Hủy"
+              } tạm thời bởi admin lúc ${new Date().toLocaleString("vi-VN")}`,
+            }));
+            alert(
+              `✅ Đã cập nhật trạng thái local thành công!\n\n⚠️ Lưu ý: Đây chỉ là cập nhật tạm thời trên giao diện.\nBackend cần được cập nhật để hỗ trợ API này.`
+            );
+            setShowAction(false);
+            setActionType("");
+          } else throw apiError;
+        } else throw apiError;
+      }
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        `Lỗi khi ${actionType === "approve" ? "duyệt" : "hủy"} yêu cầu`;
+      alert(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleComplete = () => {
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === request.id
-          ? {
-              ...r,
-              status: "completed",
-              processedDate: new Date().toISOString(),
-            }
-          : r
-      )
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-pink-50 p-8">
+        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+          <div className="flex justify-center items-center py-12">
+            <div className="text-pink-600 font-medium">Đang tải dữ liệu...</div>
+          </div>
+        </div>
+      </div>
     );
-  };
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-pink-50 p-8">
+        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 text-pink-600 hover:underline"
+          >
+            ← Quay lại danh sách
+          </button>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <span className="text-red-600">⚠️ {error}</span>
+              <button
+                onClick={fetchWithdrawDetail}
+                className="ml-auto text-red-600 hover:text-red-700 font-medium mr-3"
+              >
+                Thử lại
+              </button>
+              <button
+                onClick={() => navigate("/admin/withdraw-requests")}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Về danh sách
+              </button>
+            </div>
+            {error.includes("ID này") && (
+              <div className="mt-2 text-sm text-gray-600">
+                Sẽ tự động chuyển về danh sách sau 3 giây...
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No request found
+  if (!request) {
+    return (
+      <div className="min-h-screen bg-pink-50 p-8">
+        <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 text-pink-600 hover:underline"
+          >
+            ← Quay lại danh sách
+          </button>
+          <div className="text-center py-12">
+            <p className="text-gray-500 mb-4">
+              Không tìm thấy yêu cầu rút tiền
+            </p>
+            <button
+              onClick={fetchWithdrawDetail}
+              className="text-pink-600 hover:text-pink-700 font-medium"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-pink-50 p-8">
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-6 text-pink-600 hover:underline"
-        >
-          ← Quay lại danh sách
-        </button>
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-pink-600 hover:underline"
+          >
+            ← Quay lại danh sách
+          </button>
+          <button
+            onClick={fetchWithdrawDetail}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+            disabled={loading}
+          >
+            Làm Mới
+          </button>
+        </div>
         <h1 className="text-2xl font-bold text-pink-600 mb-4">
           Chi tiết yêu cầu #{request.id}
         </h1>
@@ -163,17 +313,16 @@ export default function WithdrawRequestDetail() {
             className={`px-3 py-1 rounded-full text-xs font-medium ${
               request.status === "pending"
                 ? "bg-yellow-100 text-yellow-700"
-                : request.status === "approved"
-                ? "bg-blue-100 text-blue-700"
-                : request.status === "rejected"
-                ? "bg-red-100 text-red-700"
-                : "bg-green-100 text-green-700"
+                : request.status === "completed"
+                ? "bg-green-100 text-green-700"
+                : request.status === "cancelled"
+                ? "bg-gray-100 text-gray-700"
+                : "bg-gray-100 text-gray-700"
             }`}
           >
             {request.status === "pending" && "Chờ xử lý"}
-            {request.status === "approved" && "Đã phê duyệt"}
-            {request.status === "rejected" && "Đã từ chối"}
             {request.status === "completed" && "Hoàn thành"}
+            {request.status === "cancelled" && "Đã hủy"}
           </span>
         </div>
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -227,7 +376,7 @@ export default function WithdrawRequestDetail() {
         <div className="mb-4">
           <div className="font-semibold mb-1">Ghi chú của user</div>
           <div className="bg-gray-50 p-3 rounded-lg">
-            {request.note || "Không có ghi chú"}
+            {request.note || "Người dùng không để lại ghi chú"}
           </div>
         </div>
         {request.adminNote && (
@@ -238,29 +387,32 @@ export default function WithdrawRequestDetail() {
         )}
         {/* Action buttons */}
         {request.status === "pending" && (
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => handleAction("approve")}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold"
-            >
-              Phê duyệt
-            </button>
-            <button
-              onClick={() => handleAction("reject")}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold"
-            >
-              Từ chối
-            </button>
-          </div>
+          <>
+            <div className="mb-2 text-sm text-gray-600">
+              Debug: Status = "{request.status}"
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => handleAction("approve")}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Đang xử lý..." : "Duyệt"}
+              </button>
+              <button
+                onClick={() => handleAction("cancel")}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Đang xử lý..." : "Hủy"}
+              </button>
+            </div>
+          </>
         )}
-        {request.status === "approved" && (
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={handleComplete}
-              className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold"
-            >
-              Hoàn tất
-            </button>
+        {request.status !== "pending" && (
+          <div className="mb-2 text-sm text-gray-600">
+            Debug: Status = "{request.status}" (không phải pending, không hiển
+            thị buttons)
           </div>
         )}
         {/* Action dialog */}
@@ -268,38 +420,35 @@ export default function WithdrawRequestDetail() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md">
               <div className="text-lg font-bold mb-4">
-                {actionType === "approve" ? "Phê duyệt" : "Từ chối"} yêu cầu
+                Xác nhận {actionType === "approve" ? "duyệt" : "hủy"} yêu cầu
               </div>
-              <div className="mb-4">
-                <label className="block mb-2 font-semibold">
-                  Ghi chú (bắt buộc)
-                </label>
-                <textarea
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
-                  rows={3}
-                  placeholder={`Nhập lý do ${
-                    actionType === "approve" ? "phê duyệt" : "từ chối"
-                  }...`}
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                />
+              <div className="mb-6 text-gray-600">
+                Bạn có chắc chắn muốn{" "}
+                {actionType === "approve" ? "duyệt" : "hủy"} yêu cầu rút tiền #
+                {request.id} không?
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowAction(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
+                  className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={actionLoading}
                 >
                   Hủy
                 </button>
                 <button
                   onClick={handleConfirmAction}
-                  className={`flex-1 px-4 py-2 rounded-lg text-white ${
+                  className={`flex-1 px-4 py-2 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed ${
                     actionType === "approve"
                       ? "bg-green-600 hover:bg-green-700"
                       : "bg-red-600 hover:bg-red-700"
                   }`}
+                  disabled={actionLoading}
                 >
-                  {actionType === "approve" ? "Phê duyệt" : "Từ chối"}
+                  {actionLoading
+                    ? "Đang xử lý..."
+                    : actionType === "approve"
+                    ? "Duyệt"
+                    : "Hủy"}
                 </button>
               </div>
             </div>
