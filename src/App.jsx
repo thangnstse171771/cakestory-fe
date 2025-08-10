@@ -52,6 +52,7 @@ import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
 import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
 import AllShopCakes from "./pages/AllShopCakes";
 import AIGeneratedImages from "./pages/AIGeneratedImages";
+import ProductDetail from "./pages/Marketplace/ProductDetail";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -109,6 +110,10 @@ export default function App() {
             <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<Home />} />
             <Route path="marketplace" element={<Marketplace />} />
+            <Route
+              path="marketplace/product/:productId"
+              element={<ProductDetail />}
+            />
             <Route path="marketplace/shop/:id" element={<ShopDetail />} />
             <Route
               path="marketplace/shop/:id/all-cakes"
