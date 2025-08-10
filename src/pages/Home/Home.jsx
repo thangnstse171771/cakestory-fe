@@ -389,7 +389,7 @@ const Home = () => {
                               <div className="p-6 space-y-4">
                                 {/* Title and Rating */}
                                 <div className="space-y-2">
-                                  <h3 className="text-xl font-bold text-pink-600 line-clamp-2 group-hover:text-pink-400 transition-colors duration-200">
+                                  <h3 className="text-xl font-semibold line-clamp-2 group-hover:text-pink-400 transition-colors duration-200">
                                     {post.post?.title ||
                                       "Check out this amazing marketplace item!"}
                                   </h3>
@@ -428,7 +428,7 @@ const Home = () => {
                                       ></img> */}
                                     </div>
                                     <div>
-                                      <p className="font-medium text-sm text-gray-900">
+                                      <p className="font-medium text-sm text-gray-500">
                                         <Link
                                           className="cursor-pointer"
                                           to={`/marketplace/shop/${post.shop?.user?.id}`}
@@ -440,19 +440,23 @@ const Home = () => {
                                     </div>
                                   </div>
 
-                                  {/* {post.post?.price && (
+                                  {/* {post.cakeSizes?.[0]?.price && (
                                     <div className="text-right">
-                                      <p className="text-2xl font-bold text-purple-600">
-                                        ${post.post.price}
-                                      </p>
+                                      <span className="inline-block bg-pink-100 text-pink-600 text-sm font-bold px-3 py-1 rounded-full shadow-sm border border-pink-200">
+                                        {post.cakeSizes?.[0]?.price} VNĐ
+                                      </span>
                                     </div>
                                   )} */}
                                 </div>
 
                                 {/* Action Button */}
-                                <div className="flex justify-center items-center w-full bg-gradient-to-r from-pink-600 to-pink-400 hover:from-gray-300 hover:to-white text-white hover:text-pink-500 font-medium py-2 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer border border-transparent hover:border-pink-500">
-                                  <button>View Details</button>
-                                </div>
+
+                                <Link
+                                  className="flex justify-center items-center w-full bg-gradient-to-r from-pink-600 to-pink-400 hover:from-gray-300 hover:to-white text-white hover:text-pink-500 font-medium py-2 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer border border-transparent hover:border-pink-500"
+                                  to={`/marketplace`}
+                                >
+                                  <button>To Marketplace</button>
+                                </Link>
                               </div>
 
                               {/* Decorative Elements */}
