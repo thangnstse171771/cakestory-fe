@@ -453,9 +453,9 @@ const Home = () => {
 
                                 <Link
                                   className="flex justify-center items-center w-full bg-gradient-to-r from-pink-600 to-pink-400 hover:from-gray-300 hover:to-white text-white hover:text-pink-500 font-medium py-2 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer border border-transparent hover:border-pink-500"
-                                  to={`/marketplace`}
+                                  to={`/marketplace/product/${post.post_id}`}
                                 >
-                                  <button>To Marketplace</button>
+                                  <button>View</button>
                                 </Link>
                               </div>
 
