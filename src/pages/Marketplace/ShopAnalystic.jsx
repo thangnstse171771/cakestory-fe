@@ -39,70 +39,21 @@ import {
 } from "recharts";
 import "./ShopAnalystic.css";
 import { Star } from "lucide-react";
+import OrderTrackingList from "../OrderTrackingForm/OrderTrackingList";
 import {
   fetchShopMembers,
   fetchAllActiveUsers,
   addMemberToShop,
   deleteMemberFromShop,
 } from "../../api/shopMembers";
+import {
+  fetchAllShops,
+  fetchShopOrders,
+  fetchMarketplacePosts,
+} from "../../api/axios";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { removeUserFromGroupChatByShopId } from "../Chat/libs/shopChatUtils";
 import { db } from "../../firebase";
-
-const fakeShopInfo = {
-  name: "Sweet Cake Shop",
-  owner: "Nguyen Van A",
-  members: [
-    {
-      id: 1,
-      name: "Nguyen Van A",
-      role: "Owner",
-      avatar: "",
-      joined: "2023-01-01",
-    },
-    {
-      id: 2,
-      name: "Tran Thi B",
-      role: "Staff",
-      avatar: "",
-      joined: "2023-03-15",
-    },
-    {
-      id: 3,
-      name: "Le Van C",
-      role: "Staff",
-      avatar: "",
-      joined: "2024-02-10",
-    },
-  ],
-  orders: [
-    {
-      id: 101,
-      customer: "Pham D",
-      date: "2025-07-20",
-      status: "Completed",
-      total: 350000,
-    },
-    {
-      id: 102,
-      customer: "Nguyen E",
-      date: "2025-07-21",
-      status: "Pending",
-      total: 120000,
-    },
-    {
-      id: 103,
-      customer: "Le F",
-      date: "2025-07-22",
-      status: "Cancelled",
-      total: 0,
-    },
-  ],
-  revenue: 12000000,
-  totalOrders: 320,
-  rating: 4.8,
-  products: 25,
-};
 
 // Dữ liệu ảo cho biểu đồ
 const revenueData = [
@@ -145,6 +96,100 @@ const ShopAnalystic = ({ onBack }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
   const [deletingMember, setDeletingMember] = useState(false);
+
+  // State cho dữ liệu shop thật
+  const [shopInfo, setShopInfo] = useState({
+    name: "Đang tải...",
+    owner: "Đang tải...",
+    business_name: "",
+    phone_number: "",
+    business_address: "",
+  });
+  const [shopStats, setShopStats] = useState({
+    totalOrders: 0,
+    totalProducts: 0,
+    totalRevenue: 0,
+    rating: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Fetch dữ liệu shop thật
+  const fetchShopData = async () => {
+    try {
+      setLoading(true);
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      // Fetch shop info
+      const shopsData = await fetchAllShops();
+      const userShop = (shopsData.shops || []).find(
+        (shop) => shop.user_id === user.id
+      );
+
+      if (userShop) {
+        setShopInfo({
+          name: userShop.business_name || userShop.name || "Chưa có tên shop",
+          owner: user.full_name || user.username || "Chủ shop",
+          business_name: userShop.business_name || "",
+          phone_number: userShop.phone_number || "",
+          business_address: userShop.business_address || "",
+        });
+        setShopId(userShop.shop_id || userShop.id);
+
+        // Fetch orders để tính stats
+        try {
+          const ordersData = await fetchShopOrders(
+            userShop.shop_id || userShop.id
+          );
+          const orders = ordersData.orders || [];
+
+          const totalRevenue = orders.reduce(
+            (sum, order) => sum + (parseFloat(order.total_price) || 0),
+            0
+          );
+
+          setShopStats({
+            totalOrders: orders.length,
+            totalRevenue: totalRevenue,
+            rating: 4.5, // TODO: Fetch từ API review nếu có
+            totalProducts: 0, // Sẽ fetch từ marketplace posts
+          });
+        } catch (orderError) {
+          console.error("Error fetching orders:", orderError);
+          setShopStats((prev) => ({
+            ...prev,
+            totalOrders: 0,
+            totalRevenue: 0,
+          }));
+        }
+
+        // Fetch products count từ marketplace posts
+        try {
+          const postsData = await fetchMarketplacePosts();
+          const userPosts = (postsData.marketplacePosts || []).filter(
+            (post) => post.shop_id === (userShop.shop_id || userShop.id)
+          );
+          setShopStats((prev) => ({
+            ...prev,
+            totalProducts: userPosts.length,
+          }));
+        } catch (postError) {
+          console.error("Error fetching posts:", postError);
+          setShopStats((prev) => ({ ...prev, totalProducts: 0 }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching shop data:", error);
+      setShopInfo({
+        name: "Lỗi tải dữ liệu",
+        owner: "Không xác định",
+        business_name: "",
+        phone_number: "",
+        business_address: "",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Hàm hiển thị modal xác nhận xóa
   const showDeleteConfirm = (record) => {
@@ -272,29 +317,6 @@ const ShopAnalystic = ({ onBack }) => {
     },
   ];
 
-  const orderColumns = [
-    { title: "Order ID", dataIndex: "id", key: "id" },
-    { title: "Customer", dataIndex: "customer", key: "customer" },
-    { title: "Date", dataIndex: "date", key: "date" },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status) => {
-        let color = "green";
-        if (status === "Pending") color = "orange";
-        if (status === "Cancelled") color = "red";
-        return <Tag color={color}>{status}</Tag>;
-      },
-    },
-    {
-      title: "Total (VND)",
-      dataIndex: "total",
-      key: "total",
-      render: (total) => total.toLocaleString(),
-    },
-  ];
-
   const handleOpenAddModal = () => {
     setShowAddModal(true);
     setLoadingUsers(true);
@@ -328,6 +350,10 @@ const ShopAnalystic = ({ onBack }) => {
       setAddingUserId(null);
     }
   };
+
+  useEffect(() => {
+    fetchShopData();
+  }, []);
 
   useEffect(() => {
     if (tab === "members") {
@@ -375,10 +401,22 @@ const ShopAnalystic = ({ onBack }) => {
             />
           </Col>
           <Col flex="auto">
-            <h2>{fakeShopInfo.name}</h2>
+            <h2>{loading ? "Đang tải..." : shopInfo.name}</h2>
             <div>
-              Chủ shop: <b>{fakeShopInfo.owner}</b>
+              Chủ shop: <b>{loading ? "Đang tải..." : shopInfo.owner}</b>
             </div>
+            {shopInfo.phone_number && (
+              <div
+                style={{ color: "#666", fontSize: "14px", marginTop: "4px" }}
+              >
+                📞 {shopInfo.phone_number}
+              </div>
+            )}
+            {shopInfo.business_address && (
+              <div style={{ color: "#666", fontSize: "14px" }}>
+                📍 {shopInfo.business_address}
+              </div>
+            )}
           </Col>
         </Row>
       </Card>
@@ -400,27 +438,34 @@ const ShopAnalystic = ({ onBack }) => {
                   <Col span={6}>
                     <Statistic
                       title="Doanh thu"
-                      value={fakeShopInfo.revenue}
+                      value={loading ? 0 : shopStats.totalRevenue}
                       suffix="VND"
                       valueStyle={{ color: "#52c41a" }}
+                      loading={loading}
                     />
                   </Col>
                   <Col span={6}>
                     <Statistic
                       title="Đơn hàng"
-                      value={fakeShopInfo.totalOrders}
+                      value={loading ? 0 : shopStats.totalOrders}
                       prefix={<ShoppingCartOutlined />}
+                      loading={loading}
                     />
                   </Col>
                   <Col span={6}>
-                    <Statistic title="Sản phẩm" value={fakeShopInfo.products} />
+                    <Statistic
+                      title="Sản phẩm"
+                      value={loading ? 0 : shopStats.totalProducts}
+                      loading={loading}
+                    />
                   </Col>
                   <Col span={6}>
                     <Statistic
                       title="Đánh giá"
-                      value={fakeShopInfo.rating}
+                      value={loading ? 0 : shopStats.rating}
                       suffix="★"
                       valueStyle={{ color: "#fadb14" }}
+                      loading={loading}
                     />
                   </Col>
                 </Row>
@@ -578,7 +623,7 @@ const ShopAnalystic = ({ onBack }) => {
                 />
                 {showAddModal && (
                   <div
-                    className="add-member-modal-overlay"
+                    className="add-member-modal-overlay responsive-modal"
                     style={{
                       position: "fixed",
                       top: 0,
@@ -590,19 +635,27 @@ const ShopAnalystic = ({ onBack }) => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      overflowY: "auto",
+                      padding: "16px",
                     }}
                   >
                     <div
+                      className="responsive-modal-content"
                       style={{
                         background: "#fff",
-                        padding: 56,
-                        minWidth: 700,
-                        maxWidth: 1100,
-                        width: "98%",
+                        padding: "2vw 1vw",
+                        minWidth: "500px",
+                        maxWidth: "1100px",
+                        width: "100%",
                         borderRadius: 24,
                         boxShadow: "0 6px 40px rgba(245,158,66,0.18)",
                         border: "2px solid #f59e42",
                         position: "relative",
+                        maxHeight: "90vh",
+                        overflowY: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
                       }}
                     >
                       <Button
@@ -615,17 +668,19 @@ const ShopAnalystic = ({ onBack }) => {
                           fontSize: 22,
                           color: "#f59e42",
                           fontWeight: 700,
+                          zIndex: 2,
                         }}
                       >
                         ×
                       </Button>
                       <h2
                         style={{
-                          marginBottom: 32,
+                          marginBottom: "2vw",
                           textAlign: "center",
                           color: "#f59e42",
                           fontWeight: 700,
-                          fontSize: 28,
+                          fontSize: "max(20px,2vw)",
+                          wordBreak: "break-word",
                         }}
                       >
                         Thêm thành viên vào shop
@@ -732,8 +787,8 @@ const ShopAnalystic = ({ onBack }) => {
                         rowKey="id"
                         loading={loadingUsers}
                         pagination={{ pageSize: 8 }}
-                        style={{ marginTop: 8 }}
-                        scroll={{ y: 700 }}
+                        style={{ marginTop: 8, width: "100%", minWidth: 240 }}
+                        scroll={{ y: 400 }}
                       />
                     </div>
                   </div>
@@ -844,12 +899,9 @@ const ShopAnalystic = ({ onBack }) => {
               </span>
             ),
             children: (
-              <Table
-                columns={orderColumns}
-                dataSource={fakeShopInfo.orders}
-                rowKey="id"
-                className="fade-in-table"
-              />
+              <div style={{ margin: "-24px" }}>
+                <OrderTrackingList />
+              </div>
             ),
           },
         ]}

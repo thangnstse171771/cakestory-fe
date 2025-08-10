@@ -8,9 +8,7 @@ import {
   Truck,
   CheckCircle,
   Clock,
-  Sparkles,
   MessageSquareText,
-  Hourglass,
   ClipboardCheck,
 } from "lucide-react";
 
@@ -52,17 +50,12 @@ const statusMap = {
   },
 };
 
-export default function OrderTrackingForm({
-  order,
-  onUpdateStatus,
-  onBackToList,
-}) {
+export default function OrderTrackingFormByUser({ order, onBackToList }) {
   const navigate = useNavigate();
   const { orderId } = useParams();
 
-  // Local state để cập nhật trạng thái động
+  // Local state để hiển thị thông tin đơn hàng
   const [orderDetail, setOrderDetail] = useState(order);
-  const [note, setNote] = useState("");
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +64,7 @@ export default function OrderTrackingForm({
     if (orderId && !order) {
       fetchOrderDetail();
     }
-  }, [orderId]); // Chỉ depend vào orderId
+  }, [orderId]);
 
   const fetchOrderDetail = async () => {
     try {
@@ -115,7 +108,7 @@ export default function OrderTrackingForm({
     if (onBackToList) {
       onBackToList();
     } else {
-      navigate("/order-tracking");
+      navigate("/my-orders"); // Navigate về trang đơn hàng của user
     }
   };
 
@@ -153,71 +146,19 @@ export default function OrderTrackingForm({
     "shipped",
     "completed",
   ];
-  const currentStatusIndex = mainStatusFlow.indexOf(orderDetail.status);
+
+  // Tính progress dựa trên flow chính, bỏ qua complaining và cancelled
+  let currentStatusIndex = mainStatusFlow.indexOf(orderDetail.status);
+
+  // Nếu đang ở trạng thái complaining, coi như đang ở shipped để hiển thị progress
+  if (orderDetail.status === "complaining") {
+    currentStatusIndex = mainStatusFlow.indexOf("shipped");
+  }
+
   const progressPercentage =
     currentStatusIndex >= 0
       ? (currentStatusIndex / (mainStatusFlow.length - 1)) * 100
       : 0;
-
-  // Hàm cập nhật trạng thái đơn hàng local
-  const handleUpdateStatus = async (orderId, newStatus, newHistoryEntry) => {
-    try {
-      // Cập nhật local state trước
-      setOrderDetail((prev) => {
-        if (!prev) return prev;
-        const updated = {
-          ...prev,
-          status: newStatus,
-          history: newHistoryEntry
-            ? [...prev.history, newHistoryEntry]
-            : prev.history,
-        };
-        return updated;
-      });
-
-      // Gọi API để cập nhật trạng thái
-      if (onUpdateStatus) {
-        await onUpdateStatus(orderId, newStatus, newHistoryEntry);
-      }
-
-      // Hiển thị thông báo thành công
-      alert(
-        `Đã cập nhật trạng thái đơn hàng thành: ${
-          statusMap[newStatus]?.label || newStatus
-        }`
-      );
-    } catch (error) {
-      console.error("Lỗi khi cập nhật trạng thái:", error);
-
-      // Hiển thị thông báo lỗi chi tiết hơn
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        "Có lỗi khi cập nhật trạng thái đơn hàng";
-      alert(errorMessage);
-
-      // Revert lại trạng thái cũ nếu API call thất bại
-      if (order) {
-        setOrderDetail(order);
-      }
-    }
-  };
-
-  const handleAddNote = () => {
-    if (note.trim()) {
-      const newHistoryEntry = {
-        date: new Date().toISOString().split("T")[0],
-        time: new Date().toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        status: orderDetail.status,
-        note: note.trim(),
-      };
-      handleUpdateStatus(orderDetail.id, orderDetail.status, newHistoryEntry);
-      setNote("");
-    }
-  };
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
@@ -273,26 +214,38 @@ export default function OrderTrackingForm({
             </div>
           </div>
 
-          {/* Customer Details */}
+          {/* Order Basic Info */}
           <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-              <User className="h-5 w-5" />
-              Thông tin khách hàng
+              <Package className="h-5 w-5" />
+              Thông tin đơn hàng
             </h3>
-            <ul className="space-y-1 text-gray-800">
-              <li>
-                <span className="font-medium">Tên:</span>{" "}
-                {orderDetail.customerName}
-              </li>
-              <li>
-                <span className="font-medium">Email:</span>{" "}
-                {orderDetail.customerEmail}
-              </li>
-              <li>
-                <span className="font-medium">Điện thoại:</span>{" "}
-                {orderDetail.customerPhone}
-              </li>
-            </ul>
+            <div className="grid grid-cols-2 gap-4 text-gray-800">
+              <div>
+                <span className="font-medium">Mã đơn hàng:</span>{" "}
+                {orderDetail.orderNumber}
+              </div>
+              <div>
+                <span className="font-medium">Ngày đặt:</span>{" "}
+                {new Date(orderDetail.placeDate).toLocaleDateString("vi-VN")}
+              </div>
+              <div>
+                <span className="font-medium">Trạng thái:</span>{" "}
+                <span
+                  className={`px-2 py-1 rounded-lg text-sm font-semibold ${
+                    statusMap[orderDetail.status]?.color || "text-gray-500"
+                  }`}
+                >
+                  {statusMap[orderDetail.status]?.label || orderDetail.status}
+                </span>
+              </div>
+              <div>
+                <span className="font-medium">Tổng tiền:</span>{" "}
+                <span className="text-pink-600 font-bold">
+                  {orderDetail.total.toLocaleString("vi-VN")}đ
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Order Items */}
@@ -338,92 +291,12 @@ export default function OrderTrackingForm({
             </div>
           </div>
 
-          {/* Update Status (Admin/Internal Use) */}
+          {/* Status History */}
           <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
               <MessageSquareText className="h-5 w-5" />
-              Cập nhật trạng thái & Ghi chú
+              Lịch sử trạng thái
             </h3>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {/* Nút chuyển sang ordered (chỉ hiện khi đang pending) */}
-              {orderDetail.status === "pending" && (
-                <button
-                  onClick={() => handleUpdateStatus(orderDetail.id, "ordered")}
-                  className="px-4 py-2 rounded-lg font-semibold border bg-cyan-500 text-white border-cyan-500 hover:bg-cyan-600 transition-colors duration-200"
-                >
-                  Tiếp nhận đơn hàng
-                </button>
-              )}
-
-              {/* Nút chuyển sang shipped (hiện khi đang ordered hoặc preparedForDelivery) */}
-              {(orderDetail.status === "ordered" ||
-                orderDetail.status === "preparedForDelivery") && (
-                <button
-                  onClick={() => handleUpdateStatus(orderDetail.id, "shipped")}
-                  className="px-4 py-2 rounded-lg font-semibold border bg-orange-500 text-white border-orange-500 hover:bg-orange-600 transition-colors duration-200"
-                >
-                  Giao hàng
-                </button>
-              )}
-
-              {/* Nút chuyển sang completed (hiện khi đang shipped hoặc complaining) */}
-              {(orderDetail.status === "shipped" ||
-                orderDetail.status === "complaining") && (
-                <button
-                  onClick={() =>
-                    handleUpdateStatus(orderDetail.id, "completed")
-                  }
-                  className="px-4 py-2 rounded-lg font-semibold border bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600 transition-colors duration-200"
-                >
-                  Hoàn thành đơn hàng
-                </button>
-              )}
-
-              {/* Nút hủy đơn (hiện khi chưa hoàn thành) */}
-              {orderDetail.status !== "completed" &&
-                orderDetail.status !== "cancelled" && (
-                  <button
-                    onClick={() =>
-                      handleUpdateStatus(orderDetail.id, "cancelled")
-                    }
-                    className="px-4 py-2 rounded-lg font-semibold border bg-red-500 text-white border-red-500 hover:bg-red-600 transition-colors duration-200"
-                  >
-                    Hủy đơn hàng
-                  </button>
-                )}
-            </div>
-
-            {/* Hiển thị thông tin về flow trạng thái */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-blue-700">
-                <strong>Luồng trạng thái:</strong> Đang chờ xử lý → Đã tiếp nhận
-                → Sẵn sàng giao hàng → Đang vận chuyển → Hoàn tất
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                * API hỗ trợ cập nhật: Tiếp nhận đơn hàng, Giao hàng, Hoàn thành
-                đơn hàng, và Hủy đơn hàng
-              </p>
-            </div>
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                placeholder="Thêm ghi chú..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="flex-1 border border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-lg px-3 py-2 outline-none"
-              />
-              <button
-                onClick={handleAddNote}
-                className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-lg"
-              >
-                Thêm ghi chú
-              </button>
-            </div>
-
-            {/* Status History */}
-            <h4 className="text-md font-semibold mb-2 text-pink-600">
-              Lịch sử trạng thái:
-            </h4>
             <ul className="space-y-3">
               {orderDetail.history.map((entry, index) => (
                 <li

@@ -88,8 +88,14 @@ function ProductDetailModal({ isOpen, product, onClose }) {
                 </div>
               </div>
             </div>{" "}
-            {/* Content Section */}
-            <div className="flex-1 p-8 lg:p-10">
+            {/* Content Section - Scrollbar always visible on right */}
+            <div
+              className="flex-1 p-8 lg:p-10 overflow-y-auto h-full"
+              style={{
+                scrollbarWidth: "thin",
+                scrollbarColor: "#e11d48 #f9fafb",
+              }}
+            >
               <div className="mb-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
