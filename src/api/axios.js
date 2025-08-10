@@ -473,3 +473,82 @@ export const fetchTotalAmountAiGenerate = async () => {
     throw error;
   }
 };
+
+// Lấy chi tiết order theo ID
+export const fetchOrderById = async (orderId) => {
+  try {
+    console.log("Gọi API fetchOrderById với orderId:", orderId);
+    const response = await axiosInstance.get(`/cake-orders/${orderId}`);
+    console.log("Order detail response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchOrderById:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Lấy danh sách orders của shop
+export const fetchShopOrders = async (shopId) => {
+  try {
+    console.log("Gọi API fetchShopOrders với shopId:", shopId);
+    const response = await axiosInstance.get(`/cake-orders/shop/${shopId}`);
+    console.log("Shop orders response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchShopOrders:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Cập nhật trạng thái order
+export const updateOrderStatus = async (orderId, status) => {
+  try {
+    console.log("Cập nhật trạng thái order:", { orderId, status });
+
+    // API hỗ trợ 4 endpoint cụ thể
+    let endpoint = "";
+
+    switch (status) {
+      case "ordered":
+        endpoint = `/cake-orders/${orderId}/ordered`;
+        break;
+      case "shipped":
+        endpoint = `/cake-orders/${orderId}/ship`;
+        break;
+      case "completed":
+        endpoint = `/cake-orders/${orderId}/complete`;
+        break;
+      case "cancelled":
+        endpoint = `/cake-orders/${orderId}/cancel`;
+        break;
+      default:
+        throw new Error(
+          `API không hỗ trợ cập nhật trạng thái "${status}". Chỉ hỗ trợ: ordered, shipped, completed, cancelled`
+        );
+    }
+
+    const response = await axiosInstance.put(endpoint, {});
+    console.log("Update order status response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái order:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Tạo complaint mới
+export const createComplaint = async (complaintData) => {
+  try {
+    console.log("Tạo complaint:", complaintData);
+    const response = await axiosInstance.post("/complaints", complaintData);
+    console.log("Create complaint response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi tạo complaint:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
