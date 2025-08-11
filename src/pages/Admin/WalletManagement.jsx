@@ -288,116 +288,36 @@ const WalletManagement = () => {
       if (withdrawResponse.status === "fulfilled") {
         const withdrawData = withdrawResponse.value;
         console.log("Withdraw data received:", withdrawData);
-        console.log("Withdraw data structure check:");
-        console.log("withdrawData.data exists?", !!withdrawData.data);
-        console.log(
-          "withdrawData.data.withdraws exists?",
-          !!withdrawData.data?.withdraws
-        );
-        console.log(
-          "withdrawData.withdrawHistory exists?",
-          !!withdrawData.withdrawHistory
-        );
-        console.log("withdrawData.withdraws exists?", !!withdrawData.withdraws);
 
         let totalPendingWithdraw = 0;
-        let totalCompletedWithdraw = 0;
-        let pendingCount = 0;
-        let completedCount = 0;
-        let totalWithdrawAmount = 0;
+        let withdrawCount = 0;
 
-        let withdraws = [];
-
-        // Thử nhiều structure khác nhau
         if (
-          withdrawData?.data?.withdraws &&
+          withdrawData &&
+          withdrawData.data &&
           Array.isArray(withdrawData.data.withdraws)
         ) {
-          console.log("✅ Using withdrawData.data.withdraws");
-          withdraws = withdrawData.data.withdraws;
-        } else if (
-          withdrawData?.withdrawHistory &&
-          Array.isArray(withdrawData.withdrawHistory)
-        ) {
-          console.log("✅ Using withdrawData.withdrawHistory");
-          withdraws = withdrawData.withdrawHistory;
-        } else if (
-          withdrawData?.withdraws &&
-          Array.isArray(withdrawData.withdraws)
-        ) {
-          console.log("✅ Using withdrawData.withdraws");
-          withdraws = withdrawData.withdraws;
-        } else if (Array.isArray(withdrawData)) {
-          console.log("✅ Using direct array");
-          withdraws = withdrawData;
-        } else {
-          console.log("❌ No valid withdraw array found");
-        }
+          const withdraws = withdrawData.data.withdraws;
 
-        if (withdraws.length > 0) {
-          console.log("Processing withdraws array:", withdraws);
-          console.log("Withdraws count:", withdraws.length);
-
-          // Tính toán thống kê withdraw chi tiết
-          withdraws.forEach((withdraw, index) => {
-            console.log(`Processing withdraw ${index + 1}:`, withdraw);
-            console.log(
-              `Status: "${withdraw.status}", Amount: "${withdraw.amount}"`
-            );
-
-            const amount = parseFloat(withdraw.amount) || 0;
-            console.log(`Parsed amount: ${amount}`);
-
-            totalWithdrawAmount += amount;
-
+          // Tính tổng tiền đang chờ rút (pending)
+          totalPendingWithdraw = withdraws.reduce((sum, withdraw) => {
             if (withdraw.status === "pending") {
-              pendingCount++;
-              totalPendingWithdraw += amount;
-              console.log(
-                `✅ Added to pending: count=${pendingCount}, amount=${totalPendingWithdraw}`
-              );
-            } else if (withdraw.status === "completed") {
-              completedCount++;
-              totalCompletedWithdraw += amount;
-              console.log(
-                `✅ Added to completed: count=${completedCount}, amount=${totalCompletedWithdraw}`
-              );
-            } else {
-              console.log(`❌ Unknown status: ${withdraw.status}`);
+              withdrawCount++;
+              return sum + (parseFloat(withdraw.amount) || 0);
             }
-          });
-        } else {
-          console.log("❌ No withdraws to process");
+            return sum;
+          }, 0);
         }
 
-        console.log("=== WITHDRAW STATISTICS ===");
-        console.log("Total pending withdraw:", totalPendingWithdraw);
-        console.log("Pending withdraw count:", pendingCount);
-        console.log("Total completed withdraw:", totalCompletedWithdraw);
-        console.log("Completed withdraw count:", completedCount);
-        console.log("Total withdraw amount:", totalWithdrawAmount);
+        console.log("Total pending withdraw calculated:", totalPendingWithdraw);
+        console.log("Pending withdraw count:", withdrawCount);
 
         setWalletData((prev) => ({
           ...prev,
           withdraw: {
             balance: totalPendingWithdraw,
             currency: "VND",
-            description: `Đang chờ duyệt: ${pendingCount} yêu cầu`,
-            // Thêm thống kê chi tiết
-            stats: {
-              pending: {
-                count: pendingCount,
-                amount: totalPendingWithdraw,
-              },
-              completed: {
-                count: completedCount,
-                amount: totalCompletedWithdraw,
-              },
-              total: {
-                count: pendingCount + completedCount,
-                amount: totalWithdrawAmount,
-              },
-            },
+            description: `Tổng tiền đang chờ rút (${withdrawCount} yêu cầu)`,
           },
         }));
       }
@@ -667,55 +587,6 @@ const WalletManagement = () => {
                 {formatCurrency(walletData.withdraw?.balance || 0)}
               </p>
               <p className="text-sm text-gray-600">Tiền Chờ Rút</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Thống Kê Withdraw Chi Tiết */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            Thống Kê Rút Tiền Chi Tiết
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center bg-yellow-50 p-4 rounded-lg">
-              <p className="text-2xl font-bold text-yellow-600">
-                {walletData.withdraw?.stats?.pending?.count || 0}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">Đang Chờ Duyệt</p>
-              <p className="text-lg font-semibold text-yellow-700">
-                {formatCurrency(
-                  walletData.withdraw?.stats?.pending?.amount || 0
-                )}
-              </p>
-            </div>
-            <div className="text-center bg-green-50 p-4 rounded-lg">
-              <p className="text-2xl font-bold text-green-600">
-                {walletData.withdraw?.stats?.completed?.count || 0}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">Đã Hoàn Thành</p>
-              <p className="text-lg font-semibold text-green-700">
-                {formatCurrency(
-                  walletData.withdraw?.stats?.completed?.amount || 0
-                )}
-              </p>
-            </div>
-            <div className="text-center bg-blue-50 p-4 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">
-                {walletData.withdraw?.stats?.total?.count || 0}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">Tổng Yêu Cầu</p>
-              <p className="text-lg font-semibold text-blue-700">
-                {formatCurrency(walletData.withdraw?.stats?.total?.amount || 0)}
-              </p>
-            </div>
-            <div className="text-center bg-purple-50 p-4 rounded-lg">
-              <button
-                onClick={handleNavigateToWithdraw}
-                className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors w-full"
-              >
-                Xem Chi Tiết
-              </button>
-              <p className="text-sm text-gray-600 mt-2">Quản Lý Yêu Cầu</p>
             </div>
           </div>
         </div>

@@ -196,6 +196,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
   const [status, setStatus] = useState(complaint?.status || "pending");
   const [response, setResponse] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
   const [ingredientsMap, setIngredientsMap] = useState({});
@@ -401,6 +402,35 @@ export default function ComplaintDetails({ complaint, onBack }) {
 
   const StatusIcon = complaintStatusMap[status]?.icon || AlertCircle;
   const complaintReportImages = getComplaintReportImages();
+  const user = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  })();
+  const isAdmin =
+    user &&
+    ["admin", "administrator", "superadmin", "staff", "account_staff"].includes(
+      (user.role || "").toLowerCase()
+    );
+
+  const handleUpdateStatus = async (newStatus) => {
+    if (!complaint?.id) return;
+    try {
+      setIsUpdating(true);
+      setActionMessage("");
+      // TODO: call backend endpoint to update complaint status
+      // await updateComplaintStatus(complaint.id, newStatus, response);
+      setStatus(newStatus);
+      setActionMessage(`Đã cập nhật trạng thái: ${newStatus}`);
+    } catch (err) {
+      console.error("Update complaint status failed", err);
+      setActionMessage("Lỗi cập nhật trạng thái");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className="p-8 bg-gradient-to-b from-white to-pink-50 min-h-screen">
@@ -671,6 +701,33 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       value={response}
                       onChange={(e) => setResponse(e.target.value)}
                     />
+                    {isAdmin && (
+                      <div className="flex flex-wrap gap-3 pt-2">
+                        <button
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateStatus("complete")}
+                          className="px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {isUpdating && status !== "complete"
+                            ? "..."
+                            : "Duyệt hoàn tiền"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => handleUpdateStatus("rejected")}
+                          className="px-4 py-2 rounded-lg bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 disabled:opacity-50"
+                        >
+                          {isUpdating && status !== "rejected"
+                            ? "..."
+                            : "Từ chối"}
+                        </button>
+                      </div>
+                    )}
+                    {actionMessage && (
+                      <p className="text-xs text-gray-500">{actionMessage}</p>
+                    )}
                   </div>
                 </div>
               </div>
