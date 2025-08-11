@@ -31,34 +31,42 @@ const Sidebar = () => {
   const [showMore, setShowMore] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Menu cho mọi người
+  // Menu công khai (giữ mục track orders chung cho shop owners nếu có shop)
   const publicMenu = [
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
-    // { icon: Calendar, label: "Events", path: "/events" },
     { icon: Trophy, label: "Challenge", path: "/challenge" },
-    { icon: ListOrdered, label: "Track Orders", path: "/order-tracking" },
+    // Shop order tracking (dùng component lấy theo shop của user hiện tại)
+    { icon: ListOrdered, label: "Shop Orders", path: "/order-tracking" },
     { icon: MessageSquareWarning, label: "Khiếu nại", path: "/complaints" },
   ];
+
   // Menu cho user thường
   const userMenu = [
     { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: BookImage, label: "My Post", path: "/mypost" },
     { icon: SquareLibrary, label: "My Album", path: "/myalbum" },
     {
+      icon: ListOrdered,
+      label: "Đơn hàng của tôi",
+      path: "/order-tracking-user",
+    },
+    {
       icon: MessageSquareWarning,
       label: "Khiếu nại của tôi",
       path: "/my-complaints",
     },
     { icon: User, label: "Profile", path: "/profile" },
-    { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
+    { icon: Wallet, label: "Nạp tiền", path: "/wallet" },
     { icon: ArrowDownToLine, label: "Rút tiền", path: "/withdraw" },
     { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
   ];
+
   // Menu cho admin/staff
   const adminMenu = [
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
+    { icon: ListOrdered, label: "All Orders", path: "/admin/order-tracking" },
     {
       icon: MessageSquareWarning,
       label: "All Complaints",
@@ -71,7 +79,7 @@ const Sidebar = () => {
       path: "/admin/withdraw-requests",
     },
     { icon: Trophy, label: "Admin Challenge", path: "/admin/challenge" },
-    { icon: User, label: "Profile", path: "/profile" }, // Thêm mục Profile cho admin
+    { icon: User, label: "Profile", path: "/profile" },
   ];
 
   let menuItems = publicMenu;

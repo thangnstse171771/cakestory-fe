@@ -518,6 +518,41 @@ export const fetchShopOrders = async (shopId) => {
   }
 };
 
+// Lấy tất cả orders (admin)
+export const fetchAllOrders = async () => {
+  try {
+    const response = await axiosInstance.get("/cake-orders");
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy tất cả orders:", error);
+    throw error;
+  }
+};
+
+// Lấy orders theo user (customer)
+export const fetchUserOrders = async (userId) => {
+  try {
+    if (!userId) throw new Error("Thiếu userId");
+    const response = await axiosInstance.get(`/cake-orders/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy orders theo user:", error);
+    throw error;
+  }
+};
+
+// Lấy orders theo shop (nếu cần dùng endpoint chuẩn thay vì fetchShopOrders cũ)
+export const fetchOrdersByShopId = async (shopId) => {
+  try {
+    if (!shopId) throw new Error("Thiếu shopId");
+    const response = await axiosInstance.get(`/cake-orders/shop/${shopId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy orders theo shop:", error);
+    throw error;
+  }
+};
+
 // Cập nhật trạng thái order
 export const updateOrderStatus = async (orderId, status) => {
   try {

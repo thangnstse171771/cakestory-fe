@@ -5,9 +5,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ListOrdered, CalendarDays, User, Package } from "lucide-react";
 import OrderTrackingForm from "./OrderTrackingForm";
 import {
-  fetchShopOrders,
+  fetchUserOrders,
   updateOrderStatus,
-  fetchAllShops,
   fetchOrderById,
 } from "../../api/axios";
 
@@ -40,10 +39,6 @@ export default function OrderTrackingList({
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
 
   // Tự động mở order detail nếu có orderId trong URL
   useEffect(() => {
@@ -52,47 +47,10 @@ export default function OrderTrackingList({
     }
   }, [orderId, showOrderDetails]);
 
-  // Lấy shop ID từ localStorage hoặc user context
-  const getShopId = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!user.id) {
-        throw new Error("User ID không tồn tại");
-      }
-
-      console.log("Current user:", user);
-
-      // Fetch tất cả shops để tìm shop của user hiện tại
-      const shopsData = await fetchAllShops();
-      console.log("All shops data:", shopsData);
-
-      const userShop = (shopsData.shops || []).find(
-        (shop) => shop.user_id === user.id
-      );
-
-      if (!userShop) {
-        throw new Error("User chưa có shop");
-      }
-
-      console.log("Found user shop:", userShop);
-      console.log("Shop ID field check:", {
-        id: userShop.id,
-        shop_id: userShop.shop_id,
-        _id: userShop._id,
-      });
-
-      // Thử các field khác nhau cho shop ID, ưu tiên shop_id
-      const shopId = userShop.shop_id || userShop.id || userShop._id;
-
-      if (!shopId) {
-        throw new Error("Không tìm thấy shop ID trong dữ liệu shop");
-      }
-
-      return shopId;
-    } catch (error) {
-      console.error("Lỗi khi lấy shop ID:", error);
-      throw error;
-    }
+  // Lấy user ID từ localStorage
+  const getUserId = () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user?.id;
   };
 
   // Fetch orders từ API
@@ -101,24 +59,18 @@ export default function OrderTrackingList({
       setLoading(true);
       setError(null);
 
-      const shopId = await getShopId();
-      console.log("Using shop ID:", shopId);
-
-      const response = await fetchShopOrders(shopId);
-      console.log("Orders response:", response);
-      console.log("Response orders array:", response.orders);
-      console.log("Response type:", typeof response);
-      console.log("Is response.orders array?", Array.isArray(response.orders));
+      const userId = getUserId();
+      if (!userId) throw new Error("User chưa đăng nhập");
+      console.log("Fetching user orders for userId:", userId);
+      const response = await fetchUserOrders(userId);
+      console.log("User orders response:", response);
+      console.log("Response orders array:", response.orders || response);
 
       // Kiểm tra cấu trúc response và lấy orders
       let ordersArray = [];
-      if (response && Array.isArray(response.orders)) {
-        ordersArray = response.orders;
-      } else if (response && Array.isArray(response)) {
-        ordersArray = response;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        ordersArray = response.data;
-      }
+      if (Array.isArray(response)) ordersArray = response;
+      else if (Array.isArray(response?.orders)) ordersArray = response.orders;
+      else if (Array.isArray(response?.data)) ordersArray = response.data;
 
       console.log("Orders array to transform:", ordersArray);
 
@@ -166,17 +118,7 @@ export default function OrderTrackingList({
       setRealOrders(transformedOrders);
     } catch (error) {
       console.error("Lỗi khi fetch orders:", error);
-      if (error.message === "User chưa có shop") {
-        setError("Bạn chưa có shop. Vui lòng tạo shop trước.");
-      } else if (
-        error.message === "Không tìm thấy shop ID trong dữ liệu shop"
-      ) {
-        setError("Dữ liệu shop không hợp lệ. Vui lòng liên hệ admin.");
-      } else if (error.message.includes("Invalid input syntax")) {
-        setError("Shop ID không hợp lệ. Vui lòng kiểm tra lại.");
-      } else {
-        setError("Không thể tải danh sách đơn hàng: " + error.message);
-      }
+      setError("Không thể tải danh sách đơn hàng: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -251,13 +193,15 @@ export default function OrderTrackingList({
       ? orders
       : fakeOrders;
 
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
   const filteredOrders = displayOrders.filter((o) => {
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     const s = search.toLowerCase();
-    const matchSearch =
-      !s ||
-      o.orderNumber.toLowerCase().includes(s) ||
-      (o.customerName || "").toLowerCase().includes(s);
+    const matchSearch = !s || o.orderNumber.toLowerCase().includes(s);
     let matchDate = true;
     if (dateFrom) {
       matchDate =
@@ -358,13 +302,13 @@ export default function OrderTrackingList({
     if (showOrderDetails) {
       handleSelectOrder(orderId);
     } else {
-      navigate(`/order-tracking/${orderId}`);
+      navigate(`/order-tracking-user/${orderId}`);
     }
   };
 
   const handleBackToList = () => {
     if (showOrderDetails && orderId) {
-      navigate("/order-tracking");
+      navigate("/order-tracking-user");
     } else {
       setSelectedOrder(null);
     }
@@ -511,7 +455,7 @@ export default function OrderTrackingList({
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <h2 className="text-3xl font-bold text-pink-700 flex items-center gap-3">
-              <ListOrdered className="h-7 w-7" /> Shop Orders
+              <ListOrdered className="h-7 w-7" /> Đơn hàng của tôi
             </h2>
             <div className="w-full lg:w-auto flex flex-col gap-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-pink-600">
@@ -520,10 +464,10 @@ export default function OrderTrackingList({
               <div className="bg-white/70 backdrop-blur-sm border border-pink-200 rounded-lg p-4 flex flex-col lg:flex-row lg:items-end gap-4">
                 <div className="flex flex-col gap-1 min-w-[180px]">
                   <label className="text-xs font-medium text-gray-600">
-                    Tìm kiếm (mã / khách hàng)
+                    Tìm kiếm (mã đơn)
                   </label>
                   <input
-                    placeholder="VD: ORD-001, Nguyễn"
+                    placeholder="VD: ORD-001"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="h-10 px-3 rounded-lg border border-pink-200 focus:outline-none focus:border-pink-400 bg-white text-sm"
@@ -608,8 +552,7 @@ export default function OrderTrackingList({
                   <tr className="text-left">
                     <th className="px-4 py-3 font-semibold">#</th>
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
-                    <th className="px-4 py-3 font-semibold">Khách hàng</th>
-                    <th className="px-4 py-3 font-semibold">SP</th>
+                    <th className="px-4 py-3 font-semibold">Số SP</th>
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
                     <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
@@ -628,12 +571,6 @@ export default function OrderTrackingList({
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {new Date(order.placedDate).toLocaleDateString("vi-VN")}
-                      </td>
-                      <td
-                        className="px-4 py-3 max-w-[220px] truncate"
-                        title={order.customerName}
-                      >
-                        {order.customerName}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {order.items.length}
