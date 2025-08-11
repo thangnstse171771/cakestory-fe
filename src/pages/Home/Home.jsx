@@ -10,6 +10,8 @@ import {
   ChevronRight,
   BadgeCheck,
   Star,
+  ShoppingCart,
+  CakeSlice,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -201,200 +203,213 @@ const Home = () => {
               </div>
 
               {shops.length > 1 && (
-                <div className="bg-white w-full max-w-4xl mx-auto mb-4">
-                  {Array.isArray(shops) && shops.length > 0 && (
-                    <Swiper
-                      modules={[Navigation, Pagination, Autoplay]}
-                      spaceBetween={20}
-                      slidesPerView={1}
-                      navigation={{
-                        nextEl: ".shop-next",
-                        prevEl: ".shop-prev",
-                      }}
-                      pagination={{ clickable: true }}
-                      autoplay={{ delay: 3000, disableOnInteraction: false }}
-                      loop={shops.length > 1}
-                      className="rounded-xl shadow-lg bg-white [&_.swiper-pagination]:hidden"
-                    >
-                      {shops.map((shop, index) => (
-                        <SwiperSlide key={shop.shop_id || index}>
-                          <div className="flex justify-between items-center p-4 bg-white rounded-xl shadow-sm mx-8">
-                            {/* Avatar */}
-                            <div className="flex flex-row items-center">
-                              <img
-                                src={shop.avatar_image}
-                                alt={shop.business_name || "Shop Avatar"}
-                                className="w-20 h-20 rounded-full object-cover border-2 border-pink-500 flex-shrink-0"
-                              />
+                <div>
+                  <div className="flex flex-row items-center gap-2">
+                    <ShoppingCart className="text-pink-600" />
+                    <span className="font-semibold">Gợi ý Shop</span>
+                  </div>
+                  <div className="bg-white w-full max-w-4xl mx-auto mb-4 mt-4">
+                    {Array.isArray(shops) && shops.length > 0 && (
+                      <Swiper
+                        modules={[Navigation, Pagination, Autoplay]}
+                        spaceBetween={20}
+                        slidesPerView={1}
+                        navigation={{
+                          nextEl: ".shop-next",
+                          prevEl: ".shop-prev",
+                        }}
+                        pagination={{ clickable: true }}
+                        autoplay={{ delay: 3000, disableOnInteraction: false }}
+                        loop={shops.length > 1}
+                        className="rounded-xl shadow-lg bg-white [&_.swiper-pagination]:hidden"
+                      >
+                        {shops.map((shop, index) => (
+                          <SwiperSlide key={shop.shop_id || index}>
+                            <div className="flex justify-between items-center p-4 bg-white rounded-xl shadow-sm mx-8">
+                              {/* Avatar */}
+                              <div className="flex flex-row items-center">
+                                <img
+                                  src={shop.avatar_image}
+                                  alt={shop.business_name || "Shop Avatar"}
+                                  className="w-20 h-20 rounded-full object-cover border-2 border-pink-500 flex-shrink-0"
+                                />
 
-                              {/* Text Info */}
-                              <div className="ml-4 flex flex-col max-w-[250px]">
-                                <p className="text-pink-600 font-bold text-lg leading-tight truncate">
-                                  <Link
-                                    className="hover:text-pink-400 cursor-pointer"
-                                    to={`/marketplace/shop/${shop.user?.id}`}
-                                  >
-                                    {shop.business_name || "Shop Name"}
-                                  </Link>
-                                </p>
-                                <h3 className="text-gray-500 text-sm leading-snug truncate">
-                                  {shop.bio || "This is a sweets shop"}
-                                </h3>
+                                {/* Text Info */}
+                                <div className="ml-4 flex flex-col max-w-[250px]">
+                                  <p className="text-pink-600 font-bold text-lg leading-tight truncate">
+                                    <Link
+                                      className="hover:text-pink-400 cursor-pointer"
+                                      to={`/marketplace/shop/${shop.user?.id}`}
+                                    >
+                                      {shop.business_name || "Shop Name"}
+                                    </Link>
+                                  </p>
+                                  <h3 className="text-gray-500 text-sm leading-snug truncate">
+                                    {shop.bio || "This is a sweets shop"}
+                                  </h3>
+                                </div>
+                              </div>
+
+                              <div className="text-gray-400">
+                                <Link
+                                  className="hover:text-pink-600 cursor-pointer"
+                                  to={`/marketplace/shop/${shop.user?.id}`}
+                                >
+                                  View shop
+                                </Link>
                               </div>
                             </div>
+                          </SwiperSlide>
+                        ))}
 
-                            <div className="text-gray-400">
-                              <Link
-                                className="hover:text-pink-600 cursor-pointer"
-                                to={`/marketplace/shop/${shop.user?.id}`}
-                              >
-                                View shop
-                              </Link>
-                            </div>
-                          </div>
-                        </SwiperSlide>
-                      ))}
-
-                      {/* Custom Navigation Buttons */}
-                      {shops.length > 1 && (
-                        <>
-                          <button className="shop-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                            <div className="flex items-center justify-center w-7 h-7 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg">
-                              <ChevronLeft
-                                size={20}
-                                strokeWidth={2}
-                                className="text-pink-500"
-                              />
-                            </div>
-                          </button>
-                          <button className="shop-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
-                            <div className="flex items-center justify-center w-7 h-7 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg">
-                              <ChevronRight
-                                size={20}
-                                strokeWidth={2}
-                                className="text-pink-500"
-                              />
-                            </div>
-                          </button>
-                        </>
-                      )}
-                    </Swiper>
-                  )}
+                        {/* Custom Navigation Buttons */}
+                        {shops.length > 1 && (
+                          <>
+                            <button className="shop-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                              <div className="flex items-center justify-center w-7 h-7 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg">
+                                <ChevronLeft
+                                  size={20}
+                                  strokeWidth={2}
+                                  className="text-pink-500"
+                                />
+                              </div>
+                            </button>
+                            <button className="shop-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                              <div className="flex items-center justify-center w-7 h-7 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg">
+                                <ChevronRight
+                                  size={20}
+                                  strokeWidth={2}
+                                  className="text-pink-500"
+                                />
+                              </div>
+                            </button>
+                          </>
+                        )}
+                      </Swiper>
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="relative w-full max-w-7xl mx-auto mb-4 px-4">
-                {marketPost.length > 1 && (
-                  <div className="relative">
-                    <Swiper
-                      modules={[
-                        Navigation,
-                        Pagination,
-                        Autoplay,
-                        EffectCoverflow,
-                      ]}
-                      spaceBetween={30}
-                      slidesPerView={1}
-                      centeredSlides={true}
-                      navigation={{
-                        nextEl: ".marketplace-next",
-                        prevEl: ".marketplace-prev",
-                      }}
-                      pagination={{
-                        clickable: true,
-                        dynamicBullets: true,
-                      }}
-                      autoplay={{
-                        delay: 4000,
-                        disableOnInteraction: false,
-                        pauseOnMouseEnter: true,
-                      }}
-                      loop={marketPost.length > 1}
-                      effect="coverflow"
-                      coverflowEffect={{
-                        rotate: 0,
-                        stretch: 20,
-                        depth: 100,
-                        modifier: 2,
-                        slideShadows: false,
-                      }}
-                      breakpoints={{
-                        640: {
-                          slidesPerView: 1.2,
-                          spaceBetween: 20,
-                        },
-                        768: {
-                          slidesPerView: 1.5,
-                          spaceBetween: 30,
-                        },
-                        1024: {
-                          slidesPerView: 2.2,
-                          spaceBetween: 40,
-                        },
-                      }}
-                      className="marketplace-swiper !pb-7 [&_.swiper-pagination]:hidden"
-                    >
-                      {marketPost.map((post, index) => {
-                        const firstImage =
-                          post.post?.media && post.post.media.length > 0
-                            ? post.post.media[0].image_url
-                            : null;
+              {marketPost.length > 1 && (
+                <div className="mt-8">
+                  <div className="flex flex-row items-center gap-2">
+                    <CakeSlice className="text-pink-600" />
+                    <span className="font-semibold">Gợi ý Sản Phẩm</span>
+                  </div>
+                  <div className="relative w-full max-w-7xl mx-auto mb-4 px-4">
+                    <div className="relative">
+                      <Swiper
+                        modules={[
+                          Navigation,
+                          Pagination,
+                          Autoplay,
+                          EffectCoverflow,
+                        ]}
+                        spaceBetween={30}
+                        slidesPerView={1}
+                        centeredSlides={true}
+                        navigation={{
+                          nextEl: ".marketplace-next",
+                          prevEl: ".marketplace-prev",
+                        }}
+                        pagination={{
+                          clickable: true,
+                          dynamicBullets: true,
+                        }}
+                        autoplay={{
+                          delay: 4000,
+                          disableOnInteraction: false,
+                          pauseOnMouseEnter: true,
+                        }}
+                        loop={marketPost.length > 1}
+                        effect="coverflow"
+                        coverflowEffect={{
+                          rotate: 0,
+                          stretch: 20,
+                          depth: 200, // pushes side cards back more
+                          modifier: 2, // exaggerates the scaling effect
+                          scale: 1, // default is 1 for center; bump this for more size difference
+                          slideShadows: false,
+                        }}
+                        breakpoints={{
+                          640: {
+                            slidesPerView: 1.2,
+                            spaceBetween: 20,
+                          },
+                          768: {
+                            slidesPerView: 1.5,
+                            spaceBetween: 30,
+                          },
+                          1024: {
+                            slidesPerView: 2.2,
+                            spaceBetween: 40,
+                          },
+                        }}
+                        className="marketplace-swiper !pb-7 [&_.swiper-pagination]:hidden"
+                      >
+                        {marketPost.map((post, index) => {
+                          const firstImage =
+                            post.post?.media && post.post.media.length > 0
+                              ? post.post.media[0].image_url
+                              : null;
 
-                        return (
-                          <SwiperSlide
-                            key={post.post_id || index}
-                            className="!h-auto"
-                          >
-                            <div className="group relative mt-5 h-[500px] bg-gradient-to-br from-white via-white to-gray-50 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100">
-                              {/* Image Container */}
-                              <div className="relative overflow-hidden">
-                                {firstImage ? (
-                                  <div className="relative h-72 overflow-hidden">
-                                    <img
-                                      src={
-                                        firstImage ||
-                                        "https://png.pngtree.com/png-clipart/20240906/original/pngtree-fruit-cake-icons-flat-vector-illustration-png-image_15952460.png"
-                                      }
-                                      alt={
-                                        post.post?.title || "Marketplace Image"
-                                      }
-                                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          return (
+                            <SwiperSlide
+                              key={post.post_id || index}
+                              className="!h-auto"
+                            >
+                              <div className="group relative mt-5 h-[500px] bg-gradient-to-br from-white via-white to-gray-50 rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 border border-gray-100">
+                                {/* Image Container */}
+                                <div className="relative overflow-hidden">
+                                  {firstImage ? (
+                                    <div className="relative h-72 overflow-hidden">
+                                      <img
+                                        src={
+                                          firstImage ||
+                                          "https://png.pngtree.com/png-clipart/20240906/original/pngtree-fruit-cake-icons-flat-vector-illustration-png-image_15952460.png"
+                                        }
+                                        alt={
+                                          post.post?.title ||
+                                          "Marketplace Image"
+                                        }
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                                    {/* Floating Elements */}
-                                    {/* <div className="absolute top-4 left-4 flex gap-2">
+                                      {/* Floating Elements */}
+                                      {/* <div className="absolute top-4 left-4 flex gap-2">
                                       {post.post?.category && (
                                         <Badge className="bg-white/90 text-gray-800 backdrop-blur-sm border-0 shadow-lg">
                                           {post.post.category}
                                         </Badge>
                                       )}
                                     </div> */}
-                                  </div>
-                                ) : (
-                                  <div className="h-72 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
-                                    <div className="text-gray-400 text-center">
-                                      <div className="w-16 h-16 mx-auto mb-2 bg-gray-200 rounded-full flex items-center justify-center">
-                                        <Star className="w-8 h-8" />
-                                      </div>
-                                      <p className="text-sm">
-                                        No image available
-                                      </p>
                                     </div>
-                                  </div>
-                                )}
-                              </div>
+                                  ) : (
+                                    <div className="h-72 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                                      <div className="text-gray-400 text-center">
+                                        <div className="w-16 h-16 mx-auto mb-2 bg-gray-200 rounded-full flex items-center justify-center">
+                                          <Star className="w-8 h-8" />
+                                        </div>
+                                        <p className="text-sm">
+                                          No image available
+                                        </p>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
 
-                              {/* Content */}
-                              <div className="p-6 space-y-4">
-                                {/* Title and Rating */}
-                                <div className="space-y-2">
-                                  <h3 className="text-xl font-semibold line-clamp-2 group-hover:text-pink-400 transition-colors duration-200">
-                                    {post.post?.title ||
-                                      "Check out this amazing marketplace item!"}
-                                  </h3>
+                                {/* Content */}
+                                <div className="p-6 space-y-4">
+                                  {/* Title and Rating */}
+                                  <div className="space-y-2">
+                                    <h3 className="text-xl font-semibold line-clamp-2 group-hover:text-pink-400 transition-colors duration-200">
+                                      {post.post?.title ||
+                                        "Check out this amazing marketplace item!"}
+                                    </h3>
 
-                                  {/* {post.post?.rating && (
+                                    {/* {post.post?.rating && (
                                     <div className="flex items-center gap-1">
                                       {[...Array(5)].map((_, i) => (
                                         <Star
@@ -412,88 +427,89 @@ const Home = () => {
                                       </span>
                                     </div>
                                   )} */}
-                                </div>
+                                  </div>
 
-                                {/* Shop Info */}
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2 text-gray-600">
-                                    <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                      {post.shop?.business_name?.charAt(0) ||
-                                        "M"}
-                                      {/* <img
+                                  {/* Shop Info */}
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-gray-600">
+                                      <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                        {post.shop?.business_name?.charAt(0) ||
+                                          "M"}
+                                        {/* <img
                                         src={shop.avatar_image}
                                         alt={
                                           shop.business_name || "Shop Avatar"
                                         }
                                       ></img> */}
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-sm text-gray-500">
+                                          <Link
+                                            className="cursor-pointer"
+                                            to={`/marketplace/shop/${post.shop?.user?.id}`}
+                                          >
+                                            {post.shop?.business_name ||
+                                              "Marketplace Shop"}
+                                          </Link>
+                                        </p>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <p className="font-medium text-sm text-gray-500">
-                                        <Link
-                                          className="cursor-pointer"
-                                          to={`/marketplace/shop/${post.shop?.user?.id}`}
-                                        >
-                                          {post.shop?.business_name ||
-                                            "Marketplace Shop"}
-                                        </Link>
-                                      </p>
-                                    </div>
-                                  </div>
 
-                                  {/* {post.cakeSizes?.[0]?.price && (
+                                    {/* {post.cakeSizes?.[0]?.price && (
                                     <div className="text-right">
                                       <span className="inline-block bg-pink-100 text-pink-600 text-sm font-bold px-3 py-1 rounded-full shadow-sm border border-pink-200">
                                         {post.cakeSizes?.[0]?.price} VNĐ
                                       </span>
                                     </div>
                                   )} */}
+                                  </div>
+
+                                  {/* Action Button */}
+
+                                  <Link
+                                    className="flex justify-center items-center w-full bg-gradient-to-r from-pink-600 to-pink-400 hover:from-gray-300 hover:to-white text-white hover:text-pink-500 font-medium py-2 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer border border-transparent hover:border-pink-500"
+                                    to={`/marketplace/product/${post.post_id}`}
+                                  >
+                                    <button>View</button>
+                                  </Link>
                                 </div>
 
-                                {/* Action Button */}
-
-                                <Link
-                                  className="flex justify-center items-center w-full bg-gradient-to-r from-pink-600 to-pink-400 hover:from-gray-300 hover:to-white text-white hover:text-pink-500 font-medium py-2 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer border border-transparent hover:border-pink-500"
-                                  to={`/marketplace/product/${post.post_id}`}
-                                >
-                                  <button>View</button>
-                                </Link>
-                              </div>
-
-                              {/* Decorative Elements */}
-                              {/* <div className="absolute -top-2 -right-2 w-20 h-20 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                                {/* Decorative Elements */}
+                                {/* <div className="absolute -top-2 -right-2 w-20 h-20 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                               <div className="absolute -bottom-2 -left-2 w-16 h-16 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" /> */}
+                              </div>
+                            </SwiperSlide>
+                          );
+                        })}
+                      </Swiper>
+                      {/* Custom Navigation Buttons */}
+                      {marketPost.length > 1 && (
+                        <>
+                          <button className="marketplace-prev absolute top-1/2 -left-6 -translate-y-1/2 z-20 cursor-pointer group">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-all duration-300">
+                              <ChevronLeft
+                                size={24}
+                                strokeWidth={2.5}
+                                className="text-gray-600 transition-colors duration-300"
+                              />
                             </div>
-                          </SwiperSlide>
-                        );
-                      })}
-                    </Swiper>
-                    {/* Custom Navigation Buttons */}
-                    {marketPost.length > 1 && (
-                      <>
-                        <button className="marketplace-prev absolute top-1/2 -left-6 -translate-y-1/2 z-20 cursor-pointer group">
-                          <div className="flex items-center justify-center w-12 h-12 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-all duration-300">
-                            <ChevronLeft
-                              size={24}
-                              strokeWidth={2.5}
-                              className="text-gray-600 transition-colors duration-300"
-                            />
-                          </div>
-                        </button>
+                          </button>
 
-                        <button className="marketplace-next absolute top-1/2 -right-6 -translate-y-1/2 z-20 cursor-pointer group">
-                          <div className="flex items-center justify-center w-12 h-12 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-all duration-300">
-                            <ChevronRight
-                              size={24}
-                              strokeWidth={2.5}
-                              className="text-gray-600 transition-colors duration-300"
-                            />
-                          </div>
-                        </button>
-                      </>
-                    )}
+                          <button className="marketplace-next absolute top-1/2 -right-6 -translate-y-1/2 z-20 cursor-pointer group">
+                            <div className="flex items-center justify-center w-12 h-12 rounded-full border border-pink-500 bg-white/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-all duration-300">
+                              <ChevronRight
+                                size={24}
+                                strokeWidth={2.5}
+                                className="text-gray-600 transition-colors duration-300"
+                              />
+                            </div>
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <div className="min-w-[275px] space-y-4">
                 {firstLoaded ? (
