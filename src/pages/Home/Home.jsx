@@ -706,7 +706,7 @@ const Home = () => {
                               }}
                               className="text-gray-500 text-sm text-left"
                             >
-                              View comments
+                              <span className="cursor-pointer">View comments</span>
                             </div>
                           </div>
                         </div>
