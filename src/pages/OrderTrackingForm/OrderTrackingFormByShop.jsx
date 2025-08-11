@@ -52,7 +52,7 @@ const statusMap = {
   },
 };
 
-export default function OrderTrackingFormByUser({ order, onBackToList }) {
+export default function OrderTrackingFormByShop({ order, onBackToList }) {
   const navigate = useNavigate();
   const { orderId } = useParams();
 

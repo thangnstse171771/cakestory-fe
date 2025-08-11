@@ -40,15 +40,11 @@ export default function OrderTrackingList({
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
 
   // Tự động mở order detail nếu có orderId trong URL
   useEffect(() => {
     if (orderId && showOrderDetails) {
-      handleSelectOrder(orderId);
+      handleViewOrderDetail(orderId);
     }
   }, [orderId, showOrderDetails]);
 
@@ -251,25 +247,6 @@ export default function OrderTrackingList({
       ? orders
       : fakeOrders;
 
-  const filteredOrders = displayOrders.filter((o) => {
-    const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    const s = search.toLowerCase();
-    const matchSearch =
-      !s ||
-      o.orderNumber.toLowerCase().includes(s) ||
-      (o.customerName || "").toLowerCase().includes(s);
-    let matchDate = true;
-    if (dateFrom) {
-      matchDate =
-        matchDate && new Date(o.placedDate) >= new Date(dateFrom + "T00:00:00");
-    }
-    if (dateTo) {
-      matchDate =
-        matchDate && new Date(o.placedDate) <= new Date(dateTo + "T23:59:59");
-    }
-    return matchStatus && matchSearch && matchDate;
-  });
-
   // Khi bấm vào xem chi tiết, fetch API để lấy thông tin chi tiết đơn hàng
   const handleSelectOrder = async (orderId) => {
     try {
@@ -356,16 +333,20 @@ export default function OrderTrackingList({
   // Function để xử lý việc xem chi tiết với navigation
   const handleViewOrderDetail = (orderId) => {
     if (showOrderDetails) {
+      // Nếu đã ở trang có ID, fetch order detail
       handleSelectOrder(orderId);
     } else {
+      // Navigate đến URL với order ID
       navigate(`/order-tracking/${orderId}`);
     }
   };
 
   const handleBackToList = () => {
     if (showOrderDetails && orderId) {
+      // Nếu đang xem order detail từ URL, navigate về list
       navigate("/order-tracking");
     } else {
+      // Nếu đang xem từ modal, đóng modal
       setSelectedOrder(null);
     }
   };
@@ -507,163 +488,80 @@ export default function OrderTrackingList({
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col gap-4 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <h2 className="text-3xl font-bold text-pink-700 flex items-center gap-3">
-              <ListOrdered className="h-7 w-7" /> Shop Orders
-            </h2>
-            <div className="w-full lg:w-auto flex flex-col gap-3">
-              <div className="text-xs font-semibold uppercase tracking-wide text-pink-600">
-                Bộ lọc
-              </div>
-              <div className="bg-white/70 backdrop-blur-sm border border-pink-200 rounded-lg p-4 flex flex-col lg:flex-row lg:items-end gap-4">
-                <div className="flex flex-col gap-1 min-w-[180px]">
-                  <label className="text-xs font-medium text-gray-600">
-                    Tìm kiếm (mã / khách hàng)
-                  </label>
-                  <input
-                    placeholder="VD: ORD-001, Nguyễn"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="h-10 px-3 rounded-lg border border-pink-200 focus:outline-none focus:border-pink-400 bg-white text-sm"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 min-w-[150px]">
-                  <label className="text-xs font-medium text-gray-600">
-                    Từ ngày
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="h-10 px-3 rounded-lg border border-pink-200 bg-white text-sm focus:outline-none focus:border-pink-400"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 min-w-[150px]">
-                  <label className="text-xs font-medium text-gray-600">
-                    Đến ngày
-                  </label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="h-10 px-3 rounded-lg border border-pink-200 bg-white text-sm focus:outline-none focus:border-pink-400"
-                  />
-                </div>
-                <div className="flex flex-col gap-1 min-w-[180px]">
-                  <label className="text-xs font-medium text-gray-600">
-                    Trạng thái
-                  </label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="h-10 px-3 rounded-lg border border-pink-200 bg-white text-sm focus:outline-none focus:border-pink-400"
-                  >
-                    <option value="all">Tất cả</option>
-                    {Object.keys(statusMap).map((k) => (
-                      <option key={k} value={k}>
-                        {statusMap[k].label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex gap-2 pt-2 lg:pt-0">
-                  <button
-                    onClick={() => {
-                      setStatusFilter("all");
-                      setSearch("");
-                      setDateFrom("");
-                      setDateTo("");
-                      fetchOrders();
-                    }}
-                    className="h-10 bg-white border border-pink-200 hover:bg-pink-100 text-pink-600 px-4 rounded-lg text-sm font-medium"
-                  >
-                    Reset
-                  </button>
-                  <button
-                    onClick={fetchOrders}
-                    className="h-10 bg-pink-500 hover:bg-pink-600 text-white px-4 rounded-lg font-medium text-sm"
-                  >
-                    🔄
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="text-sm text-gray-500">
-            Hiển thị {filteredOrders.length} / {displayOrders.length} đơn hàng
-          </div>
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-pink-700 flex items-center gap-3">
+            <ListOrdered className="h-7 w-7" />
+            Quản lý đơn hàng
+          </h2>
+          <button
+            onClick={fetchOrders}
+            className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            🔄 Làm mới
+          </button>
         </div>
 
-        {filteredOrders.length === 0 ? (
-          <div className="bg-white rounded-xl border border-pink-100 p-12 text-center text-gray-500">
-            Không tìm thấy đơn hàng
+        {displayOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg">Chưa có đơn hàng nào</div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-pink-100 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-pink-100 text-pink-700">
-                  <tr className="text-left">
-                    <th className="px-4 py-3 font-semibold">#</th>
-                    <th className="px-4 py-3 font-semibold">Ngày tạo</th>
-                    <th className="px-4 py-3 font-semibold">Khách hàng</th>
-                    <th className="px-4 py-3 font-semibold">SP</th>
-                    <th className="px-4 py-3 font-semibold">Trạng thái</th>
-                    <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
-                    <th className="px-4 py-3 font-semibold">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredOrders.map((order, idx) => (
-                    <tr
-                      key={order.id}
-                      className={`border-b last:border-b-0 hover:bg-pink-50 transition ${
-                        idx % 2 === 1 ? "bg-pink-50/30" : "bg-white"
-                      }`}
-                    >
-                      <td className="px-4 py-3 font-medium text-pink-700 whitespace-nowrap">
-                        {order.orderNumber}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {new Date(order.placedDate).toLocaleDateString("vi-VN")}
-                      </td>
-                      <td
-                        className="px-4 py-3 max-w-[220px] truncate"
-                        title={order.customerName}
-                      >
-                        {order.customerName}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {order.items.length}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`${
-                            statusMap[order.status]?.color ||
-                            "bg-gray-200 text-gray-700"
-                          } text-xs px-2 py-1 rounded-full font-semibold inline-block`}
-                        >
-                          {statusMap[order.status]?.label || order.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-pink-600 whitespace-nowrap">
-                        {order.base_price.toLocaleString("vi-VN")}đ
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          className="text-xs bg-pink-500 hover:bg-pink-600 text-white px-3 py-1.5 rounded-md font-medium"
-                          onClick={() => handleViewOrderDetail(order.id)}
-                        >
-                          Chi tiết
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="space-y-6">
+            {displayOrders.map((order) => (
+              <div
+                key={order.id}
+                className="p-6 shadow-lg rounded-xl border border-pink-100 hover:shadow-xl transition-shadow bg-white"
+              >
+                <div className="pb-4 flex flex-row items-center justify-between">
+                  <div>
+                    <div className="text-xl font-bold text-pink-700">
+                      Đơn hàng {order.orderNumber}
+                    </div>
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                      <CalendarDays className="h-4 w-4" />
+                      Đặt vào:{" "}
+                      {new Date(order.placedDate).toLocaleDateString("vi-VN")}
+                    </p>
+                  </div>
+                  <span
+                    className={`${
+                      statusMap[order.status]?.color ||
+                      "bg-gray-200 text-gray-700"
+                    } text-sm px-3 py-1 rounded-lg font-semibold`}
+                  >
+                    {statusMap[order.status]?.label || order.status}
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <User className="h-4 w-4" />
+                    <span className="font-medium">{order.customerName}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Package className="h-4 w-4" />
+                    <span className="font-medium">
+                      {order.items.length} sản phẩm
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-pink-100">
+                    <span className="text-lg font-bold text-pink-600">
+                      Tổng cộng:
+                    </span>
+                    <span className="text-xl font-bold text-pink-600">
+                      {order.base_price.toLocaleString("vi-VN")}đ
+                    </span>
+                  </div>
+                  <button
+                    className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-lg mt-4"
+                    onClick={() => handleViewOrderDetail(order.id)}
+                  >
+                    Xem chi tiết đơn hàng
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
