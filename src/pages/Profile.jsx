@@ -14,6 +14,7 @@ import {
   Store,
   CheckCircle,
   Clock,
+  Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -26,16 +27,23 @@ import { fetchAllShopMembers, activateShopMember } from "../api/shopMembers";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { addUserToGroupChatsByShopId } from "./Chat/libs/shopChatUtils";
 import { db } from "../firebase";
+import { toast } from "react-toastify";
+import dayjs from "dayjs";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingAlbums, setLoadingAlbums] = useState(true);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [shopInvitations, setShopInvitations] = useState([]);
   const [loadingInvitations, setLoadingInvitations] = useState(true);
+  const [posts, setPosts] = useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [activeTab, setActiveTab] = useState("photos");
   const { followers, following, fetchFollowers, fetchFollowing } =
     usePersonalFollowersFollowing(user?.id);
   const adminLoader = useAdminLoader();
@@ -53,35 +61,35 @@ const Profile = () => {
     { name: "Recipe Creator", icon: Award, color: "text-pink-500" },
   ];
 
-  const albums = [
-    {
-      id: 1,
-      title: "Wedding Cakes",
-      cover:
-        "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y2FrZXxlbnwwfHwwfHx8MA%3D%3D",
-      count: 24,
-      tags: ["Wedding", "Elegant", "White"],
-      description: "Collection of elegant wedding cakes",
-    },
-    {
-      id: 2,
-      title: "Birthday Specials",
-      cover:
-        "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2FrZXxlbnwwfHwwfHx8MA%3D%3D",
-      count: 18,
-      tags: ["Birthday", "Colorful", "Fun"],
-      description: "Colorful and fun birthday cakes",
-    },
-    {
-      id: 3,
-      title: "Cupcakes",
-      cover:
-        "https://images.unsplash.com/photo-1488477181946-6428a848b8e0?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGNha2V8ZW58MHx8MHx8fDA%3D",
-      count: 32,
-      tags: ["Cupcakes", "Mini", "Assorted"],
-      description: "Assorted mini cupcakes collection",
-    },
-  ];
+  // const albums = [
+  //   {
+  //     id: 1,
+  //     title: "Wedding Cakes",
+  //     cover:
+  //       "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8Y2FrZXxlbnwwfHwwfHx8MA%3D%3D",
+  //     count: 24,
+  //     tags: ["Wedding", "Elegant", "White"],
+  //     description: "Collection of elegant wedding cakes",
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "Birthday Specials",
+  //     cover:
+  //       "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Y2FrZXxlbnwwfHwwfHx8MA%3D%3D",
+  //     count: 18,
+  //     tags: ["Birthday", "Colorful", "Fun"],
+  //     description: "Colorful and fun birthday cakes",
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "Cupcakes",
+  //     cover:
+  //       "https://images.unsplash.com/photo-1488477181946-6428a848b8e0?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGNha2V8ZW58MHx8MHx8fDA%3D",
+  //     count: 32,
+  //     tags: ["Cupcakes", "Mini", "Assorted"],
+  //     description: "Assorted mini cupcakes collection",
+  //   },
+  // ];
 
   const fetchShopInvitations = async () => {
     if (!user) return;
@@ -201,17 +209,81 @@ const Profile = () => {
     fetchProfile();
   }, [user, fetchFollowers, fetchFollowing]);
 
-  if (loading) {
+  const fetchPosts = async () => {
+    try {
+      const data = await authAPI.getMemoryPostByUserId(user.id);
+      const mappedPosts = (data.posts || []).map((item) => ({
+        id: item.Post.id,
+        title: item.Post.title,
+        description: item.Post.description,
+        date: item.event_date,
+        category: item.event_type,
+        media: item.Post.media,
+        user: item.Post.user,
+        created_at: item.Post.created_at,
+        is_public: item.Post.is_public,
+        total_likes: item.Post.total_likes,
+        total_comments: item.Post.total_comments,
+      }));
+      setPosts(mappedPosts);
+    } catch (err) {
+      toast.error("Không thể tải bài viết. Vui lòng thử lại!");
+      setPosts([]);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  const fetchAlbums = async () => {
+    try {
+      const response = await authAPI.getAlbumsByUserId(user.id);
+      const rawAlbums = response.data.albums;
+
+      const formatted = rawAlbums.map((album) => ({
+        id: album.id,
+        title: album.name,
+        description: album.description,
+        image:
+          album.AlbumPosts?.[0]?.Post?.media?.[0]?.image_url ||
+          "https://www.shutterstock.com/image-vector/default-ui-image-placeholder-wireframes-600nw-1037719192.jpg",
+        date: album.created_at,
+        category: "default",
+        postCount: album.AlbumPosts.length,
+      }));
+
+      setAlbums(formatted);
+      console.log("Fetched albums ", albums);
+    } catch (error) {
+      console.error("Error fetching albums:", error);
+    } finally {
+      setLoadingAlbums(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  useEffect(() => {
+    fetchAlbums();
+  }, []);
+
+  const postStat =
+    posts.length + albums.reduce((total, album) => total + album.postCount, 0);
+
+  const likeStat = posts.reduce((total, post) => total + post.total_likes, 0);
+
+  if (loading || loadingPosts || loadingAlbums) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        Loading...
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-pink-500"></div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-red-500">
+      <div className="min-h-screen flex items-center justify-center text-red-500 bg-gradient-to-br from-pink-100 to-pink-300">
         Không tìm thấy thông tin người dùng.
       </div>
     );
@@ -290,7 +362,7 @@ const Profile = () => {
                   <div className="text-2xl font-bold text-pink-500">
                     {followers.length}
                   </div>
-                  <div className="text-sm text-gray-600">Followers</div>
+                  <div className="text-sm text-gray-600">Người theo dõi</div>
                 </div>
                 <div
                   className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer"
@@ -302,15 +374,19 @@ const Profile = () => {
                   <div className="text-2xl font-bold text-pink-500">
                     {following.length}
                   </div>
-                  <div className="text-sm text-gray-600">Following</div>
+                  <div className="text-sm text-gray-600">Đang theo dõi</div>
                 </div>
                 <div className="text-center bg-pink-50 rounded-xl p-4">
-                  <div className="text-2xl font-bold text-pink-500">127</div>
-                  <div className="text-sm text-gray-600">Posts</div>
+                  <div className="text-2xl font-bold text-pink-500">
+                    {postStat}
+                  </div>
+                  <div className="text-sm text-gray-600">Bài viết</div>
                 </div>
                 <div className="text-center bg-pink-50 rounded-xl p-4">
-                  <div className="text-2xl font-bold text-pink-500">15.6K</div>
-                  <div className="text-sm text-gray-600">Likes</div>
+                  <div className="text-2xl font-bold text-pink-500">
+                    {likeStat}
+                  </div>
+                  <div className="text-sm text-gray-600">Lượt thích</div>
                 </div>
               </div>
 
@@ -359,7 +435,7 @@ const Profile = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">
           <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
             <Award className="w-6 h-6 text-pink-400 mr-3" />
-            Achievements
+            Thành tựu
           </h2>
           <div className="flex flex-wrap gap-4">
             {achievements.map((achievement) => (
@@ -381,7 +457,7 @@ const Profile = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
               <Store className="w-6 h-6 text-pink-400 mr-3" />
-              Shop Invitations
+              Lời mời quản lý shop
               <span className="ml-2 bg-pink-100 text-pink-600 text-sm px-3 py-1 rounded-full">
                 {shopInvitations.length}
               </span>
@@ -389,7 +465,7 @@ const Profile = () => {
             <div className="space-y-4">
               {loadingInvitations ? (
                 <div className="text-center py-8">
-                  <div className="text-gray-500">Loading invitations...</div>
+                  <div className="text-gray-500">Đang tải...</div>
                 </div>
               ) : (
                 shopInvitations.map((invitation) => (
@@ -406,12 +482,12 @@ const Profile = () => {
                           Shop #{invitation.shop_id}
                         </h3>
                         <p className="text-gray-600">
-                          You have been invited to join this shop
+                          Bạn đã được mời tham gia shop này
                         </p>
                         <div className="flex items-center space-x-2 mt-2">
                           <Clock className="w-4 h-4 text-orange-500" />
                           <span className="text-sm text-orange-600 font-medium">
-                            Pending Invitation
+                            Lời mời chưa chấp nhận
                           </span>
                         </div>
                       </div>
@@ -424,7 +500,7 @@ const Profile = () => {
                         className="bg-green-500 text-white px-6 py-2 rounded-xl hover:bg-green-600 transition-colors flex items-center space-x-2"
                       >
                         <CheckCircle className="w-5 h-5" />
-                        <span>Accept</span>
+                        <span>Chấp nhận</span>
                       </button>
                     </div>
                   </div>
@@ -434,101 +510,161 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Albums */}
         <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-            <BookOpen className="w-6 h-6 text-pink-400 mr-3" />
-            Albums
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {albums.map((album) => (
-              <div
-                key={album.id}
-                className="bg-pink-50 rounded-xl overflow-hidden group cursor-pointer"
-              >
-                <div className="relative">
-                  <img
-                    src={album.cover}
-                    alt={album.title}
-                    className="w-full h-64 object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                    <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-center p-4">
-                      <div className="text-xl font-semibold mb-2">
-                        {album.title}
-                      </div>
-                      <div className="text-sm mb-3">{album.description}</div>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {album.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="bg-pink-400 text-white px-3 py-1 rounded-full text-sm"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-semibold text-gray-800">
-                      {album.title}
-                    </h3>
-                    <span className="text-pink-500">{album.count} photos</span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {album.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="bg-pink-100 text-pink-600 px-2 py-1 rounded-full text-sm"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+          {/* Tabs Header */}
+          <div className="flex border-b border-pink-100 mb-6">
+            <button
+              onClick={() => setActiveTab("photos")}
+              className={`flex-1 flex items-center justify-center px-3 py-2 text-lg font-semibold transition ${
+                activeTab === "photos"
+                  ? "text-pink-500 border-b-2 border-pink-500"
+                  : "text-gray-500 hover:text-pink-400"
+              }`}
+            >
+              <Image className="w-5 h-5 mr-2" />
+              Ảnh gần đây
+            </button>
 
-        {/* Recent Photos */}
-        <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-            <Image className="w-6 h-6 text-pink-400 mr-3" />
-            Recent Photos
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {recentPhotos.map((photo) => (
-              <div key={photo.id} className="relative group cursor-pointer">
-                <img
-                  src={photo.image}
-                  alt={`Photo ${photo.id}`}
-                  className="w-full h-64 object-cover rounded-xl"
-                />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-xl flex items-center justify-center">
-                  <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Heart className="w-5 h-5" />
-                      <span className="text-lg">{photo.likes}</span>
+            <button
+              onClick={() => setActiveTab("albums")}
+              className={`flex-1 flex items-center justify-center px-3 py-2 text-lg font-semibold transition ${
+                activeTab === "albums"
+                  ? "text-pink-500 border-b-2 border-pink-500"
+                  : "text-gray-500 hover:text-pink-400"
+              }`}
+            >
+              <BookOpen className="w-5 h-5 mr-2" />
+              Albums nổi bật
+            </button>
+          </div>
+
+          {/* Tab Content */}
+
+          {activeTab === "photos" &&
+            (posts.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {posts.map((post) => {
+                  const firstImage = post.media?.find((m) => m.image_url);
+                  const firstVideo = post.media?.find((m) => m.video_url);
+                  return (
+                    <div
+                      key={post.id}
+                      className="relative group cursor-pointer"
+                    >
+                      {firstImage ? (
+                        <img
+                          src={firstImage.image_url}
+                          alt={post.title}
+                          className="w-full h-64 object-cover rounded-xl"
+                          // onClick={() => {
+                          //   setSelectedPost(post);
+                          //   setIsPostDetailOpen(true);
+                          // }}
+                        />
+                      ) : firstVideo ? (
+                        <video
+                          src={firstVideo.video_url}
+                          className="w-full h-64 object-cover rounded-xl"
+                          muted
+                          // onClick={() => {
+                          //   setSelectedPost(post);
+                          //   setIsPostDetailOpen(true);
+                          // }}
+                        />
+                      ) : (
+                        <img
+                          src="https://placehold.co/600x400?text=No+Image"
+                          alt={post.title}
+                          className="w-full h-64 object-cover rounded-xl"
+                          // onClick={() => {
+                          //   setSelectedPost(post);
+                          //   setIsPostDetailOpen(true);
+                          // }}
+                        />
+                      )}
+
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-xl flex items-center justify-center">
+                        <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Heart className="w-5 h-5" />
+                            <span className="text-lg">{post.total_likes}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            <span className="bg-pink-400 text-white px-3 py-1 rounded-full text-sm">
+                              {post.category}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {photo.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="bg-pink-400 text-white px-3 py-1 rounded-full text-sm"
-                        >
-                          {tag}
+                  );
+                })}
+              </div>
+            ) : (
+              !loadingPosts && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-pink-500" />
+                  </div>
+                  <p className="text-gray-500 text-lg">No posts found.</p>
+                </div>
+              )
+            ))}
+
+          {activeTab === "albums" &&
+            (albums.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {albums.map((album) => (
+                  <div
+                    key={album.id}
+                    className="bg-pink-50 rounded-xl overflow-hidden group cursor-pointer"
+                  >
+                    <div className="relative">
+                      <img
+                        src={album.image}
+                        alt={album.title}
+                        className="w-full h-64 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
+                        <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-center p-4">
+                          <div className="text-xl font-semibold mb-2 bg-red-400 text-white px-3 py-1 rounded-xl">
+                            {album.title}
+                          </div>
+                          <div className="text-sm mb-3">
+                            {album.description}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {album.title}
+                        </h3>
+                        <span className="text-pink-500">
+                          {album.postCount} posts
                         </span>
-                      ))}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="flex items-center space-x-1 text-sm bg-pink-200 text-pink-600 px-2 py-1 rounded-full">
+                          <Calendar className="w-4 h-4" />
+                          <span>{dayjs(album.date).format("D MMM, YYYY")}</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
+            ) : (
+              !loadingAlbums && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-pink-500" />
+                  </div>
+                  <p className="text-gray-500 text-lg">No albums found.</p>
+                </div>
+              )
             ))}
-          </div>
         </div>
       </div>
     </div>
