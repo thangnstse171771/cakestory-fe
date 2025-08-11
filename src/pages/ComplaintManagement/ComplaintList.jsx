@@ -5,67 +5,27 @@ import {
   CalendarDays,
   Filter,
   Search,
+  RefreshCw,
 } from "lucide-react";
-import { useState } from "react";
-import ComplaintDetails from "./ComplaintDetails";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { fetchComplaintsByShop, fetchShopByUserId } from "../../api/axios";
 
-// Fake data khiếu nại
-const fakeComplaints = [
-  {
-    id: "comp-1",
-    orderId: "order-1",
-    orderNumber: "DH001",
-    customerName: "Nguyễn Văn A",
-    subject: "Bánh bị hỏng khi nhận hàng",
-    description: "Bánh bị vỡ và kem bị chảy khi giao đến.",
-    status: "new",
-    date: "01/08/2025",
-    time: "09:30",
-  },
-  {
-    id: "comp-2",
-    orderId: "order-2",
-    orderNumber: "DH002",
-    customerName: "Trần Thị B",
-    subject: "Giao hàng trễ",
-    description: "Đơn hàng giao trễ 2 tiếng so với dự kiến.",
-    status: "in_progress",
-    date: "02/08/2025",
-    time: "14:15",
-  },
-  {
-    id: "comp-3",
-    orderId: "order-3",
-    orderNumber: "DH003",
-    customerName: "Lê Văn C",
-    subject: "Thiếu phụ kiện đi kèm",
-    description: "Không có nến và dao cắt bánh như đã đặt.",
-    status: "resolved",
-    date: "03/08/2025",
-    time: "10:00",
-  },
-  {
-    id: "comp-4",
-    orderId: "order-4",
-    orderNumber: "DH004",
-    customerName: "Phạm Thị D",
-    subject: "Bánh không đúng kích thước",
-    description: "Bánh nhỏ hơn so với yêu cầu đã đặt.",
-    status: "closed",
-    date: "31/07/2025",
-    time: "16:45",
-  },
-];
-
-export default function ComplaintList({ complaints }) {
-  complaints =
-    complaints && complaints.length > 0 ? complaints : fakeComplaints;
-
+export default function ComplaintList({
+  complaints: initialComplaints,
+  shopId: propShopId,
+}) {
+  // Local state
+  const [complaints, setComplaints] = useState(initialComplaints || []);
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [shopId, setShopId] = useState(propShopId || null);
+  const navigate = useNavigate();
 
+  // Status map (UI)
   const complaintStatusMap = {
     new: { label: "Mới", color: "bg-blue-100 text-blue-700" },
     in_progress: {
@@ -76,15 +36,155 @@ export default function ComplaintList({ complaints }) {
     closed: { label: "Đã đóng", color: "bg-gray-100 text-gray-700" },
   };
 
-  // Filter complaints
-  const filteredComplaints = complaints.filter((complaint) => {
+  // Robust status normalization aligned with user complaint logic
+  const normalizeStatus = (raw = "") => {
+    const r = (raw || "").toString().trim().toLowerCase();
+    if (["pending", "complaining"].includes(r)) return "pending"; // internal pending
+    if (["complete", "completed", "resolved", "refunded"].includes(r))
+      return "complete";
+    if (["rejected", "denied", "closed", "cancelled"].includes(r))
+      return "rejected";
+    return "pending";
+  };
+
+  // Fetch shopId if not provided (derive from current user => fetch shop)
+  useEffect(() => {
+    const deriveShopId = async () => {
+      if (shopId) return;
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        console.log("[ComplaintList] Loaded user from localStorage:", user);
+        if (!user?.id) return;
+        const shopResp = await fetchShopByUserId(user.id);
+        console.log("[ComplaintList] fetchShopByUserId response:", shopResp);
+        // Try multiple possible shapes
+        const possibleIds = [
+          shopResp?.shop?.shop_id, // primary shape {shop:{shop_id}}
+          shopResp?.shop_id,
+          shopResp?.id,
+          shopResp?.data?.id,
+          shopResp?.data?.shop_id,
+        ].filter(Boolean);
+        const sId = possibleIds[0];
+        if (sId) {
+          console.log("[ComplaintList] Derived shopId:", sId);
+          setShopId(sId);
+        } else {
+          console.warn("[ComplaintList] Could not derive shopId from response");
+        }
+      } catch (e) {
+        console.warn("[ComplaintList] Cannot derive shopId:", e);
+      }
+    };
+    deriveShopId();
+  }, [shopId]);
+
+  // Fetch complaints for shop
+  const loadComplaints = async (sid = shopId) => {
+    if (!sid) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchComplaintsByShop(sid);
+      console.log("[ComplaintList] Raw complaints response:", data);
+      // unify list
+      let listRaw = [];
+      if (Array.isArray(data)) listRaw = data;
+      else if (Array.isArray(data?.data)) listRaw = data.data;
+      else if (Array.isArray(data?.complaints)) listRaw = data.complaints;
+      else if (Array.isArray(data?.data?.complaints))
+        listRaw = data.data.complaints;
+      else if (data && typeof data === "object") listRaw = [data];
+
+      const mapped = listRaw.map((c, idx) => {
+        // parse create date robustly
+        const createdStr =
+          c.created_at ||
+          c.createdAt ||
+          c.created_on ||
+          c.created ||
+          c.timestamp;
+        let dt = createdStr ? new Date(createdStr) : null;
+        if (!dt || isNaN(dt.getTime())) dt = new Date();
+        // gather images like detail page
+        const evidenceImages = [];
+        if (c.evidence_images) {
+          if (Array.isArray(c.evidence_images))
+            evidenceImages.push(...c.evidence_images);
+          else if (typeof c.evidence_images === "string")
+            evidenceImages.push(...c.evidence_images.split(","));
+        }
+        if (c.image_url) evidenceImages.push(c.image_url);
+        if (c.image) evidenceImages.push(c.image);
+        const uniqueImages = [
+          ...new Set(evidenceImages.map((i) => i && i.trim()).filter(Boolean)),
+        ];
+        const status = normalizeStatus(
+          c.status || c.complaint_status || c.state
+        );
+        return {
+          id: c.id || c.complaint_id || idx,
+          orderId:
+            c.order_id || c.orderId || c.order?.id || c.order?.order_id || "",
+          orderNumber:
+            c.order_code ||
+            c.order?.order_code ||
+            c.order?.id ||
+            c.order_id ||
+            c.orderId ||
+            "N/A",
+          customerName:
+            c.customer_name ||
+            c.customerName ||
+            c.customer?.full_name ||
+            "Khách hàng",
+          subject:
+            c.subject ||
+            c.title ||
+            `Khiếu nại đơn hàng ${c.order_code || c.order_id || ""}`,
+          description: c.description || c.content || c.reason || "",
+          status,
+          date: dt.toLocaleDateString("vi-VN"),
+          time: dt.toLocaleTimeString("vi-VN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          imageUrl: uniqueImages[0] || null,
+          images: uniqueImages,
+          raw: c,
+        };
+      });
+      setComplaints(mapped);
+      console.log("[ComplaintList] Normalized complaints mapped:", mapped);
+    } catch (e) {
+      console.error("[ComplaintList] Load complaints failed:", e);
+      setError(e.message || "Không tải được khiếu nại");
+      setComplaints([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (shopId) loadComplaints(shopId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopId]);
+
+  const handleRefresh = () => {
+    if (shopId) loadComplaints(shopId);
+  };
+
+  // Only real complaints (no fake fallback)
+  const displayComplaints = complaints;
+
+  // Filters
+  const filteredComplaints = displayComplaints.filter((complaint) => {
     const matchesStatus =
       statusFilter === "all" || complaint.status === statusFilter;
     const matchesSearch =
       complaint.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       complaint.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       complaint.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-
     let matchesDate = true;
     if (dateFilter !== "all") {
       const complaintDate = new Date(
@@ -93,7 +193,6 @@ export default function ComplaintList({ complaints }) {
       const today = new Date();
       const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
       const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-
       switch (dateFilter) {
         case "today":
           matchesDate = complaintDate.toDateString() === today.toDateString();
@@ -107,30 +206,35 @@ export default function ComplaintList({ complaints }) {
           break;
       }
     }
-
     return matchesStatus && matchesSearch && matchesDate;
   });
 
-  const handleViewDetails = (complaint) => {
-    setSelectedComplaint(complaint);
-  };
-
-  if (selectedComplaint) {
-    return (
-      <ComplaintDetails
-        complaint={selectedComplaint}
-        onBack={() => setSelectedComplaint(null)}
-      />
-    );
-  }
+  const handleViewDetails = (complaint) =>
+    navigate(`/complaints/${complaint.id}`);
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold text-red-700 mb-6 flex items-center gap-3">
-          <MessageSquareWarning className="h-7 w-7" />
-          Danh sách khiếu nại ({filteredComplaints.length})
-        </h2>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <h2 className="text-3xl font-bold text-red-700 flex items-center gap-3">
+            <MessageSquareWarning className="h-7 w-7" />
+            Khiếu nại của Shop {shopId ? `#${shopId}` : ""} (
+            {filteredComplaints.length})
+          </h2>
+          <div className="flex items-center gap-3">
+            {error && <span className="text-sm text-red-600">{error}</span>}
+            <button
+              onClick={handleRefresh}
+              disabled={loading || !shopId}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 rounded-lg text-red-600 font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? "animate-spin" : ""}`}
+              />
+              {loading ? "Đang tải..." : "Tải lại"}
+            </button>
+          </div>
+        </div>
 
         {/* Filters */}
         <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border border-red-100">
@@ -138,21 +242,17 @@ export default function ComplaintList({ complaints }) {
             <Filter className="h-5 w-5 text-red-600" />
             <span className="font-semibold text-red-700">Lọc khiếu nại</span>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Tìm kiếm theo tiêu đề, mã đơn, khách hàng..."
+                placeholder="Tìm kiếm tiêu đề, mã đơn, khách hàng..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-
-            {/* Status Filter */}
             <select
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               value={statusFilter}
@@ -164,8 +264,6 @@ export default function ComplaintList({ complaints }) {
               <option value="resolved">Đã giải quyết</option>
               <option value="closed">Đã đóng</option>
             </select>
-
-            {/* Date Filter */}
             <select
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               value={dateFilter}
@@ -176,6 +274,11 @@ export default function ComplaintList({ complaints }) {
               <option value="yesterday">Hôm qua</option>
               <option value="week">7 ngày qua</option>
             </select>
+            <div className="flex items-center text-sm text-gray-500">
+              {loading
+                ? "Đang tải dữ liệu..."
+                : `${displayComplaints.length} bản ghi`}
+            </div>
           </div>
         </div>
 
@@ -183,8 +286,12 @@ export default function ComplaintList({ complaints }) {
         {filteredComplaints.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center text-gray-600 bg-white rounded-xl shadow-lg">
             <MessageSquareWarning className="h-16 w-16 mb-4 text-gray-400" />
-            <p className="text-lg font-medium">Không tìm thấy khiếu nại nào.</p>
-            <p className="text-sm">Thử thay đổi bộ lọc để xem thêm kết quả.</p>
+            <p className="text-lg font-medium">
+              {loading
+                ? "Đang tải khiếu nại..."
+                : "Không tìm thấy khiếu nại nào."}
+            </p>
+            {!loading && <p className="text-sm">Thử thay đổi bộ lọc.</p>}
           </div>
         ) : (
           <div className="space-y-4">
@@ -225,20 +332,18 @@ export default function ComplaintList({ complaints }) {
                           complaint.status}
                       </span>
                     </div>
-
                     <p className="text-gray-600 text-sm line-clamp-2 mb-3">
                       {complaint.description}
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-red-100">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm">
-                    <CalendarDays className="h-4 w-4" />
-                    Ngày gửi: {complaint.date} lúc {complaint.time}
+                <div className="flex items-center justify-between pt-3 border-t border-red-100 text-sm text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" /> Ngày gửi:{" "}
+                    {complaint.date} lúc {complaint.time}
                   </div>
                   <button
-                    className="text-red-600 hover:text-red-800 text-sm font-medium hover:underline"
+                    className="text-red-600 hover:text-red-800 font-medium hover:underline"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleViewDetails(complaint);

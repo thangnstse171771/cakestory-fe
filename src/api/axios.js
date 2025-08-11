@@ -339,7 +339,6 @@ export const confirmWithdrawRequest = async (withdrawId) => {
   }
 };
 
-// Hủy yêu cầu rút tiền
 export const cancelWithdrawRequest = async (withdrawId) => {
   try {
     if (!withdrawId) throw new Error("Thiếu withdrawId");
@@ -451,17 +450,12 @@ export const fetchUserWalletById = async (userId) => {
 export const fetchAllDepositsAdmin = async (filters = {}) => {
   try {
     console.log("Gọi API fetchAllDepositsAdmin với filters:", filters);
-
-    // Build params object
     const params = {
       page: filters.page || 1,
-      limit: filters.limit || 999999, // Set limit rất lớn để lấy tất cả
+      limit: filters.limit || 999999,
     };
-
-    // Add optional filters (đã bỏ date filters)
     if (filters.status) params.status = filters.status;
     if (filters.user_id) params.user_id = filters.user_id;
-
     const response = await axiosInstance.get("/wallet/allDepositsAdmin", {
       params,
     });
@@ -528,10 +522,7 @@ export const fetchShopOrders = async (shopId) => {
 export const updateOrderStatus = async (orderId, status) => {
   try {
     console.log("Cập nhật trạng thái order:", { orderId, status });
-
-    // API hỗ trợ 4 endpoint cụ thể
     let endpoint = "";
-
     switch (status) {
       case "ordered":
         endpoint = `/cake-orders/${orderId}/ordered`;
@@ -546,11 +537,8 @@ export const updateOrderStatus = async (orderId, status) => {
         endpoint = `/cake-orders/${orderId}/cancel`;
         break;
       default:
-        throw new Error(
-          `API không hỗ trợ cập nhật trạng thái "${status}". Chỉ hỗ trợ: ordered, shipped, completed, cancelled`
-        );
+        throw new Error("Trạng thái không hợp lệ");
     }
-
     const response = await axiosInstance.put(endpoint, {});
     console.log("Update order status response:", response.data);
     return response.data;
@@ -571,6 +559,78 @@ export const createComplaint = async (complaintData) => {
   } catch (error) {
     console.error("Lỗi khi tạo complaint:", error);
     console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Lấy complaints của một shop
+export const fetchComplaintsByShop = async (shopId) => {
+  try {
+    if (!shopId) throw new Error("Thiếu shopId");
+    const res = await axiosInstance.get(`/complaints/shop/${shopId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy complaints theo shop:", error);
+    throw error;
+  }
+};
+
+export const fetchComplaintsByCustomer = async (customerId) => {
+  try {
+    if (!customerId) throw new Error("Thiếu customerId");
+    const res = await axiosInstance.get(`/complaints/customer/${customerId}`);
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.complaints)) return data.complaints;
+    return [];
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    console.error("Lỗi khi lấy complaints theo customer:", error);
+    throw error;
+  }
+};
+
+export const fetchComplaintById = async (complaintId) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    const res = await axiosInstance.get(`/complaints/${complaintId}`);
+    return res.data;
+  } catch (error) {
+    console.warn(
+      "fetchComplaintById thất bại:",
+      complaintId,
+      error.response?.status
+    );
+    throw error;
+  }
+};
+
+// Lấy ingredients sử dụng trong order của complaint (nếu backend có endpoint)
+export const fetchComplaintIngredientsByShop = async (shopId) => {
+  try {
+    if (!shopId) throw new Error("Thiếu shopId");
+    const res = await axiosInstance.get(`/ingredients?shop_id=${shopId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy ingredients shop:", error);
+    throw error;
+  }
+};
+
+export const fetchMarketplacePostById = async (postId) => {
+  try {
+    if (!postId) throw new Error("Thiếu postId");
+    console.log("Gọi API fetchMarketplacePostById với postId:", postId);
+    const res = await axiosInstance.get(`/marketplace-posts/${postId}`);
+    return res.data; // expects { message, post }
+  } catch (error) {
+    console.error(
+      "Lỗi khi fetchMarketplacePostById:",
+      error.response?.data || error.message
+    );
     throw error;
   }
 };
