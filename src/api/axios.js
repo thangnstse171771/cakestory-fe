@@ -645,3 +645,35 @@ export const fetchMarketplacePostById = async (postId) => {
     throw error;
   }
 };
+
+// Admin: approve complaint (cancel related order)
+export const approveComplaint = async (complaintId) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    console.log("Approve complaint:", complaintId);
+    const res = await axiosInstance.put(`/complaints/${complaintId}/approve`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "Lỗi approve complaint:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// Admin: reject complaint (mark related order as completed)
+export const rejectComplaint = async (complaintId) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    console.log("Reject complaint:", complaintId);
+    const res = await axiosInstance.put(`/complaints/${complaintId}/reject`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "Lỗi reject complaint:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

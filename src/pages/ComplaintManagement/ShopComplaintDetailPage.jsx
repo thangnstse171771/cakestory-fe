@@ -2,10 +2,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { fetchComplaintById, fetchOrderById } from "../../api/axios";
 import ComplaintDetails from "./ComplaintDetails";
+import { useLocation } from "react-router-dom";
 
 export default function ShopComplaintDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminRoute = location?.pathname?.startsWith("/admin/complaints");
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -112,5 +115,13 @@ export default function ShopComplaintDetailPage() {
   if (loading) return <div className="p-6">Đang tải...</div>;
   if (error) return <div className="p-6 text-red-600">{error}</div>;
   if (!complaint) return <div className="p-6">Không tìm thấy khiếu nại</div>;
-  return <ComplaintDetails complaint={complaint} onBack={() => navigate(-1)} />;
+  return (
+    <ComplaintDetails
+      complaint={complaint}
+      onBack={() => {
+        if (isAdminRoute) navigate("/admin/complaints");
+        else navigate(-1);
+      }}
+    />
+  );
 }
