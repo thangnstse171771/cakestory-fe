@@ -98,13 +98,20 @@ export default function CakeShop() {
         console.log("Raw ingredients array:", data.ingredients || data);
 
         // Transform ingredients data to match toppings structure
+        const normalizePrice = (raw) => {
+          const n = Number(raw);
+          if (!Number.isFinite(n)) return 0;
+          return Math.round(n); // ensure integer VND
+        };
         const transformedIngredients = (data.ingredients || data || []).map(
           (ingredient) => {
             console.log("Processing ingredient:", ingredient);
+            const priceInt = normalizePrice(ingredient.price);
             return {
               id: ingredient.id,
               name: ingredient.name,
-              price: ingredient.price,
+              price: priceInt, // store normalized integer
+              rawPrice: ingredient.price, // keep original for debugging if needed
               description: ingredient.description,
               image: ingredient.image,
             };
@@ -193,15 +200,15 @@ export default function CakeShop() {
       (s) => s.size === selectedSize
     );
     const sizePrice = selectedSizeData
-      ? parseFloat(selectedSizeData.price)
-      : cake.basePrice;
+      ? Math.round(parseFloat(selectedSizeData.price))
+      : Math.round(cake.basePrice);
 
     const basePrice = sizePrice * quantity;
     const toppingsPrice =
-      selectedToppings.reduce(
-        (sum, topping) => sum + topping.price * topping.quantity,
-        0
-      ) * quantity;
+      selectedToppings.reduce((sum, topping) => {
+        const unit = Math.round(Number(topping.price) || 0);
+        return sum + unit * topping.quantity;
+      }, 0) * quantity;
     return basePrice + toppingsPrice;
   };
 
@@ -372,8 +379,8 @@ export default function CakeShop() {
                         (s) => s.size === selectedSize
                       );
                       const price = selectedSizeData
-                        ? parseFloat(selectedSizeData.price)
-                        : cake.basePrice;
+                        ? Math.round(parseFloat(selectedSizeData.price))
+                        : Math.round(cake.basePrice);
                       return formatCurrency(price);
                     })()}
                   </span>
@@ -454,7 +461,7 @@ export default function CakeShop() {
                       >
                         <div className="font-bold text-lg">{size.size}</div>
                         <div className="text-sm font-medium text-pink-600">
-                          {formatCurrency(parseFloat(size.price))}
+                          {formatCurrency(Math.round(parseFloat(size.price)))}
                         </div>
                       </button>
                     ))}
@@ -540,7 +547,7 @@ export default function CakeShop() {
                             {topping.name}
                           </div>
                           <p className="text-sm text-pink-600 font-medium">
-                            +{formatCurrency(topping.price)} / cái
+                            +{formatCurrency(Math.round(topping.price))} / cái
                           </p>
                           {topping.description && (
                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">
@@ -635,8 +642,8 @@ export default function CakeShop() {
                           (s) => s.size === selectedSize
                         );
                         const price = selectedSizeData
-                          ? parseFloat(selectedSizeData.price)
-                          : cake.basePrice;
+                          ? Math.round(parseFloat(selectedSizeData.price))
+                          : Math.round(cake.basePrice);
                         return formatCurrency(price * quantity);
                       })()}
                     </span>
@@ -658,7 +665,9 @@ export default function CakeShop() {
                           </span>
                           <span>
                             {formatCurrency(
-                              topping.price * topping.quantity * quantity
+                              Math.round(topping.price) *
+                                topping.quantity *
+                                quantity
                             )}
                           </span>
                         </div>

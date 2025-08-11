@@ -53,6 +53,9 @@ import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
 import AllShopCakes from "./pages/AllShopCakes";
 import AIGeneratedImages from "./pages/AIGeneratedImages";
 import ProductDetail from "./pages/Marketplace/ProductDetail";
+import UserComplaint from "./pages/ComplaintManagement/UserComplaint";
+import UserComplaintDetailPage from "./pages/ComplaintManagement/UserComplaintDetailPage";
+import ShopComplaintDetailPage from "./pages/ComplaintManagement/ShopComplaintDetailPage.jsx";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -157,6 +160,10 @@ export default function App() {
             <Route path="suggested-users" element={<SuggestedUsers />} />
             <Route path="album/:id" element={<AlbumDetail />} />
             <Route path="complaints" element={<ComplaintList />} />
+            <Route
+              path="complaints/:id"
+              element={<ShopComplaintDetailPage />}
+            />
           </Route>
 
           {/* Protected pages (chỉ login mới xem được) */}
@@ -171,6 +178,11 @@ export default function App() {
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="mypost" element={<MyPost />} />
             <Route path="myalbum" element={<MyAlbum />} />
+            <Route path="my-complaints" element={<UserComplaint />} />
+            <Route
+              path="my-complaints/:id"
+              element={<UserComplaintDetailPage />}
+            />
             <Route path="chat" element={<Chat />} />
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />

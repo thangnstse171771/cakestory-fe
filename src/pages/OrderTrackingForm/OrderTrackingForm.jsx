@@ -86,6 +86,11 @@ export default function OrderTrackingForm({
         customerPhone: response.customer_id?.phone || "Không có SĐT",
         items: response.items || [],
         total: response.total || 0,
+        base_price:
+          parseFloat(response.base_price) ||
+          parseFloat(response.total_price) ||
+          parseFloat(response.total) ||
+          0,
         status: response.status || "pending",
         orderNumber: response.orderNumber || `ORD-${response.id}`,
         placeDate: response.placeDate || new Date().toISOString().split("T")[0],
@@ -334,7 +339,7 @@ export default function OrderTrackingForm({
             </ul>
             <div className="flex justify-between items-center mt-4 p-4 bg-pink-100 rounded-lg font-bold text-lg text-pink-800">
               <span>Tổng cộng:</span>
-              <span>{orderDetail.total.toLocaleString("vi-VN")}đ</span>
+              <span>{orderDetail.base_price.toLocaleString("vi-VN")}đ</span>
             </div>
           </div>
 

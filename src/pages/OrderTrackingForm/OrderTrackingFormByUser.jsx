@@ -71,6 +71,31 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
       setLoading(true);
       const response = await fetchOrderById(orderId);
 
+      // Normalize numeric prices with heuristics
+      const parseAmount = (v) => {
+        if (v === null || v === undefined || v === "") return 0;
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : 0;
+      };
+      const baseRaw = parseAmount(response.base_price || response.basePrice);
+      const ingRaw = parseAmount(
+        response.ingredient_total || response.ingredientTotal
+      );
+      let totalRaw = parseAmount(
+        response.total_price || response.total || response.final_price
+      );
+
+      // Heuristic: if total missing -> base + ingredients
+      if (totalRaw === 0) totalRaw = baseRaw + ingRaw;
+      // Case: API sets base_price already = total (includes ingredients) and also gives ingredient_total
+      // Example: baseRaw = 44, ingRaw = 14, totalRaw = 44. We want basePrice = 30, ingredientTotal=14, total=44.
+      let basePrice = baseRaw;
+      let ingredientTotal = ingRaw;
+      if (totalRaw === baseRaw && ingRaw > 0 && baseRaw > ingRaw) {
+        basePrice = baseRaw - ingRaw; // derive core cake price
+      }
+      const totalPrice = totalRaw;
+
       // Transform data để phù hợp với component
       const transformedOrder = {
         id: response.id || response._id,
@@ -78,7 +103,10 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
         customerEmail: response.customer_id?.email || "Không có email",
         customerPhone: response.customer_id?.phone || "Không có SĐT",
         items: response.items || [],
-        total: response.total || 0,
+        basePrice,
+        ingredientTotal,
+        total: basePrice, // total must equal base price per requirement
+        base_price: basePrice,
         status: response.status || "pending",
         orderNumber: response.orderNumber || `ORD-${response.id}`,
         placeDate: response.placeDate || new Date().toISOString().split("T")[0],
@@ -240,9 +268,21 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
                 </span>
               </div>
               <div>
+                <span className="font-medium">Giá bánh:</span>{" "}
+                <span>{orderDetail.basePrice.toLocaleString("vi-VN")}đ</span>
+              </div>
+              {orderDetail.ingredientTotal > 0 && (
+                <div>
+                  <span className="font-medium">Nguyên liệu thêm:</span>{" "}
+                  <span>
+                    {orderDetail.ingredientTotal.toLocaleString("vi-VN")}đ
+                  </span>
+                </div>
+              )}
+              <div className="col-span-2">
                 <span className="font-medium">Tổng tiền:</span>{" "}
                 <span className="text-pink-600 font-bold">
-                  {orderDetail.total.toLocaleString("vi-VN")}đ
+                  {orderDetail.base_price.toLocaleString("vi-VN")}đ
                 </span>
               </div>
             </div>
@@ -287,7 +327,7 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
             </ul>
             <div className="flex justify-between items-center mt-4 p-4 bg-pink-100 rounded-lg font-bold text-lg text-pink-800">
               <span>Tổng cộng:</span>
-              <span>{orderDetail.total.toLocaleString("vi-VN")}đ</span>
+              <span>{orderDetail.base_price.toLocaleString("vi-VN")}đ</span>
             </div>
           </div>
 

@@ -121,9 +121,11 @@ export default function OrderTrackingList({
       // Transform data từ API response để match với UI
       const transformedOrders = ordersArray.map((order) => {
         console.log("Transforming order:", order);
+        const basePrice =
+          parseFloat(order.base_price) || parseFloat(order.total_price) || 0;
         return {
           id: order.id,
-          orderNumber: `ORD-${String(order.id).padStart(3, "0")}`, // Format: ORD-015, ORD-017
+          orderNumber: `ORD-${String(order.id).padStart(3, "0")}`,
           placedDate: order.created_at,
           status: order.status,
           customerName:
@@ -141,7 +143,9 @@ export default function OrderTrackingList({
               quantity: parseInt(item.quantity) || 1,
               price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
             })) || [],
+          // Store API total but UI will use base_price as requested
           total: parseFloat(order.total_price) || 0,
+          base_price: basePrice,
           history: [
             {
               date: new Date(order.created_at).toLocaleDateString("vi-VN"),
@@ -276,7 +280,6 @@ export default function OrderTrackingList({
               `Bánh tùy chỉnh #${item.id || "N/A"}`,
             quantity: parseInt(item.quantity) || 1,
             price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-            // Thêm thông tin chi tiết bánh từ API
             cakeDetails: item.cake
               ? {
                   description: item.cake.description,
@@ -286,7 +289,6 @@ export default function OrderTrackingList({
                   image_url: item.cake.image_url,
                 }
               : null,
-            // Thêm thông tin marketplace post nếu có
             marketplaceDetails: item.marketplace_post
               ? {
                   title: item.marketplace_post.title,
@@ -295,18 +297,19 @@ export default function OrderTrackingList({
                   shop_id: item.marketplace_post.shop_id,
                 }
               : null,
-            // Thêm thông tin customization nếu có
             customization: {
               size: item.size || "N/A",
               special_instructions: item.special_instructions || "",
-              toppings: [], // TODO: Nếu API có thông tin topping
+              toppings: [],
             },
           })) || [],
         total: parseFloat(orderDetail.total_price) || 0,
-        // Thêm thông tin address nếu có
+        base_price:
+          parseFloat(orderDetail.base_price) ||
+          parseFloat(orderDetail.total_price) ||
+          0,
         shippingAddress: {
           address: orderDetail.shipped_at || "",
-          // TODO: Thêm các field address khác nếu API có
         },
         history: [
           {
@@ -315,7 +318,6 @@ export default function OrderTrackingList({
             status: orderDetail.status,
             note: "Đơn hàng được tạo",
           },
-          // TODO: Thêm lịch sử từ API nếu có
         ],
       };
 
@@ -393,6 +395,10 @@ export default function OrderTrackingList({
               },
             })) || [],
           total: parseFloat(updatedOrderDetail.total_price) || 0,
+          base_price:
+            parseFloat(updatedOrderDetail.base_price) ||
+            parseFloat(updatedOrderDetail.total_price) ||
+            0,
           history: [
             {
               date: new Date(updatedOrderDetail.created_at).toLocaleDateString(
@@ -404,7 +410,6 @@ export default function OrderTrackingList({
               status: updatedOrderDetail.status,
               note: "Đơn hàng được tạo",
             },
-            // Thêm entry mới cho việc cập nhật trạng thái
             {
               date: new Date().toLocaleDateString("vi-VN"),
               time: new Date().toLocaleTimeString("vi-VN"),
@@ -545,7 +550,7 @@ export default function OrderTrackingList({
                       Tổng cộng:
                     </span>
                     <span className="text-xl font-bold text-pink-600">
-                      {order.total.toLocaleString("vi-VN")}đ
+                      {order.base_price.toLocaleString("vi-VN")}đ
                     </span>
                   </div>
                   <button

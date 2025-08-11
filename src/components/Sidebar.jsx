@@ -46,6 +46,11 @@ const Sidebar = () => {
     { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: BookImage, label: "My Post", path: "/mypost" },
     { icon: SquareLibrary, label: "My Album", path: "/myalbum" },
+    {
+      icon: MessageSquareWarning,
+      label: "Khiếu nại của tôi",
+      path: "/my-complaints",
+    },
     { icon: User, label: "Profile", path: "/profile" },
     { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
     { icon: ArrowDownToLine, label: "Rút tiền", path: "/withdraw" },
