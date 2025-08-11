@@ -59,6 +59,11 @@ const Sidebar = () => {
   // Menu cho admin/staff
   const adminMenu = [
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
+    {
+      icon: MessageSquareWarning,
+      label: "All Complaints",
+      path: "/admin/complaints",
+    },
     { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },
     {
       icon: CreditCard,

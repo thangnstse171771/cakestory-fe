@@ -56,6 +56,7 @@ import ProductDetail from "./pages/Marketplace/ProductDetail";
 import UserComplaint from "./pages/ComplaintManagement/UserComplaint";
 import UserComplaintDetailPage from "./pages/ComplaintManagement/UserComplaintDetailPage";
 import ShopComplaintDetailPage from "./pages/ComplaintManagement/ShopComplaintDetailPage.jsx";
+import AdminComplaintList from "./pages/ComplaintManagement/AdminComplaintList.jsx";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -73,13 +74,8 @@ function ProtectedRoute({ children }) {
 // Public routes — nếu đã auth thì redirect về home
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  if (isAuthenticated()) {
-    return <Navigate to="/home" replace />;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (isAuthenticated()) return <Navigate to="/home" replace />;
   return children;
 }
 
@@ -108,7 +104,7 @@ export default function App() {
             }
           />
 
-          {/* Public pages (guest xem được) */}
+          {/* Public pages (guest) */}
           <Route element={<Layout />}>
             <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<Home />} />
@@ -166,7 +162,7 @@ export default function App() {
             />
           </Route>
 
-          {/* Protected pages (chỉ login mới xem được) */}
+          {/* Protected pages */}
           <Route
             element={
               <ProtectedRoute>
@@ -195,6 +191,7 @@ export default function App() {
               path="admin/withdraw-requests/:id"
               element={<WithdrawRequestDetail />}
             />
+            <Route path="admin/complaints" element={<AdminComplaintList />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/report" element={<Report />} />
             <Route

@@ -608,6 +608,17 @@ export const fetchComplaintById = async (complaintId) => {
   }
 };
 
+// Admin: lấy tất cả complaints
+export const fetchAllComplaints = async () => {
+  try {
+    const res = await axiosInstance.get(`/complaints`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy tất cả complaints:", error);
+    throw error;
+  }
+};
+
 // Lấy ingredients sử dụng trong order của complaint (nếu backend có endpoint)
 export const fetchComplaintIngredientsByShop = async (shopId) => {
   try {
