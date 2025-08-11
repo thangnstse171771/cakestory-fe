@@ -35,6 +35,8 @@ const Profile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingAlbums, setLoadingAlbums] = useState(true);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
   const [shopInvitations, setShopInvitations] = useState([]);
@@ -208,7 +210,6 @@ const Profile = () => {
   }, [user, fetchFollowers, fetchFollowing]);
 
   const fetchPosts = async () => {
-    setLoading(true);
     try {
       const data = await authAPI.getMemoryPostByUserId(user.id);
       const mappedPosts = (data.posts || []).map((item) => ({
@@ -229,7 +230,7 @@ const Profile = () => {
       toast.error("Không thể tải bài viết. Vui lòng thử lại!");
       setPosts([]);
     } finally {
-      setLoading(false);
+      setLoadingPosts(false);
     }
   };
 
@@ -255,7 +256,7 @@ const Profile = () => {
     } catch (error) {
       console.error("Error fetching albums:", error);
     } finally {
-      setLoading(false);
+      setLoadingAlbums(false);
     }
   };
 
@@ -272,7 +273,7 @@ const Profile = () => {
 
   const likeStat = posts.reduce((total, post) => total + post.total_likes, 0);
 
-  if (loading) {
+  if (loading || loadingPosts || loadingAlbums) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-pink-500"></div>
@@ -600,7 +601,7 @@ const Profile = () => {
                 })}
               </div>
             ) : (
-              !loading && (
+              !loadingPosts && (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Search className="w-8 h-8 text-pink-500" />
@@ -655,7 +656,7 @@ const Profile = () => {
                 ))}
               </div>
             ) : (
-              !loading && (
+              !loadingAlbums && (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Search className="w-8 h-8 text-pink-500" />
