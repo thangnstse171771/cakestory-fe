@@ -20,6 +20,7 @@ import {
 import { fetchComplaintIngredientsByShop } from "../../api/axios";
 import { fetchIngredients } from "../../api/ingredients";
 import { fetchMarketplacePostById } from "../../api/axios";
+import { approveComplaint, rejectComplaint } from "../../api/axios";
 
 // Helper format currency VND
 const formatVND = (v) => {
@@ -420,13 +421,20 @@ export default function ComplaintDetails({ complaint, onBack }) {
     try {
       setIsUpdating(true);
       setActionMessage("");
-      // TODO: call backend endpoint to update complaint status
-      // await updateComplaintStatus(complaint.id, newStatus, response);
+      if (newStatus === "complete") {
+        await approveComplaint(complaint.id);
+      } else if (newStatus === "rejected") {
+        await rejectComplaint(complaint.id);
+      } else {
+        throw new Error("Trạng thái không hợp lệ");
+      }
       setStatus(newStatus);
       setActionMessage(`Đã cập nhật trạng thái: ${newStatus}`);
     } catch (err) {
       console.error("Update complaint status failed", err);
-      setActionMessage("Lỗi cập nhật trạng thái");
+      setActionMessage(
+        err.response?.data?.message || "Lỗi cập nhật trạng thái"
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -650,7 +658,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 )}
 
                 {/* Customer Information */}
-                <div className="bg-gray-50 rounded-lg p-4">
+                {/* <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <User className="h-5 w-5 text-red-600" />
                     Thông tin khách hàng
@@ -686,7 +694,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       </p>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Processing Actions */}
                 <div className="bg-gray-50 rounded-lg p-4">
@@ -694,13 +702,13 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     Xử lý khiếu nại
                   </h3>
                   <div className="space-y-3">
-                    <textarea
+                    {/* <textarea
                       className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
                       rows="3"
                       placeholder="Nhập nội dung xử lý / ghi chú nội bộ..."
                       value={response}
                       onChange={(e) => setResponse(e.target.value)}
-                    />
+                    /> */}
                     {isAdmin && (
                       <div className="flex flex-wrap gap-3 pt-2">
                         <button
@@ -774,7 +782,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 </div>
 
                 {/* Processing Actions */}
-                <div className="bg-gray-50 rounded-lg p-4">
+                {/* <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4">
                     Xử lý khiếu nại
                   </h3>
@@ -787,7 +795,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       onChange={(e) => setResponse(e.target.value)}
                     />
                   </div>
-                </div>
+                </div> */}
               </div>
             </div>
           </div>

@@ -230,7 +230,11 @@ export default function ComplaintList({
   });
 
   const handleViewDetails = (complaint) =>
-    navigate(`/complaints/${complaint.id}`);
+    navigate(
+      isAdmin
+        ? `/admin/complaints/${complaint.id}`
+        : `/complaints/${complaint.id}`
+    );
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">

@@ -192,6 +192,10 @@ export default function App() {
               element={<WithdrawRequestDetail />}
             />
             <Route path="admin/complaints" element={<AdminComplaintList />} />
+            <Route
+              path="admin/complaints/:id"
+              element={<ShopComplaintDetailPage />}
+            />
             <Route path="/settings" element={<Settings />} />
             <Route path="/report" element={<Report />} />
             <Route
