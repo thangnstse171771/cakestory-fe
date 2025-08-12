@@ -712,3 +712,21 @@ export const rejectComplaint = async (complaintId) => {
     throw error;
   }
 };
+
+// Admin: update complaint admin note
+export const updateComplaintAdminNote = async (complaintId, adminNote) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    console.log("Update complaint admin note:", { complaintId, adminNote });
+    const res = await axiosInstance.put(`/complaints/${complaintId}`, {
+      admin_note: adminNote ?? "",
+    });
+    return res.data;
+  } catch (error) {
+    console.error(
+      "Lỗi update complaint admin note:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};

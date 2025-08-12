@@ -33,19 +33,36 @@ export default function UserComplaintDetailPage() {
         const uniqueImages = [
           ...new Set(evidenceImages.map((i) => i && i.trim()).filter(Boolean)),
         ];
-        // Chuẩn hoá status khiếu nại UI
-        const rawStatus = (
-          data.status ||
-          data.complaint_status ||
-          "pending"
-        ).toLowerCase();
-        const normalizedStatus = ["pending", "complete", "rejected"].includes(
-          rawStatus
-        )
-          ? rawStatus
-          : rawStatus === "complaining"
-          ? "pending"
-          : "pending";
+        // Chuẩn hoá status khiếu nại UI (robust)
+        const normalizeStatus = (raw = "") => {
+          const r = (raw || "").toString().trim().toLowerCase();
+          if (
+            [
+              "approved",
+              "approve",
+              "complete",
+              "completed",
+              "resolved",
+              "refunded",
+            ].includes(r)
+          )
+            return "complete";
+          if (
+            {
+              rejected: "rejected",
+              reject: "rejected",
+              denied: "rejected",
+              refused: "rejected",
+              closed: "rejected",
+              cancelled: "rejected",
+            }[r]
+          )
+            return "rejected";
+          return "pending";
+        };
+        const rawStatusValue =
+          data.status || data.complaint_status || data.state || "pending";
+        const normalizedStatus = normalizeStatus(rawStatusValue);
         const mapped = {
           id: data.id || data.complaint_id || id,
           orderId: data.order_id || data.orderId || data.order?.id || "",

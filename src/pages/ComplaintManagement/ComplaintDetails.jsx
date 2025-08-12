@@ -21,6 +21,7 @@ import { fetchComplaintIngredientsByShop } from "../../api/axios";
 import { fetchIngredients } from "../../api/ingredients";
 import { fetchMarketplacePostById } from "../../api/axios";
 import { approveComplaint, rejectComplaint } from "../../api/axios";
+import { updateComplaintAdminNote } from "../../api/axios";
 
 // Helper format currency VND
 const formatVND = (v) => {
@@ -33,8 +34,44 @@ const formatVND = (v) => {
   }).format(num);
 };
 
+// Map order status to localized label
+const getOrderStatusLabel = (s) => {
+  const v = (s || "").toString().trim().toLowerCase();
+  if (!v) return "-";
+  if (["cancelled", "canceled", "cancel"].includes(v)) return "hủy đơn hàng";
+  return s || "-";
+};
+
 export default function ComplaintDetails({ complaint, onBack }) {
   const order = complaint?.raw?.order || complaint?.order || {};
+
+  // Normalize complaint status coming from backend to UI keys used in complaintStatusMap
+  const normalizeComplaintStatus = (s) => {
+    const v = (s || "").toString().trim().toLowerCase();
+    if (
+      [
+        "approved",
+        "approve",
+        "completed",
+        "complete",
+        "resolved",
+        "refunded",
+      ].includes(v)
+    )
+      return "complete";
+    if (
+      [
+        "rejected",
+        "reject",
+        "denied",
+        "refused",
+        "closed",
+        "cancelled",
+      ].includes(v)
+    )
+      return "rejected";
+    return "pending"; // treat complaining/open/new as pending
+  };
 
   // State for marketplace post and images
   const [marketplacePost, setMarketplacePost] = useState(null);
@@ -194,9 +231,25 @@ export default function ComplaintDetails({ complaint, onBack }) {
     isLoadingMarketplace,
   ]);
 
-  const [status, setStatus] = useState(complaint?.status || "pending");
+  // Replace raw status state with normalized status
+  const [status, setStatus] = useState(
+    normalizeComplaintStatus(
+      complaint?.status ||
+        complaint?.raw?.status ||
+        complaint?.raw?.complaint_status ||
+        "pending"
+    )
+  );
+  const initialStatusRef = useRef(status);
   const [response, setResponse] = useState("");
+  const [adminNote, setAdminNote] = useState(
+    complaint?.raw?.admin_note || complaint?.admin_note || ""
+  );
   const [isUpdating, setIsUpdating] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [isNoteLocked, setIsNoteLocked] = useState(
+    !!(complaint?.raw?.admin_note || complaint?.admin_note)
+  );
   const [actionMessage, setActionMessage] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [loadingIngredients, setLoadingIngredients] = useState(false);
@@ -410,17 +463,51 @@ export default function ComplaintDetails({ complaint, onBack }) {
       return null;
     }
   })();
-  const isAdmin =
-    user &&
-    ["admin", "administrator", "superadmin", "staff", "account_staff"].includes(
-      (user.role || "").toLowerCase()
-    );
+  const isAdmin = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("user"));
+      return (
+        u &&
+        [
+          "admin",
+          "administrator",
+          "superadmin",
+          "staff",
+          "account_staff",
+        ].includes((u.role || "").toLowerCase())
+      );
+    } catch {
+      return false;
+    }
+  })();
 
   const handleUpdateStatus = async (newStatus) => {
     if (!complaint?.id) return;
+    if (status !== "pending" || initialStatusRef.current !== "pending") {
+      setActionMessage("Khiếu nại đã được xử lý, không thể cập nhật.");
+      return;
+    }
     try {
       setIsUpdating(true);
       setActionMessage("");
+      // Save admin note first if available and not locked
+      if (adminNote && adminNote.trim() && !isNoteLocked) {
+        try {
+          await updateComplaintAdminNote(complaint.id, adminNote.trim());
+          setIsNoteLocked(true);
+        } catch (e) {
+          console.warn(
+            "Lưu ghi chú thất bại nhưng vẫn tiếp tục cập nhật trạng thái",
+            e
+          );
+        }
+      }
+      console.log(
+        "[ComplaintDetails] Update status action=",
+        newStatus,
+        "complaintId=",
+        complaint.id
+      );
       if (newStatus === "complete") {
         await approveComplaint(complaint.id);
       } else if (newStatus === "rejected") {
@@ -429,15 +516,73 @@ export default function ComplaintDetails({ complaint, onBack }) {
         throw new Error("Trạng thái không hợp lệ");
       }
       setStatus(newStatus);
-      setActionMessage(`Đã cập nhật trạng thái: ${newStatus}`);
+      setActionMessage(
+        `Đã cập nhật trạng thái: ${
+          complaintStatusMap[newStatus]?.label || newStatus
+        }`
+      );
+      // Reload to sync latest server state as requested
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch {}
+      }, 400);
     } catch (err) {
       console.error("Update complaint status failed", err);
       setActionMessage(
-        err.response?.data?.message || "Lỗi cập nhật trạng thái"
+        err?.response?.data?.message || "Lỗi cập nhật trạng thái"
       );
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleSaveAdminNote = async () => {
+    if (!complaint?.id || isNoteLocked) return;
+    try {
+      setSavingNote(true);
+      await updateComplaintAdminNote(complaint.id, adminNote || "");
+      setIsNoteLocked(true);
+      setActionMessage("Đã lưu ghi chú xử lý");
+    } catch (err) {
+      console.error("Save admin note failed", err);
+      setActionMessage(err?.response?.data?.message || "Lỗi lưu ghi chú");
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  // Derive customer info from complaint/order API data (remove fake placeholders)
+  const customerInfo = {
+    name:
+      complaint.customerName ||
+      complaint?.raw?.customer_name ||
+      complaint?.raw?.customerName ||
+      complaint?.raw?.user?.full_name ||
+      complaint?.raw?.user?.name ||
+      order?.customer_name ||
+      order?.user?.full_name ||
+      "-",
+    phone:
+      complaint?.raw?.customer_phone ||
+      complaint?.raw?.phone ||
+      complaint?.raw?.user?.phone ||
+      order?.customer_phone ||
+      order?.user?.phone ||
+      "-",
+    email:
+      complaint?.raw?.customer_email ||
+      complaint?.raw?.email ||
+      complaint?.raw?.user?.email ||
+      order?.customer_email ||
+      order?.user?.email ||
+      "-",
+    address:
+      complaint?.raw?.customer_address ||
+      order?.shipping_address ||
+      order?.address ||
+      order?.user?.address ||
+      "-",
   };
 
   return (
@@ -491,7 +636,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   Trạng thái khiếu nại
                 </p>
                 <p className="text-sm font-bold text-rose-800 capitalize">
-                  {complaint.status}
+                  {complaintStatusMap[status]?.label || status}
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-orange-50 border border-orange-100">
@@ -499,7 +644,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   Trạng thái đơn
                 </p>
                 <p className="text-sm font-bold text-orange-800 capitalize">
-                  {order?.status || "-"}
+                  {getOrderStatusLabel(order?.status)}
                 </p>
               </div>
               <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100">
@@ -657,59 +802,13 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   </div>
                 )}
 
-                {/* Customer Information */}
-                {/* <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <User className="h-5 w-5 text-red-600" />
-                    Thông tin khách hàng
-                  </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-sm text-gray-600">Họ tên:</label>
-                      <p className="font-medium text-gray-800">
-                        {complaint.customerName}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">
-                        Số điện thoại:
-                      </label>
-                      <p className="font-medium text-gray-800 flex items-center gap-2">
-                        <Phone className="h-4 w-4" />
-                        0123 456 789
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Email:</label>
-                      <p className="font-medium text-gray-800 flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        customer@email.com
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm text-gray-600">Địa chỉ:</label>
-                      <p className="font-medium text-gray-800 flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        123 Đường ABC, Quận 1, TP.HCM
-                      </p>
-                    </div>
-                  </div>
-                </div> */}
-
                 {/* Processing Actions */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4">
                     Xử lý khiếu nại
                   </h3>
                   <div className="space-y-3">
-                    {/* <textarea
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                      rows="3"
-                      placeholder="Nhập nội dung xử lý / ghi chú nội bộ..."
-                      value={response}
-                      onChange={(e) => setResponse(e.target.value)}
-                    /> */}
-                    {isAdmin && (
+                    {isAdmin && status === "pending" && (
                       <div className="flex flex-wrap gap-3 pt-2">
                         <button
                           type="button"
@@ -752,7 +851,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     <div>
                       <label className="text-sm text-gray-600">Họ tên:</label>
                       <p className="font-medium text-gray-800">
-                        {complaint.customerName}
+                        {customerInfo.name}
                       </p>
                     </div>
                     <div>
@@ -761,25 +860,60 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       </label>
                       <p className="font-medium text-gray-800 flex items-center gap-2">
                         <Phone className="h-4 w-4" />
-                        0123 456 789
+                        {customerInfo.phone}
                       </p>
                     </div>
                     <div>
                       <label className="text-sm text-gray-600">Email:</label>
                       <p className="font-medium text-gray-800 flex items-center gap-2">
                         <Mail className="h-4 w-4" />
-                        customer@email.com
+                        {customerInfo.email}
                       </p>
                     </div>
                     <div>
                       <label className="text-sm text-gray-600">Địa chỉ:</label>
                       <p className="font-medium text-gray-800 flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        123 Đường ABC, Quận 1, TP.HCM
+                        {customerInfo.address}
                       </p>
                     </div>
                   </div>
                 </div>
+
+                {/* Admin note input */}
+                {isAdmin && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-800 mb-2">
+                      Ghi chú xử lý (lý do)
+                    </h3>
+                    <textarea
+                      className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none ${
+                        isNoteLocked ? "bg-gray-100 cursor-not-allowed" : ""
+                      }`}
+                      rows="3"
+                      placeholder="Nhập lý do/ghi chú nội bộ..."
+                      value={adminNote}
+                      onChange={(e) => setAdminNote(e.target.value)}
+                      readOnly={isNoteLocked}
+                    />
+                    <div className="flex justify-end mt-2">
+                      {!isNoteLocked ? (
+                        <button
+                          type="button"
+                          className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                          onClick={handleSaveAdminNote}
+                          disabled={savingNote}
+                        >
+                          {savingNote ? "Đang lưu..." : "Lưu ghi chú"}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-gray-500 italic">
+                          Ghi chú đã lưu và không thể chỉnh sửa
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Processing Actions */}
                 {/* <div className="bg-gray-50 rounded-lg p-4">
@@ -798,181 +932,185 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 </div> */}
               </div>
             </div>
-          </div>
 
-          {/* Order Information */}
-          <div className="bg-gray-50 rounded-lg p-6 mt-2 border-t border-red-100">
-            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <UtensilsCrossed className="h-5 w-5 text-red-600" />
-              Thông tin bánh (Order) dành cho Shop
-            </h3>
-            {order && Object.keys(order).length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <p className="text-gray-500 text-xs">Mã đơn</p>
-                    <p className="font-semibold text-gray-800">{order.id}</p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <p className="text-gray-500 text-xs">Giá gốc</p>
-                    <p className="font-semibold text-gray-800">
-                      {formatVND(basePrice)}
-                    </p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <p className="text-gray-500 text-xs">Tổng giá</p>
-                    <p className="font-semibold text-gray-800">
-                      {formatVND(totalPrice)}
-                    </p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <p className="text-gray-500 text-xs">Tổng nguyên liệu</p>
-                    <p className="font-semibold text-gray-800">
-                      {formatVND(ingredientsTotal)}
-                    </p>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <p className="text-gray-500 text-xs">Kích thước</p>
-                    <p className="font-semibold text-gray-800">
-                      {order.size || "-"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Evidence Images */}
-                {evidenceImages.length > 0 && (
-                  <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
-                    <p className="text-gray-600 mb-2">
-                      Ảnh evidence (từ order)
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {evidenceImages.map((img, i) => (
-                        <img
-                          key={i}
-                          src={img.trim()}
-                          alt={`evidence-${i}`}
-                          className="w-full h-40 object-cover rounded-lg border"
-                          onError={(e) => {
-                            console.error(
-                              "Failed to load evidence image:",
-                              img
-                            );
-                            e.target.style.display = "none";
-                          }}
-                        />
-                      ))}
+            {/* Order Information */}
+            <div className="bg-gray-50 rounded-lg p-6 mt-2 border-t border-red-100">
+              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <UtensilsCrossed className="h-5 w-5 text-red-600" />
+                Thông tin bánh (Order) dành cho Shop
+              </h3>
+              {order && Object.keys(order).length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Mã đơn</p>
+                      <p className="font-semibold text-gray-800">{order.id}</p>
                     </div>
-                  </div>
-                )}
-
-                {/* Special Instructions */}
-                {specialInstructions && (
-                  <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
-                    <p className="text-gray-600 mb-2">Hướng dẫn đặc biệt</p>
-                    <p className="font-medium text-gray-800 whitespace-pre-line">
-                      {specialInstructions}
-                    </p>
-                  </div>
-                )}
-
-                {/* Order Details Table */}
-                {orderDetails.length > 0 && (
-                  <div className="bg-white p-4 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-gray-700 font-semibold flex items-center gap-2">
-                        <UtensilsCrossed className="h-4 w-4 text-red-500" />
-                        Nguyên liệu trong đơn
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Giá gốc</p>
+                      <p className="font-semibold text-gray-800">
+                        {formatVND(basePrice)}
                       </p>
-                      <span className="text-xs text-gray-500">
-                        {orderDetails.length} dòng
-                      </span>
                     </div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-xs md:text-sm">
-                        <thead>
-                          <tr className="bg-gray-100 text-gray-600">
-                            <th className="px-2 py-1 text-left">#</th>
-                            <th className="px-2 py-1 text-left">Hình</th>
-                            <th className="px-2 py-1 text-left">Tên</th>
-                            <th className="px-2 py-1 text-left">
-                              Ingredient ID
-                            </th>
-                            <th className="px-2 py-1 text-right">SL</th>
-                            <th className="px-2 py-1 text-right">Đơn giá</th>
-                            <th className="px-2 py-1 text-right">Thành tiền</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orderDetails.map((d, idx) => {
-                            const ingId =
-                              d.ingredient_id || d.ingredientId || d.id;
-                            const ing = ingredientsMap[ingId];
-                            const qty = d.quantity || 0;
-                            const total = Number(
-                              d.total_price || d.price || d.totalPrice || 0
-                            );
-                            const unit = qty ? total / qty : total;
-                            return (
-                              <tr
-                                key={idx}
-                                className="border-t hover:bg-gray-50"
-                              >
-                                <td className="px-2 py-1">{idx + 1}</td>
-                                <td className="px-2 py-1">
-                                  {ing?.image ? (
-                                    <img
-                                      src={ing.image}
-                                      alt={ing.name}
-                                      className="h-10 w-10 object-cover rounded border"
-                                    />
-                                  ) : (
-                                    <div className="h-10 w-10 flex items-center justify-center bg-gray-100 text-gray-400 text-[10px] rounded">
-                                      No Img
-                                    </div>
-                                  )}
-                                </td>
-                                <td
-                                  className="px-2 py-1 max-w-[160px] truncate"
-                                  title={ing?.name}
-                                >
-                                  {ing?.name || "(Chưa có)"}
-                                </td>
-                                <td className="px-2 py-1">{ingId}</td>
-                                <td className="px-2 py-1 text-right">{qty}</td>
-                                <td className="px-2 py-1 text-right">
-                                  {formatVND(unit)}
-                                </td>
-                                <td className="px-2 py-1 text-right font-medium">
-                                  {formatVND(total)}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                        <tfoot>
-                          <tr className="bg-gray-100 font-semibold text-gray-700">
-                            <td className="px-2 py-1" colSpan={6}>
-                              Tổng nguyên liệu
-                            </td>
-                            <td className="px-2 py-1 text-right">
-                              {formatVND(ingredientsTotal)}
-                            </td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Tổng giá</p>
+                      <p className="font-semibold text-gray-800">
+                        {formatVND(totalPrice)}
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Tổng nguyên liệu</p>
+                      <p className="font-semibold text-gray-800">
+                        {formatVND(ingredientsTotal)}
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Kích thước</p>
+                      <p className="font-semibold text-gray-800">
+                        {order.size || "-"}
+                      </p>
                     </div>
                   </div>
-                )}
 
-                {loadingIngredients && (
-                  <div className="text-xs text-gray-500">
-                    Đang tải danh sách nguyên liệu shop...
-                  </div>
-                )}
-              </>
-            ) : (
-              <p className="text-gray-600">Không có thông tin order.</p>
-            )}
+                  {/* Evidence Images */}
+                  {evidenceImages.length > 0 && (
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                      <p className="text-gray-600 mb-2">
+                        Ảnh evidence (từ order)
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {evidenceImages.map((img, i) => (
+                          <img
+                            key={i}
+                            src={img.trim()}
+                            alt={`evidence-${i}`}
+                            className="w-full h-40 object-cover rounded-lg border"
+                            onError={(e) => {
+                              console.error(
+                                "Failed to load evidence image:",
+                                img
+                              );
+                              e.target.style.display = "none";
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Special Instructions */}
+                  {specialInstructions && (
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                      <p className="text-gray-600 mb-2">Hướng dẫn đặc biệt</p>
+                      <p className="font-medium text-gray-800 whitespace-pre-line">
+                        {specialInstructions}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Order Details Table */}
+                  {orderDetails.length > 0 && (
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-gray-700 font-semibold flex items-center gap-2">
+                          <UtensilsCrossed className="h-4 w-4 text-red-500" />
+                          Nguyên liệu trong đơn
+                        </p>
+                        <span className="text-xs text-gray-500">
+                          {orderDetails.length} dòng
+                        </span>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-xs md:text-sm">
+                          <thead>
+                            <tr className="bg-gray-100 text-gray-600">
+                              <th className="px-2 py-1 text-left">#</th>
+                              <th className="px-2 py-1 text-left">Hình</th>
+                              <th className="px-2 py-1 text-left">Tên</th>
+                              <th className="px-2 py-1 text-left">
+                                Ingredient ID
+                              </th>
+                              <th className="px-2 py-1 text-right">SL</th>
+                              <th className="px-2 py-1 text-right">Đơn giá</th>
+                              <th className="px-2 py-1 text-right">
+                                Thành tiền
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {orderDetails.map((d, idx) => {
+                              const ingId =
+                                d.ingredient_id || d.ingredientId || d.id;
+                              const ing = ingredientsMap[ingId];
+                              const qty = d.quantity || 0;
+                              const total = Number(
+                                d.total_price || d.price || d.totalPrice || 0
+                              );
+                              const unit = qty ? total / qty : total;
+                              return (
+                                <tr
+                                  key={idx}
+                                  className="border-t hover:bg-gray-50"
+                                >
+                                  <td className="px-2 py-1">{idx + 1}</td>
+                                  <td className="px-2 py-1">
+                                    {ing?.image ? (
+                                      <img
+                                        src={ing.image}
+                                        alt={ing.name}
+                                        className="h-10 w-10 object-cover rounded border"
+                                      />
+                                    ) : (
+                                      <div className="h-10 w-10 flex items-center justify-center bg-gray-100 text-gray-400 text-[10px] rounded">
+                                        No Img
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td
+                                    className="px-2 py-1 max-w-[160px] truncate"
+                                    title={ing?.name}
+                                  >
+                                    {ing?.name || "(Chưa có)"}
+                                  </td>
+                                  <td className="px-2 py-1">{ingId}</td>
+                                  <td className="px-2 py-1 text-right">
+                                    {qty}
+                                  </td>
+                                  <td className="px-2 py-1 text-right">
+                                    {formatVND(unit)}
+                                  </td>
+                                  <td className="px-2 py-1 text-right font-medium">
+                                    {formatVND(total)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-gray-100 font-semibold text-gray-700">
+                              <td className="px-2 py-1" colSpan={6}>
+                                Tổng nguyên liệu
+                              </td>
+                              <td className="px-2 py-1 text-right">
+                                {formatVND(ingredientsTotal)}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {loadingIngredients && (
+                    <div className="text-xs text-gray-500">
+                      Đang tải danh sách nguyên liệu shop...
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-600">Không có thông tin order.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

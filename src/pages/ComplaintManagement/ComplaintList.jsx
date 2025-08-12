@@ -25,24 +25,29 @@ export default function ComplaintList({
   const [shopId, setShopId] = useState(propShopId || null);
   const navigate = useNavigate();
 
-  // Status map (UI)
+  // Status map (UI) aligned with normalized statuses
   const complaintStatusMap = {
-    new: { label: "Mới", color: "bg-blue-100 text-blue-700" },
-    in_progress: {
-      label: "Đang xử lý",
-      color: "bg-yellow-100 text-yellow-700",
-    },
-    resolved: { label: "Đã giải quyết", color: "bg-green-100 text-green-700" },
-    closed: { label: "Đã đóng", color: "bg-gray-100 text-gray-700" },
+    pending: { label: "Chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
+    complete: { label: "Đã hoàn tiền", color: "bg-green-100 text-green-700" },
+    rejected: { label: "Đã từ chối", color: "bg-gray-100 text-gray-700" },
   };
 
   // Robust status normalization aligned with user complaint logic
   const normalizeStatus = (raw = "") => {
     const r = (raw || "").toString().trim().toLowerCase();
     if (["pending", "complaining"].includes(r)) return "pending"; // internal pending
-    if (["complete", "completed", "resolved", "refunded"].includes(r))
+    if (
+      [
+        "complete",
+        "completed",
+        "resolved",
+        "refunded",
+        "approved",
+        "approve",
+      ].includes(r)
+    )
       return "complete";
-    if (["rejected", "denied", "closed", "cancelled"].includes(r))
+    if (["rejected", "denied", "closed", "cancelled", "reject"].includes(r))
       return "rejected";
     return "pending";
   };
@@ -259,10 +264,9 @@ export default function ComplaintList({
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="new">Mới</option>
-              <option value="in_progress">Đang xử lý</option>
-              <option value="resolved">Đã giải quyết</option>
-              <option value="closed">Đã đóng</option>
+              <option value="pending">Chờ xử lý</option>
+              <option value="complete">Đã hoàn tiền</option>
+              <option value="rejected">Đã từ chối</option>
             </select>
             <select
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
