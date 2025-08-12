@@ -1,18 +1,19 @@
 .shop-analysic-container {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 32px auto;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 4px 32px 0 rgba(249,168,212,0.12);
+  box-shadow: 0 4px 32px 0 rgba(0, 0, 0, 0.08);
   padding: 32px 24px 24px 24px;
   animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1);
 }
 
 .shop-header {
   margin-bottom: 24px;
-  background: linear-gradient(90deg, #fdf2f8 0%, #fff 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   border-radius: 12px;
-  box-shadow: 0 2px 8px 0 #f9a8d4;
+  box-shadow: 0 2px 8px 0 rgba(148, 163, 184, 0.1);
+  border: 1px solid #e2e8f0;
 }
 
 .shop-tabs {
@@ -30,41 +31,112 @@
 
 .shop-progress-section {
   margin-top: 32px;
-  padding: 16px 0 0 0;
-  border-top: 1px solid #f9a8d4;
+  padding: 24px;
+  border-top: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 12px;
 }
 
 .back-btn {
   margin-bottom: 12px;
   font-weight: 500;
-  color: #ec4899 !important;
-  transition: color 0.2s;
+  color: #1890ff !important;
+  transition: all 0.2s;
+  border: none;
+  background: none;
 }
 .back-btn:hover {
-  color: #f472b6 !important;
+  color: #40a9ff !important;
+  transform: translateX(-2px);
 }
 
-/* Chủ đề màu cho các card và chart */
+/* Cải thiện màu sắc cho các card và chart */
+.ant-card {
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  border: 1px solid #f0f0f0 !important;
+}
+
 .ant-card-head {
-  background: linear-gradient(90deg, #f9a8d4 0%, #f472b6 100%) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+  color: #374151 !important;
+  border-radius: 12px 12px 0 0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
+
+.ant-card-head-title {
+  color: #374151 !important;
+  font-weight: 600 !important;
+}
+
 .ant-tabs-tab-active .ant-tabs-tab-btn {
-  color: #ec4899 !important;
+  color: #1890ff !important;
+  font-weight: 600 !important;
 }
+
 .ant-tabs-ink-bar {
-  background: #ec4899 !important;
+  background: #1890ff !important;
 }
+
 .ant-progress-bg {
-  background: linear-gradient(90deg, #f472b6 0%, #f59e42 100%) !important;
+  background: linear-gradient(90deg, #52c41a 0%, #73d13d 100%) !important;
+}
+
+.ant-statistic-title {
+  color: #6b7280 !important;
+  font-weight: 500 !important;
+}
+
+.ant-statistic-content {
+  color: #374151 !important;
+}
+
+/* Responsive improvements */
+@media (max-width: 1024px) {
+  .shop-analysic-container {
+    margin: 16px;
+    padding: 24px 16px;
+  }
+  
+  .overview-row .ant-col {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .shop-analysic-container {
+    margin: 8px;
+    padding: 16px 12px;
+  }
+  
+  .shop-header .ant-row {
+    text-align: center;
+  }
+  
+  .shop-header h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(40px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(24px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
