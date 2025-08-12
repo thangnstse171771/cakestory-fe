@@ -17,11 +17,14 @@ import {
   RefreshCw,
   Heart,
   Star,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchWalletBalance } from "../api/axios";
 
-const AI_GENERATION_COST = 3000; // 3000 VND mỗi lần gen
+const AI_GENERATION_COST = 3000; // 3000 VND mỗi lần gen (cho 3 tấm)
+const IMAGES_PER_PAGE = 12; // 12 ảnh mỗi trang
 
 export default function AIGeneratedImages() {
   const { user } = useAuth();
@@ -29,9 +32,15 @@ export default function AIGeneratedImages() {
   const [recentImages, setRecentImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatingImages, setGeneratingImages] = useState([
+    false,
+    false,
+    false,
+  ]); // Track loading state for 3 images
   const [error, setError] = useState("");
   const [balance, setBalance] = useState(0);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Form state
   const [promptForm, setPromptForm] = useState({
@@ -117,31 +126,31 @@ export default function AIGeneratedImages() {
     let prompt = "Tạo hình ảnh một chiếc bánh kem";
 
     if (shape) {
-      prompt += ` hình ${shape.toLowerCase()}`;
+      prompt += ` hình ${shape.toLowerCase()}.`;
     }
 
     if (tiers > 1) {
-      prompt += ` ${tiers} tầng`;
+      prompt += ` Phải có ${tiers} Tầng.`;
     }
 
     if (style) {
-      prompt += ` phong cách ${style.toLowerCase()}`;
+      prompt += ` Phong cách: ${style.toLowerCase()}.`;
     }
 
     if (color) {
-      prompt += ` màu ${color.toLowerCase()}`;
+      prompt += ` Màu: ${color.toLowerCase()}.`;
     }
 
     if (theme) {
-      prompt += ` chủ đề ${theme.toLowerCase()}`;
+      prompt += ` Chủ đề: ${theme.toLowerCase()}.`;
     }
 
     if (decoration) {
-      prompt += ` trang trí ${decoration.toLowerCase()}`;
+      prompt += ` Trang trí: ${decoration.toLowerCase()}.`;
     }
 
     if (customPrompt.trim()) {
-      prompt += `. ${customPrompt}`;
+      prompt += ` Mô tả: ${customPrompt}`;
     }
 
     prompt += ". Phong cách chụp ảnh chuyên nghiệp, ánh sáng mềm mại, nền đẹp.";
@@ -166,63 +175,87 @@ export default function AIGeneratedImages() {
     }
 
     setGenerating(true);
+    setGeneratingImages([true, true, true]); // Set all 3 images to loading state
     setError("");
 
     try {
       const token = localStorage.getItem("token");
+      const newImages = [];
 
-      // Call AI generation API
-      const response = await fetch(
-        "https://cakestory-be.onrender.com/api/ai/generate",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
-          },
-          body: JSON.stringify({ prompt }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Không thể tạo ảnh AI");
-      }
-
-      // Poll for new images
-      let found = false;
-      let pollCount = 0;
-
-      while (!found && pollCount < 30) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        pollCount++;
-
-        const imagesRes = await fetch(
-          "https://cakestory-be.onrender.com/api/ai/images",
-          {
-            headers: {
-              accept: "*/*",
-              Authorization: token ? `Bearer ${token}` : "",
-            },
-          }
-        );
-
-        const imagesData = await imagesRes.json();
-        if (imagesData?.data?.length > 0) {
-          // Check for new images
-          const latestImages = imagesData.data.slice(0, 3);
-          const hasNewImages = latestImages.some(
-            (img) => !images.some((existingImg) => existingImg.id === img.id)
+      // Call API 3 times to generate 3 images
+      for (let i = 0; i < 3; i++) {
+        try {
+          // Call AI generation API
+          const response = await fetch(
+            "https://cakestory-be.onrender.com/api/ai/generate",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: token ? `Bearer ${token}` : "",
+              },
+              body: JSON.stringify({ prompt }),
+            }
           );
 
-          if (hasNewImages) {
-            setImages(imagesData.data);
-            setRecentImages(latestImages);
-            found = true;
+          if (!response.ok) {
+            throw new Error(`Không thể tạo ảnh AI thứ ${i + 1}`);
           }
+
+          // Poll for the new image
+          let found = false;
+          let pollCount = 0;
+
+          while (!found && pollCount < 30) {
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+            pollCount++;
+
+            const imagesRes = await fetch(
+              "https://cakestory-be.onrender.com/api/ai/images",
+              {
+                headers: {
+                  accept: "*/*",
+                  Authorization: token ? `Bearer ${token}` : "",
+                },
+              }
+            );
+
+            const imagesData = await imagesRes.json();
+            if (imagesData?.data?.length > 0) {
+              // Check for new images that aren't already in our collected images
+              const latestImage = imagesData.data.find(
+                (img) =>
+                  !images.some((existingImg) => existingImg.id === img.id) &&
+                  !newImages.some((newImg) => newImg.id === img.id)
+              );
+
+              if (latestImage) {
+                newImages.push(latestImage);
+                found = true;
+
+                // Keep loading state until all 3 images are completed
+                // Loading state will be reset at the end of the function
+              }
+            }
+          }
+
+          if (!found) {
+            throw new Error(`Tạo ảnh thứ ${i + 1} mất quá nhiều thời gian`);
+          }
+        } catch (err) {
+          console.error(`Error generating image ${i + 1}:`, err);
+          // Keep loading state - will be reset at the end
         }
       }
 
-      if (found) {
+      if (newImages.length > 0) {
+        // Update images list with new images
+        setImages((prevImages) => [...newImages, ...prevImages]);
+        setRecentImages(newImages);
+
+        // Reset to first page when new images are added
+        setCurrentPage(1);
+
         // Update balance after successful generation
         await fetchUserBalance();
 
@@ -236,14 +269,21 @@ export default function AIGeneratedImages() {
           decoration: "",
           customPrompt: "",
         });
+
+        if (newImages.length < 3) {
+          setError(
+            `Chỉ tạo được ${newImages.length}/3 ảnh. Vui lòng thử lại để tạo thêm.`
+          );
+        }
       } else {
-        setError("Tạo ảnh mất quá nhiều thời gian. Vui lòng thử lại sau.");
+        setError("Không thể tạo ảnh nào. Vui lòng thử lại sau.");
       }
     } catch (err) {
       console.error("Generation error:", err);
       setError("Có lỗi xảy ra khi tạo ảnh AI.");
     } finally {
       setGenerating(false);
+      setGeneratingImages([false, false, false]); // Reset all loading states
     }
   };
 
@@ -277,6 +317,20 @@ export default function AIGeneratedImages() {
       navigator.clipboard.writeText(image.image_url);
       alert("Đã copy link ảnh!");
     }
+  };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(images.length / IMAGES_PER_PAGE);
+  const startIndex = (currentPage - 1) * IMAGES_PER_PAGE;
+  const endIndex = startIndex + IMAGES_PER_PAGE;
+  const currentImages = images.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top of gallery
+    document
+      .querySelector("#gallery-section")
+      ?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -527,79 +581,144 @@ export default function AIGeneratedImages() {
           {/* Right Panel - Images Gallery */}
           <div className="lg:col-span-2">
             {/* Recent Generated Images */}
-            {recentImages.length > 0 && (
+            {(recentImages.length > 0 || generatingImages.some(Boolean)) && (
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-4">
                   <Clock className="w-5 h-5 text-purple-500" />
                   <h2 className="text-xl font-bold text-gray-800">
                     3 Ảnh Mới Nhất
                   </h2>
+                  {generating && (
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 text-purple-500 animate-spin" />
+                      <span className="text-sm text-purple-600">
+                        Đang tạo...
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {recentImages.map((img) => (
-                    <div
-                      key={img.id}
-                      className="group relative bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
-                    >
-                      <div className="aspect-square relative">
-                        <img
-                          src={img.image_url}
-                          alt={img.prompt}
-                          className="w-full h-full object-cover cursor-pointer"
-                          onClick={() => handleImageClick(img)}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center pointer-events-none">
-                          <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <p
-                          className="text-sm text-gray-600 line-clamp-2"
-                          title={img.prompt}
+                  {[0, 1, 2].map((index) => {
+                    const img = recentImages[index];
+                    const isLoading = generatingImages[index];
+
+                    if (isLoading) {
+                      return (
+                        <div
+                          key={`loading-${index}`}
+                          className="group relative bg-white rounded-xl shadow-lg overflow-hidden"
                         >
-                          {img.prompt}
-                        </p>
-                        <div className="flex items-center justify-between mt-3">
-                          <span className="text-xs text-gray-400">
-                            {new Date(img.created_at).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(
-                                  img.image_url,
-                                  `cake-ai-${img.id}.jpg`
-                                );
-                              }}
-                              className="p-2 text-gray-500 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
-                              title="Tải xuống"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleShare(img);
-                              }}
-                              className="p-2 text-gray-500 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors"
-                              title="Chia sẻ"
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </button>
+                          <div className="aspect-square relative bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                            <div className="text-center">
+                              <RefreshCw className="w-8 h-8 text-purple-500 animate-spin mx-auto mb-2" />
+                              <p className="text-sm text-purple-600 font-medium">
+                                Đang tạo ảnh {index + 1}...
+                              </p>
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            <div className="h-4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                            <div className="flex items-center justify-between mt-3">
+                              <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                              <div className="flex gap-2">
+                                <div className="w-8 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+                                <div className="w-8 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (!img) {
+                      return (
+                        <div
+                          key={`placeholder-${index}`}
+                          className="group relative bg-gray-50 rounded-xl shadow-lg overflow-hidden border-2 border-dashed border-gray-300"
+                        >
+                          <div className="aspect-square relative flex items-center justify-center">
+                            <div className="text-center">
+                              <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">
+                                Ảnh {index + 1}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            <p className="text-sm text-gray-400 text-center">
+                              Chưa có ảnh
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={img.id}
+                        className="group relative bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+                      >
+                        <div className="aspect-square relative">
+                          <img
+                            src={img.image_url}
+                            alt={img.prompt}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => handleImageClick(img)}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center pointer-events-none">
+                            <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <p
+                            className="text-sm text-gray-600 line-clamp-2"
+                            title={img.prompt}
+                          >
+                            {img.prompt}
+                          </p>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="text-xs text-gray-400">
+                              {new Date(img.created_at).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownload(
+                                    img.image_url,
+                                    `cake-ai-${img.id}.jpg`
+                                  );
+                                }}
+                                className="p-2 text-gray-500 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Tải xuống"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShare(img);
+                                }}
+                                className="p-2 text-gray-500 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors"
+                                title="Chia sẻ"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* All Images Gallery */}
-            <div>
+            <div id="gallery-section">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <ImageIcon className="w-5 h-5 text-purple-500" />
@@ -637,68 +756,149 @@ export default function AIGeneratedImages() {
                   <p className="text-gray-500">Chưa có ảnh nào được tạo</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {images.map((img) => (
-                    <div
-                      key={img.id}
-                      className="group relative bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
-                    >
-                      <div className="aspect-square relative">
-                        <img
-                          src={img.image_url}
-                          alt={img.prompt}
-                          className="w-full h-full object-cover cursor-pointer"
-                          onClick={() => handleImageClick(img)}
-                        />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center pointer-events-none">
-                          <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {currentImages.map((img) => (
+                      <div
+                        key={img.id}
+                        className="group relative bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+                      >
+                        <div className="aspect-square relative">
+                          <img
+                            src={img.image_url}
+                            alt={img.prompt}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => handleImageClick(img)}
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300 flex items-center justify-center pointer-events-none">
+                            <Eye className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          </div>
+                          <div className="absolute top-3 right-3 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                            AI
+                          </div>
                         </div>
-                        <div className="absolute top-3 right-3 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                          AI
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <p
-                          className="text-sm text-gray-600 line-clamp-2 mb-3"
-                          title={img.prompt}
-                        >
-                          {img.prompt}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400">
-                            {new Date(img.created_at).toLocaleDateString(
-                              "vi-VN"
-                            )}
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(
-                                  img.image_url,
-                                  `cake-ai-${img.id}.jpg`
-                                );
-                              }}
-                              className="p-2 text-gray-500 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
-                              title="Tải xuống"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleShare(img);
-                              }}
-                              className="p-2 text-gray-500 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors"
-                              title="Chia sẻ"
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </button>
+                        <div className="p-4">
+                          <p
+                            className="text-sm text-gray-600 line-clamp-2 mb-3"
+                            title={img.prompt}
+                          >
+                            {img.prompt}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-400">
+                              {new Date(img.created_at).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownload(
+                                    img.image_url,
+                                    `cake-ai-${img.id}.jpg`
+                                  );
+                                }}
+                                className="p-2 text-gray-500 hover:text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                                title="Tải xuống"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShare(img);
+                                }}
+                                className="p-2 text-gray-500 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors"
+                                title="Chia sẻ"
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-center mt-8 space-x-2">
+                      {/* Previous Button */}
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 text-gray-500 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500 disabled:hover:border-gray-300 transition-colors"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      {/* Page Numbers */}
+                      {[...Array(totalPages)].map((_, index) => {
+                        const page = index + 1;
+                        const isCurrentPage = page === currentPage;
+
+                        // Show first page, last page, current page, and 2 pages around current
+                        const showPage =
+                          page === 1 ||
+                          page === totalPages ||
+                          Math.abs(page - currentPage) <= 2;
+
+                        // Show dots when there's a gap
+                        const showDots =
+                          (page === 2 && currentPage > 4) ||
+                          (page === totalPages - 1 &&
+                            currentPage < totalPages - 3);
+
+                        if (!showPage && !showDots) return null;
+
+                        if (showDots) {
+                          return (
+                            <span
+                              key={`dots-${page}`}
+                              className="px-3 py-2 text-gray-400"
+                            >
+                              ...
+                            </span>
+                          );
+                        }
+
+                        if (!showPage) return null;
+
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`flex items-center justify-center w-10 h-10 rounded-lg border transition-colors ${
+                              isCurrentPage
+                                ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent shadow-lg"
+                                : "border-gray-300 text-gray-700 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      })}
+
+                      {/* Next Button */}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="flex items-center justify-center w-10 h-10 rounded-lg border border-gray-300 text-gray-500 hover:bg-purple-50 hover:text-purple-600 hover:border-purple-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-500 disabled:hover:border-gray-300 transition-colors"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Page Info */}
+                  {totalPages > 1 && (
+                    <div className="text-center mt-4 text-sm text-gray-500">
+                      Trang {currentPage} / {totalPages} • Hiển thị{" "}
+                      {startIndex + 1}-{Math.min(endIndex, images.length)} của{" "}
+                      {images.length} ảnh
+                    </div>
+                  )}
                 </div>
               )}
             </div>
