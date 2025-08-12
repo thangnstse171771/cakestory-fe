@@ -179,8 +179,11 @@ export const authAPI = {
   },
 
   updateAlbumPost: async (postId, postData) => {
-  const response = await axiosInstance.put(`/albums/posts/${postId}`, postData);
-  return response.data;
+    const response = await axiosInstance.put(
+      `/albums/posts/${postId}`,
+      postData
+    );
+    return response.data;
   },
 
   getAlbumPostById: async (postId) => {
@@ -189,7 +192,7 @@ export const authAPI = {
   },
 
   getShopMembersByShopId: async (shopId) => {
-    const response = await axiosInstance.get(`/shop-members/shop/${shopId}`); 
+    const response = await axiosInstance.get(`/shop-members/shop/${shopId}`);
     return response.data;
   },
 
@@ -200,6 +203,13 @@ export const authAPI = {
 
   deleteAlbumPost: async (postId) => {
     const response = await axiosInstance.delete(`/albums/posts/${postId}`);
+    return response.data;
+  },
+
+  searchMemoryPost: async (query) => {
+    const response = await axiosInstance.get(`/memory-posts/search`, {
+      params: { q: query },
+    });
     return response.data;
   },
 };

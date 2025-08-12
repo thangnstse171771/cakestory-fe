@@ -60,6 +60,7 @@ import UserComplaint from "./pages/ComplaintManagement/UserComplaint";
 import UserComplaintDetailPage from "./pages/ComplaintManagement/UserComplaintDetailPage";
 import ShopComplaintDetailPage from "./pages/ComplaintManagement/ShopComplaintDetailPage.jsx";
 import AdminComplaintList from "./pages/ComplaintManagement/AdminComplaintList.jsx";
+import SearchResults from "./pages/Home/SearchResults.jsx";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -111,6 +112,7 @@ export default function App() {
           <Route element={<Layout />}>
             <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<Home />} />
+            <Route path="search" element={<SearchResults />} />
             <Route path="marketplace" element={<Marketplace />} />
             <Route
               path="marketplace/product/:productId"
