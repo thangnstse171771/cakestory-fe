@@ -730,3 +730,15 @@ export const updateComplaintAdminNote = async (complaintId, adminNote) => {
     throw error;
   }
 };
+
+// Lấy đơn mua bánh theo userId (để hiển thị vào lịch sử giao dịch)
+export const fetchCakeOrdersByUserId = async (userId) => {
+  try {
+    if (!userId) throw new Error("Thiếu userId");
+    const response = await axiosInstance.get(`/cake-orders/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchCakeOrdersByUserId:", error);
+    throw error;
+  }
+};
