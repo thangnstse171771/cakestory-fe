@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Grid,
   List,
@@ -17,9 +17,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { authAPI } from "../../api/auth";
 import UpdateAlbum from "./UpdateAlbum";
 import DeleteAlbum from "./DeleteAlbum";
+import dayjs from "dayjs";
 
 const MyAlbum = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [albums, setAlbums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -242,7 +244,7 @@ const MyAlbum = () => {
                   </div> */}
                   <span className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>{formatDate(album.date)}</span>
+                    <span>{dayjs(album.date).format("D MMM, YYYY")}</span>
                   </span>
                 </div>
               </div>
@@ -260,7 +262,8 @@ const MyAlbum = () => {
                 <img
                   src={album.image || "/placeholder.svg"}
                   alt={album.title}
-                  className="w-24 h-24 object-cover rounded-lg"
+                  className="w-24 h-24 object-cover rounded-lg cursor-pointer"
+                  onClick={() => navigate(`/album/${album.id}`)}
                 />
 
                 <div className="flex-1">
@@ -323,7 +326,7 @@ const MyAlbum = () => {
                     </div> */}
                     <span className="flex items-center space-x-1 text-sm text-gray-500">
                       <Calendar className="w-4 h-4" />
-                      <span>{formatDate(album.date)}</span>
+                      <span>{dayjs(album.date).format("D MMM, YYYY")}</span>
                     </span>
                   </div>
                 </div>

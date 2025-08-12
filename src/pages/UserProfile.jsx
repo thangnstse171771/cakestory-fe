@@ -23,6 +23,7 @@ import { authAPI } from "../api/auth";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
+import PostDetail from "./MyPost/PostDetail";
 
 const FAKE_ACHIEVEMENTS = [
   { name: "Master Baker", icon: Award, color: "text-pink-400" },
@@ -79,6 +80,8 @@ const UserProfile = () => {
   const [showFollowing, setShowFollowing] = useState(false);
   const [posts, setPosts] = useState([]);
   const [albums, setAlbums] = useState([]);
+  const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
   const [activeTab, setActiveTab] = useState("photos");
   // Danh sách followers/following của user đang xem
   const {
@@ -92,6 +95,55 @@ const UserProfile = () => {
   // Danh sách following của bản thân
   const { following: myFollowing, fetchFollowing: fetchMyFollowing } =
     usePersonalFollowersFollowing(user?.id);
+
+  const [likesData, setLikesData] = useState({});
+
+  useEffect(() => {
+    const fetchLikesForPosts = async () => {
+      const initialLikes = {};
+      for (const post of posts) {
+        try {
+          const res = await authAPI.getLikesByPostId(post.id);
+          const data = res.likes;
+          const totalLikes = res.total_likes || data.length;
+          const liked = data.some((like) => like.user_id === user?.id);
+          initialLikes[post.id] = { liked, count: totalLikes };
+        } catch (error) {
+          console.error("Failed to fetch likes for post", post.id, error);
+          initialLikes[post.id] = {
+            liked: false,
+            count: post.total_likes || 0,
+          };
+        }
+      }
+      setLikesData(initialLikes);
+    };
+
+    if (posts.length > 0) {
+      fetchLikesForPosts();
+    }
+  }, [posts]);
+
+  const handleLike = async (postId) => {
+    try {
+      await authAPI.likePost(postId); // your likePost function that can like/unlike
+      setLikesData((prev) => {
+        const wasLiked = prev[postId]?.liked;
+        const newCount = wasLiked
+          ? prev[postId].count - 1
+          : prev[postId].count + 1;
+        return {
+          ...prev,
+          [postId]: {
+            liked: !wasLiked,
+            count: newCount,
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Failed to toggle like", error);
+    }
+  };
 
   useEffect(() => {
     if (user && String(user.id) === String(id)) {
@@ -219,7 +271,13 @@ const UserProfile = () => {
   const postStat =
     posts.length + albums.reduce((total, album) => total + album.postCount, 0);
 
-  const likeStat = posts.reduce((total, post) => total + post.total_likes, 0);
+  const likeStat = posts.reduce((total, post) => {
+    const likeCount =
+      likesData[post.id]?.count !== undefined
+        ? likesData[post.id].count
+        : post.total_likes || 0;
+    return total + likeCount;
+  }, 0);
 
   if (loading || loadingPosts || loadingAlbums) {
     return (
@@ -431,36 +489,28 @@ const UserProfile = () => {
                     <div
                       key={post.id}
                       className="relative group cursor-pointer"
+                      onClick={() => {
+                        setSelectedPost(post);
+                        setIsPostDetailOpen(true);
+                      }}
                     >
                       {firstImage ? (
                         <img
                           src={firstImage.image_url}
                           alt={post.title}
                           className="w-full h-64 object-cover rounded-xl"
-                          // onClick={() => {
-                          //   setSelectedPost(post);
-                          //   setIsPostDetailOpen(true);
-                          // }}
                         />
                       ) : firstVideo ? (
                         <video
                           src={firstVideo.video_url}
                           className="w-full h-64 object-cover rounded-xl"
                           muted
-                          // onClick={() => {
-                          //   setSelectedPost(post);
-                          //   setIsPostDetailOpen(true);
-                          // }}
                         />
                       ) : (
                         <img
                           src="https://placehold.co/600x400?text=No+Image"
                           alt={post.title}
                           className="w-full h-64 object-cover rounded-xl"
-                          // onClick={() => {
-                          //   setSelectedPost(post);
-                          //   setIsPostDetailOpen(true);
-                          // }}
                         />
                       )}
 
@@ -468,7 +518,9 @@ const UserProfile = () => {
                         <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center space-y-2">
                           <div className="flex items-center space-x-2">
                             <Heart className="w-5 h-5" />
-                            <span className="text-lg">{post.total_likes}</span>
+                            <span className="text-lg">
+                              {likesData[post.id]?.count ?? post.total_likes}
+                            </span>
                           </div>
                           <div className="flex flex-wrap gap-2 justify-center">
                             <span className="bg-pink-400 text-white px-3 py-1 rounded-full text-sm">
@@ -496,11 +548,11 @@ const UserProfile = () => {
             (albums.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {albums.map((album) => (
-                  <div
-                    key={album.id}
-                    className="bg-pink-50 rounded-xl overflow-hidden group cursor-pointer"
-                  >
-                    <div className="relative">
+                  <div key={album.id} className="bg-pink-50 rounded-xl">
+                    <div
+                      className="relative overflow-hidden group cursor-pointer rounded-t-xl"
+                      onClick={() => navigate(`/album/${album.id}`)}
+                    >
                       <img
                         src={album.image}
                         alt={album.title}
@@ -548,6 +600,13 @@ const UserProfile = () => {
             ))}
         </div>
       </div>
+      <PostDetail
+        isOpen={isPostDetailOpen}
+        post={selectedPost}
+        likesData={likesData}
+        handleLike={handleLike}
+        onClose={() => setIsPostDetailOpen(false)}
+      />
     </div>
   );
 };
