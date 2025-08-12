@@ -342,14 +342,14 @@ export const confirmWithdrawRequest = async (withdrawId) => {
 export const cancelWithdrawRequest = async (withdrawId) => {
   try {
     if (!withdrawId) throw new Error("Thiếu withdrawId");
-    console.log("Cancel withdraw:", withdrawId);
+    console.log("Reject withdraw by admin:", withdrawId);
     const response = await axiosInstance.put(
-      `/wallet/cancel-withdraw/${withdrawId}`
+      `/wallet/rejectRequestbyAdmin/${withdrawId}`
     );
     return response.data;
   } catch (error) {
     console.error(
-      "Cancel withdraw failed:",
+      "Reject withdraw failed:",
       error.response?.status,
       error.response?.data
     );
