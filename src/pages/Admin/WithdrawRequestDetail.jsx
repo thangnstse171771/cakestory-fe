@@ -388,9 +388,6 @@ export default function WithdrawRequestDetail() {
         {/* Action buttons */}
         {request.status === "pending" && (
           <>
-            <div className="mb-2 text-sm text-gray-600">
-              Debug: Status = "{request.status}"
-            </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => handleAction("approve")}
@@ -408,12 +405,6 @@ export default function WithdrawRequestDetail() {
               </button>
             </div>
           </>
-        )}
-        {request.status !== "pending" && (
-          <div className="mb-2 text-sm text-gray-600">
-            Debug: Status = "{request.status}" (không phải pending, không hiển
-            thị buttons)
-          </div>
         )}
         {/* Action dialog */}
         {showAction && (

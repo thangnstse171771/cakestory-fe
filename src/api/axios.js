@@ -342,14 +342,14 @@ export const confirmWithdrawRequest = async (withdrawId) => {
 export const cancelWithdrawRequest = async (withdrawId) => {
   try {
     if (!withdrawId) throw new Error("Thiếu withdrawId");
-    console.log("Cancel withdraw:", withdrawId);
+    console.log("Reject withdraw by admin:", withdrawId);
     const response = await axiosInstance.put(
-      `/wallet/cancel-withdraw/${withdrawId}`
+      `/wallet/rejectRequestbyAdmin/${withdrawId}`
     );
     return response.data;
   } catch (error) {
     console.error(
-      "Cancel withdraw failed:",
+      "Reject withdraw failed:",
       error.response?.status,
       error.response?.data
     );
@@ -727,6 +727,18 @@ export const updateComplaintAdminNote = async (complaintId, adminNote) => {
       "Lỗi update complaint admin note:",
       error.response?.data || error.message
     );
+    throw error;
+  }
+};
+
+// Lấy đơn mua bánh theo userId (để hiển thị vào lịch sử giao dịch)
+export const fetchCakeOrdersByUserId = async (userId) => {
+  try {
+    if (!userId) throw new Error("Thiếu userId");
+    const response = await axiosInstance.get(`/cake-orders/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchCakeOrdersByUserId:", error);
     throw error;
   }
 };
