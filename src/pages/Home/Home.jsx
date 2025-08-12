@@ -13,7 +13,7 @@ import {
   ShoppingCart,
   CakeSlice,
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import {
   Navigation,
@@ -53,6 +53,14 @@ const Home = () => {
   const [firstLoaded, setFirstLoaded] = useState(false);
   const [marketPost, setMarketPost] = useState([]);
   const [shops, setShops] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const navigate = useNavigate();
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && searchTerm.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
 
   useEffect(() => {
     const getShops = async () => {
@@ -196,8 +204,9 @@ const Home = () => {
                     type="text"
                     placeholder="Search"
                     className="outline-none text-gray-700 placeholder-gray-400 bg-transparent"
-                    // value={searchTerm}
-                    // onChange={(e) => setSearchTerm(e.target.value)}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={handleKeyDown}
                   />
                 </div>
               </div>
@@ -706,7 +715,9 @@ const Home = () => {
                               }}
                               className="text-gray-500 text-sm text-left"
                             >
-                              <span className="cursor-pointer">View comments</span>
+                              <span className="cursor-pointer">
+                                View comments
+                              </span>
                             </div>
                           </div>
                         </div>
