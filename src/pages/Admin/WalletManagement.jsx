@@ -67,6 +67,10 @@ const WalletManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalUserWalletsBalance, setTotalUserWalletsBalance] = useState(0); // Tổng số dư user wallets
+  const [pendingWithdraw, setPendingWithdraw] = useState({
+    amount: 0,
+    count: 0,
+  }); // Pending withdraw stats
   const navigate = useNavigate();
 
   // Filter states
@@ -270,13 +274,38 @@ const WalletManagement = () => {
         console.log("Wallet array length:", walletArray.length);
 
         if (walletArray.length > 0) {
+          // Chuẩn hóa parsing VND: hỗ trợ định dạng có dấu phẩy/chấm và ký tự tiền tệ
+          const toVndNumber = (val) => {
+            if (typeof val === "number") return Math.round(val);
+            if (val == null) return 0;
+            let s = String(val).trim();
+            // loại bỏ ký tự không phải số, dấu chấm, dấu phẩy hoặc dấu trừ
+            s = s.replace(/[^0-9.,-]/g, "");
+            // nếu có cả dấu phẩy và chấm, xác định dấu thập phân theo ký tự xuất hiện sau cùng
+            if (s.includes(",") && s.includes(".")) {
+              const lastComma = s.lastIndexOf(",");
+              const lastDot = s.lastIndexOf(".");
+              const dec = lastComma > lastDot ? "," : ".";
+              if (dec === ",") {
+                s = s.replace(/\./g, "");
+                s = s.replace(",", ".");
+              } else {
+                s = s.replace(/,/g, "");
+              }
+            } else if (s.includes(",")) {
+              // chỉ có dấu phẩy: coi như phân cách nghìn → bỏ hết
+              s = s.replace(/,/g, "");
+            }
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? Math.round(n) : 0;
+          };
+
           totalBalance = walletArray.reduce((sum, wallet) => {
-            // Parse balance as string or number
-            const balance = parseFloat(wallet.balance) || 0;
+            const parsed = toVndNumber(wallet.balance);
             console.log(
-              `Wallet ${wallet.user_id}: balance = ${wallet.balance} -> parsed = ${balance}`
+              `Wallet ${wallet.user_id}: balance = ${wallet.balance} -> parsed = ${parsed}`
             );
-            return sum + balance;
+            return sum + parsed;
           }, 0);
         }
 
@@ -286,40 +315,112 @@ const WalletManagement = () => {
 
       // Update withdraw wallet với withdraw data thật
       if (withdrawResponse.status === "fulfilled") {
-        const withdrawData = withdrawResponse.value;
-        console.log("Withdraw data received:", withdrawData);
+        const wd = withdrawResponse.value;
+        console.log("Withdraw data received:", wd);
 
-        let totalPendingWithdraw = 0;
-        let withdrawCount = 0;
+        // Hỗ trợ nhiều dạng response khác nhau
+        let withdraws = [];
+        if (Array.isArray(wd?.data?.withdraws)) withdraws = wd.data.withdraws;
+        else if (Array.isArray(wd?.withdraws)) withdraws = wd.withdraws;
+        else if (Array.isArray(wd?.withdrawHistory))
+          withdraws = wd.withdrawHistory;
+        else if (Array.isArray(wd)) withdraws = wd;
 
-        if (
-          withdrawData &&
-          withdrawData.data &&
-          Array.isArray(withdrawData.data.withdraws)
-        ) {
-          const withdraws = withdrawData.data.withdraws;
+        const normalizeStatus = (s) => {
+          const v = String(s || "").toLowerCase();
+          if (
+            [
+              "completed",
+              "complete",
+              "done",
+              "success",
+              "thanh cong",
+              "hoàn thành",
+              "thành công",
+            ].includes(v)
+          )
+            return "completed";
+          if (["approved", "approve"].includes(v)) return "approved";
+          if (
+            [
+              "rejected",
+              "reject",
+              "failed",
+              "fail",
+              "error",
+              "từ chối",
+              "that bai",
+            ].includes(v)
+          )
+            return "rejected";
+          if (["cancelled", "canceled", "cancel"].includes(v))
+            return "rejected";
+          return "pending";
+        };
 
-          // Tính tổng tiền đang chờ rút (pending)
-          totalPendingWithdraw = withdraws.reduce((sum, withdraw) => {
-            if (withdraw.status === "pending") {
-              withdrawCount++;
-              return sum + (parseFloat(withdraw.amount) || 0);
+        const toNumber = (a) => {
+          if (typeof a === "number") return a;
+          if (a == null) return 0;
+          let s = String(a).trim();
+          s = s.replace(/[^0-9.,-]/g, "");
+          if (s.includes(",") && s.includes(".")) {
+            const lastComma = s.lastIndexOf(",");
+            const lastDot = s.lastIndexOf(".");
+            const dec = lastComma > lastDot ? "," : ".";
+            if (dec === ",") {
+              s = s.replace(/\./g, "");
+              s = s.replace(",", ".");
+            } else {
+              s = s.replace(/,/g, "");
             }
-            return sum;
-          }, 0);
-        }
+          } else if (s.includes(",")) {
+            s = s.replace(/,/g, "");
+          }
+          const n = parseFloat(s);
+          return Number.isFinite(n) ? n : 0;
+        };
 
-        console.log("Total pending withdraw calculated:", totalPendingWithdraw);
-        console.log("Pending withdraw count:", withdrawCount);
+        let pendingCount = 0;
+        let completedCount = 0;
+        let totalPendingWithdraw = 0;
+        let totalCompletedWithdraw = 0;
 
+        (withdraws || []).forEach((w) => {
+          const st = normalizeStatus(w?.status);
+          const amt = toNumber(w?.amount);
+          if (st === "pending") {
+            pendingCount += 1;
+            totalPendingWithdraw += amt;
+          } else if (st === "completed") {
+            completedCount += 1;
+            totalCompletedWithdraw += amt;
+          }
+        });
+
+        console.log("Pending withdraw:", {
+          pendingCount,
+          totalPendingWithdraw,
+        });
+        console.log("Completed withdraw:", {
+          completedCount,
+          totalCompletedWithdraw,
+        });
+
+        // Card "Ví Withdraw" hiển thị: Số tiền đã rút (completed)
         setWalletData((prev) => ({
           ...prev,
           withdraw: {
-            balance: totalPendingWithdraw,
+            balance: totalCompletedWithdraw,
             currency: "VND",
-            description: `Tổng tiền đang chờ rút (${withdrawCount} yêu cầu)`,
+            description: `Tổng tiền đã rút (${completedCount} yêu cầu hoàn thành)`,
           },
         }));
+
+        // Summary giữ nguyên: Tiền Chờ Rút (pending)
+        setPendingWithdraw({
+          amount: totalPendingWithdraw,
+          count: pendingCount,
+        });
       }
 
       // Keep original admin wallet fetch for accounting
@@ -455,6 +556,10 @@ const WalletManagement = () => {
     }
   };
 
+  // Tổng doanh thu = AI + Hệ Thống
+  const totalRevenue =
+    (walletData.floating?.balance || 0) + (walletData.accounting?.balance || 0);
+
   const getWalletColor = (walletType) => {
     switch (walletType) {
       case "holding":
@@ -537,7 +642,11 @@ const WalletManagement = () => {
                   {getWalletIcon(key)}
                 </div>
                 <button
-                  onClick={() => handleViewTransactions(key)}
+                  onClick={() =>
+                    key === "withdraw"
+                      ? handleNavigateToWithdraw()
+                      : handleViewTransactions(key)
+                  }
                   className="text-pink-600 hover:text-pink-700 text-sm font-medium"
                 >
                   Xem chi tiết
@@ -570,7 +679,7 @@ const WalletManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(walletData.accounting?.balance || 0)}
+                {formatCurrency(totalRevenue)}
               </p>
               <p className="text-sm text-gray-600">Tổng Doanh Thu</p>
             </div>
@@ -584,7 +693,7 @@ const WalletManagement = () => {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-red-600">
-                {formatCurrency(walletData.withdraw?.balance || 0)}
+                {formatCurrency(pendingWithdraw.amount || 0)}
               </p>
               <p className="text-sm text-gray-600">Tiền Chờ Rút</p>
             </div>

@@ -47,6 +47,8 @@ const CakeDesign = () => {
   const [pendingAIGeneration, setPendingAIGeneration] = useState(null); // New state for loading AI
   const [selectedAIImage, setSelectedAIImage] = useState(null); // New state for viewing AI image
   const [showImageModal, setShowImageModal] = useState(false); // New state for image modal
+  const [currentPage, setCurrentPage] = useState(1); // Pagination state
+  const [imagesPerPage] = useState(6); // Number of images per page
   const navigate = useNavigate();
 
   // Available design options
@@ -198,6 +200,14 @@ const CakeDesign = () => {
   useEffect(() => {
     loadAIImages();
   }, []);
+
+  // Handle pagination when images change
+  useEffect(() => {
+    const totalPages = getTotalPages();
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [aiGeneratedImages.length, pendingAIGeneration, currentPage]);
 
   // Handle ESC key to close image modal
   useEffect(() => {
@@ -589,6 +599,7 @@ Trang trí: ${
       created_at: new Date().toISOString(),
     };
     setPendingAIGeneration(pendingItem);
+    setCurrentPage(1); // Reset to first page to show pending generation
 
     try {
       // Call API without description since it was already sent during design creation
@@ -601,6 +612,7 @@ Trang trí: ${
         toast.success("Ảnh AI đã được tạo thành công!");
         setIsGeneratingAI(false);
         setPendingAIGeneration(null); // Remove loading placeholder
+        setCurrentPage(1); // Reset to first page to show new image
       }, 3000);
     } catch (error) {
       console.error("Error generating AI image:", error);
@@ -620,6 +632,43 @@ Trang trí: ${
   const closeImageModal = () => {
     setShowImageModal(false);
     setSelectedAIImage(null);
+  };
+
+  // Pagination functions
+  const getTotalPages = () => {
+    const totalImages =
+      aiGeneratedImages.length + (pendingAIGeneration ? 1 : 0);
+    return Math.ceil(totalImages / imagesPerPage);
+  };
+
+  const getCurrentPageImages = () => {
+    const startIndex = (currentPage - 1) * imagesPerPage;
+    const endIndex = startIndex + imagesPerPage;
+
+    // Combine pending generation with existing images
+    const allImages = [];
+    if (pendingAIGeneration) {
+      allImages.push({ isPending: true, ...pendingAIGeneration });
+    }
+    allImages.push(...aiGeneratedImages);
+
+    return allImages.slice(startIndex, endIndex);
+  };
+
+  const goToPage = (page) => {
+    setCurrentPage(Math.max(1, Math.min(page, getTotalPages())));
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < getTotalPages()) {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
   // Cập nhật kích thước cho topping
@@ -1733,114 +1782,196 @@ Trang trí: ${
           {(aiGeneratedImages.length > 0 || pendingAIGeneration) && (
             <div className="mt-8">
               <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                  <span className="w-3 h-6 bg-gradient-to-b from-purple-400 to-pink-400 rounded-full mr-3"></span>
-                  Ảnh AI được tạo gần đây
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Loading placeholder for pending AI generation */}
-                  {pendingAIGeneration && (
-                    <div
-                      key={pendingAIGeneration.id}
-                      className="relative group"
-                    >
-                      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border-2 border-dashed border-purple-300 transition-all duration-200">
-                        <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center relative overflow-hidden">
-                          {/* Loading animation */}
-                          <div
-                            className="absolute inset-0 opacity-50"
-                            style={{
-                              background:
-                                "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)",
-                              animation: "shimmer 2s infinite",
-                            }}
-                          ></div>
-                          <div className="flex flex-col items-center justify-center z-10">
-                            <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mb-3"></div>
-                            <span className="text-purple-600 font-medium text-sm">
-                              Đang tạo ảnh AI...
-                            </span>
-                            <span className="text-purple-400 text-xs mt-1">
-                              Vui lòng chờ trong giây lát
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-3">
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {pendingAIGeneration.description.substring(0, 80)}
-                            ...
-                          </p>
-                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-purple-600 font-medium flex items-center">
-                              <div className="w-2 h-2 bg-purple-400 rounded-full mr-1 animate-pulse"></div>
-                              Đang tạo bởi AI
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {new Date(
-                                pendingAIGeneration.created_at
-                              ).toLocaleDateString("vi-VN")}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                    <span className="w-3 h-6 bg-gradient-to-b from-purple-400 to-pink-400 rounded-full mr-3"></span>
+                    Ảnh AI được tạo gần đây
+                  </h2>
+                  {getTotalPages() > 1 && (
+                    <div className="text-sm text-gray-500">
+                      Trang {currentPage} / {getTotalPages()}
                     </div>
                   )}
+                </div>
 
-                  {/* Existing AI generated images */}
-                  {aiGeneratedImages.map((design, index) => (
-                    <div key={design.id} className="relative group">
-                      <div
-                        className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 border border-gray-200 hover:border-pink-300 transition-all duration-200 cursor-pointer"
-                        onClick={() => handleAIImageClick(design)}
-                      >
-                        <div className="relative">
-                          <img
-                            src={design.ai_generated}
-                            alt={`AI Generated Cake ${index + 1}`}
-                            className="w-full h-48 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow duration-200"
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                            }}
-                          />
-                          {/* Hover overlay */}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2">
-                              <svg
-                                className="w-6 h-6 text-purple-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth="2"
-                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                                />
-                              </svg>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {getCurrentPageImages().map((design, index) => {
+                    if (design.isPending) {
+                      return (
+                        <div key={design.id} className="relative group">
+                          <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border-2 border-dashed border-purple-300 transition-all duration-200">
+                            <div className="w-full h-48 bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg flex items-center justify-center relative overflow-hidden">
+                              {/* Loading animation */}
+                              <div
+                                className="absolute inset-0 opacity-50"
+                                style={{
+                                  background:
+                                    "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)",
+                                  animation: "shimmer 2s infinite",
+                                }}
+                              ></div>
+                              <div className="flex flex-col items-center justify-center z-10">
+                                <div className="w-12 h-12 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                <span className="text-purple-600 font-medium text-sm">
+                                  Đang tạo ảnh AI...
+                                </span>
+                                <span className="text-purple-400 text-xs mt-1">
+                                  Vui lòng chờ trong giây lát
+                                </span>
+                              </div>
+                            </div>
+                            <div className="mt-3">
+                              <p className="text-sm text-gray-600 line-clamp-2">
+                                {design.description.substring(0, 80)}
+                                ...
+                              </p>
+                              <div className="mt-2 flex items-center justify-between">
+                                <span className="text-xs text-purple-600 font-medium flex items-center">
+                                  <div className="w-2 h-2 bg-purple-400 rounded-full mr-1 animate-pulse"></div>
+                                  Đang tạo bởi AI
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  {new Date(
+                                    design.created_at
+                                  ).toLocaleDateString("vi-VN")}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div className="mt-3">
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {design.description.split("\n")[0].substring(0, 80)}
-                            ...
-                          </p>
-                          <div className="mt-2 flex items-center justify-between">
-                            <span className="text-xs text-purple-600 font-medium">
-                              Tạo bởi AI
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {new Date(design.created_at).toLocaleDateString(
-                                "vi-VN"
-                              )}
-                            </span>
+                      );
+                    } else {
+                      return (
+                        <div key={design.id} className="relative group">
+                          <div
+                            className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-lg p-4 border border-gray-200 hover:border-pink-300 transition-all duration-200 cursor-pointer"
+                            onClick={() => handleAIImageClick(design)}
+                          >
+                            <div className="relative">
+                              <img
+                                src={design.ai_generated}
+                                alt={`AI Generated Cake ${index + 1}`}
+                                className="w-full h-48 object-cover rounded-lg shadow-sm group-hover:shadow-md transition-shadow duration-200"
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                }}
+                              />
+                              {/* Hover overlay */}
+                              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2">
+                                  <svg
+                                    className="w-6 h-6 text-purple-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                                    />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="mt-3">
+                              <p className="text-sm text-gray-600 line-clamp-2">
+                                {design.description
+                                  .split("\n")[0]
+                                  .substring(0, 80)}
+                                ...
+                              </p>
+                              <div className="mt-2 flex items-center justify-between">
+                                <span className="text-xs text-purple-600 font-medium">
+                                  Tạo bởi AI
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  {new Date(
+                                    design.created_at
+                                  ).toLocaleDateString("vi-VN")}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    }
+                  })}
                 </div>
+
+                {/* Pagination Controls */}
+                {getTotalPages() > 1 && (
+                  <div className="mt-6 flex items-center justify-center space-x-2">
+                    {/* Previous button */}
+                    <button
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === 1
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M15 19l-7-7 7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Page numbers */}
+                    {Array.from(
+                      { length: getTotalPages() },
+                      (_, i) => i + 1
+                    ).map((page) => (
+                      <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === page
+                            ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+                            : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+
+                    {/* Next button */}
+                    <button
+                      onClick={goToNextPage}
+                      disabled={currentPage === getTotalPages()}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        currentPage === getTotalPages()
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
