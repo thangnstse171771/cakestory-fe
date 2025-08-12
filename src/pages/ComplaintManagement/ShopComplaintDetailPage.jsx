@@ -33,18 +33,35 @@ export default function ShopComplaintDetailPage() {
         const uniqueImages = [
           ...new Set(evidenceImages.map((i) => i && i.trim()).filter(Boolean)),
         ];
-        const rawStatus = (
-          data.status ||
-          data.complaint_status ||
-          "pending"
-        ).toLowerCase();
-        const normalizedStatus = ["pending", "complete", "rejected"].includes(
-          rawStatus
-        )
-          ? rawStatus
-          : rawStatus === "complaining"
-          ? "pending"
-          : "pending";
+        const rawStatusValue =
+          data.status || data.complaint_status || data.state || "pending";
+        const normalizeStatus = (raw = "") => {
+          const r = (raw || "").toString().trim().toLowerCase();
+          if (
+            [
+              "approved",
+              "approve",
+              "completed",
+              "complete",
+              "resolved",
+              "refunded",
+            ].includes(r)
+          )
+            return "complete";
+          if (
+            [
+              "rejected",
+              "reject",
+              "denied",
+              "refused",
+              "closed",
+              "cancelled",
+            ].includes(r)
+          )
+            return "rejected";
+          return "pending";
+        };
+        const normalizedStatus = normalizeStatus(rawStatusValue);
         const mapped = {
           id: data.id || data.complaint_id || id,
           orderId: data.order_id || data.orderId || data.order?.id || "",

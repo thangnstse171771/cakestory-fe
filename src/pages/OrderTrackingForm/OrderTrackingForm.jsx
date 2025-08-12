@@ -52,6 +52,19 @@ const statusMap = {
   },
 };
 
+// Helper to normalize various backend status strings to UI flow keys
+const normalizeStatus = (s = "") => {
+  const v = String(s).toLowerCase();
+  if (["accepted", "confirmed", "order_accepted", "received", "ordered"].includes(v)) return "ordered";
+  if (["ready", "ready_to_ship", "prepared", "preparing", "preparedfordelivery", "prepared_for_delivery"].includes(v)) return "preparedForDelivery";
+  if (["shipping", "delivering", "in_transit", "shipped"].includes(v)) return "shipped";
+  if (["done", "delivered", "completed", "complete"].includes(v)) return "completed";
+  if (["complaint", "complaining", "disputed"].includes(v)) return "complaining";
+  if (["cancel", "canceled", "cancelled"].includes(v)) return "cancelled";
+  if (["pending", "new"].includes(v)) return "pending";
+  return s; // fallback to original
+};
+
 export default function OrderTrackingForm({
   order,
   onUpdateStatus,
@@ -61,7 +74,7 @@ export default function OrderTrackingForm({
   const { orderId } = useParams();
 
   // Local state để cập nhật trạng thái động
-  const [orderDetail, setOrderDetail] = useState(order);
+  const [orderDetail, setOrderDetail] = useState(order ? { ...order, status: normalizeStatus(order.status) } : order);
   const [note, setNote] = useState("");
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -72,6 +85,13 @@ export default function OrderTrackingForm({
       fetchOrderDetail();
     }
   }, [orderId]); // Chỉ depend vào orderId
+
+  // keep local detail in sync if parent passes a new order object
+  useEffect(() => {
+    if (order) {
+      setOrderDetail({ ...order, status: normalizeStatus(order.status) });
+    }
+  }, [order]);
 
   const fetchOrderDetail = async () => {
     try {
@@ -91,7 +111,7 @@ export default function OrderTrackingForm({
           parseFloat(response.total_price) ||
           parseFloat(response.total) ||
           0,
-        status: response.status || "pending",
+        status: normalizeStatus(response.status || "pending"),
         orderNumber: response.orderNumber || `ORD-${response.id}`,
         placeDate: response.placeDate || new Date().toISOString().split("T")[0],
         history: response.history || [
@@ -101,7 +121,7 @@ export default function OrderTrackingForm({
               hour: "2-digit",
               minute: "2-digit",
             }),
-            status: response.status || "pending",
+            status: normalizeStatus(response.status || "pending"),
             note: "Đơn hàng được tạo",
           },
         ],
@@ -167,14 +187,15 @@ export default function OrderTrackingForm({
   // Hàm cập nhật trạng thái đơn hàng local
   const handleUpdateStatus = async (orderId, newStatus, newHistoryEntry) => {
     try {
+      const normalized = normalizeStatus(newStatus);
       // Cập nhật local state trước
       setOrderDetail((prev) => {
         if (!prev) return prev;
         const updated = {
           ...prev,
-          status: newStatus,
+          status: normalized,
           history: newHistoryEntry
-            ? [...prev.history, newHistoryEntry]
+            ? [...prev.history, { ...newHistoryEntry, status: normalized }]
             : prev.history,
         };
         return updated;
@@ -182,13 +203,13 @@ export default function OrderTrackingForm({
 
       // Gọi API để cập nhật trạng thái
       if (onUpdateStatus) {
-        await onUpdateStatus(orderId, newStatus, newHistoryEntry);
+        await onUpdateStatus(orderId, normalized, newHistoryEntry);
       }
 
       // Hiển thị thông báo thành công
       alert(
         `Đã cập nhật trạng thái đơn hàng thành: ${
-          statusMap[newStatus]?.label || newStatus
+          statusMap[normalized]?.label || normalized
         }`
       );
     } catch (error) {
@@ -203,7 +224,7 @@ export default function OrderTrackingForm({
 
       // Revert lại trạng thái cũ nếu API call thất bại
       if (order) {
-        setOrderDetail(order);
+        setOrderDetail({ ...order, status: normalizeStatus(order.status) });
       }
     }
   };

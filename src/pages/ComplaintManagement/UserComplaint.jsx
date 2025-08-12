@@ -22,13 +22,9 @@ export default function ComplaintList({ userId }) {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
   const complaintStatusMap = {
-    new: { label: "Mới", color: "bg-blue-100 text-blue-700" },
-    in_progress: {
-      label: "Đang xử lý",
-      color: "bg-yellow-100 text-yellow-700",
-    },
-    resolved: { label: "Đã giải quyết", color: "bg-green-100 text-green-700" },
-    closed: { label: "Đã đóng", color: "bg-gray-100 text-gray-700" },
+    pending: { label: "Chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
+    complete: { label: "Đã hoàn tiền", color: "bg-green-100 text-green-700" },
+    rejected: { label: "Đã từ chối", color: "bg-gray-100 text-gray-700" },
   };
 
   // Fetch complaints data
@@ -40,6 +36,38 @@ export default function ComplaintList({ userId }) {
       setLoading(false);
       return;
     }
+
+    // Robust normalization for complaint status
+    const normalizeStatus = (raw = "") => {
+      const v = (raw || "").toString().trim().toLowerCase();
+      if (
+        [
+          "approved",
+          "approve",
+          "completed",
+          "complete",
+          "resolved",
+          "refunded",
+        ].includes(v)
+      )
+        return "complete";
+      if (
+        [
+          "rejected",
+          "reject",
+          "denied",
+          "refused",
+          "closed",
+          "cancelled",
+        ].includes(v)
+      )
+        return "rejected";
+      // treat complaining as pending in UI filter
+      if (["pending", "complaining", "open", "new"].includes(v))
+        return "pending";
+      return "pending";
+    };
+
     (async () => {
       try {
         setLoading(true);
@@ -65,13 +93,7 @@ export default function ComplaintList({ userId }) {
             c.complaint_status ||
             "pending"
           ).toLowerCase();
-          const normalizedStatus = ["pending", "complete", "rejected"].includes(
-            rawStatus
-          )
-            ? rawStatus
-            : rawStatus === "complaining"
-            ? "pending"
-            : "pending";
+          const normalizedStatus = normalizeStatus(rawStatus);
           return {
             id: c.id || c.complaint_id || `comp-${Math.random()}`,
             orderId: c.order_id || c.orderId || "",
@@ -186,47 +208,34 @@ export default function ComplaintList({ userId }) {
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-3xl font-bold text-red-700 mb-6 flex items-center gap-3">
-          <MessageSquareWarning className="h-7 w-7" />
-          Danh sách khiếu nại ({filteredComplaints.length})
-        </h2>
-
-        {/* Filters */}
-        <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border border-red-100">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-5 w-5 text-red-600" />
-            <span className="font-semibold text-red-700">Lọc khiếu nại</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <h2 className="text-3xl font-bold text-red-700 flex items-center gap-3">
+            <MessageSquareWarning className="h-7 w-7" />
+            Danh sách khiếu nại ({filteredComplaints.length})
+          </h2>
+          <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Tìm kiếm theo tiêu đề, mã đơn, khách hàng..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="Tìm theo tiêu đề, mã đơn, khách hàng..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2 rounded-lg border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-300 w-64"
               />
             </div>
-
-            {/* Status Filter */}
             <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="px-3 py-2 rounded-lg border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-300"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="new">Mới</option>
-              <option value="in_progress">Đang xử lý</option>
-              <option value="resolved">Đã giải quyết</option>
-              <option value="closed">Đã đóng</option>
+              <option value="pending">Chờ xử lý</option>
+              <option value="complete">Đã hoàn tiền</option>
+              <option value="rejected">Đã từ chối</option>
             </select>
-
-            {/* Date Filter */}
             <select
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="px-3 py-2 rounded-lg border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-300"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
             >
