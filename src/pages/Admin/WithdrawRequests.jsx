@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAllWithdrawHistory } from "../../api/axios";
+import { fetchAllWithdrawHistory, fetchAllUsers } from "../../api/axios";
 
 export default function WithdrawRequests() {
   const [withdrawRequests, setWithdrawRequests] = useState([]);
@@ -31,39 +31,139 @@ export default function WithdrawRequests() {
       setLoading(true);
       setError(null);
 
-      const response = await fetchAllWithdrawHistory();
+      // Fetch song song: lịch sử rút tiền + danh sách user (để map tên)
+      const [response, usersResponse] = await Promise.all([
+        fetchAllWithdrawHistory(),
+        fetchAllUsers().catch(() => null),
+      ]);
       console.log("Withdraw history response:", response);
 
-      if (response && response.data && Array.isArray(response.data.withdraws)) {
-        const withdraws = response.data.withdraws;
+      // Chuẩn hoá root để hỗ trợ nhiều dạng trả về
+      const root = response?.data ?? response ?? {};
 
-        // Transform data để phù hợp với UI
-        const transformedData = withdraws.map((withdraw) => ({
-          id: withdraw.id,
-          userId: withdraw.user_id,
-          username:
+      // Build users map (id -> user)
+      const usersRoot = usersResponse?.data ?? usersResponse ?? {};
+      let usersArray = [];
+      if (Array.isArray(usersRoot?.users)) usersArray = usersRoot.users;
+      else if (Array.isArray(usersRoot?.data)) usersArray = usersRoot.data;
+      else if (Array.isArray(usersRoot)) usersArray = usersRoot;
+      const usersMap = new Map();
+      usersArray.forEach((u) => {
+        const uid = u?.id ?? u?.user_id ?? u?.userId;
+        if (uid != null) usersMap.set(String(uid), u);
+      });
+
+      // Tìm mảng withdraws/withdrawHistory ở các vị trí khả dĩ
+      let withdraws = [];
+      if (Array.isArray(root.withdraws)) withdraws = root.withdraws;
+      else if (Array.isArray(root.withdrawHistory))
+        withdraws = root.withdrawHistory;
+      else if (Array.isArray(root.data?.withdraws))
+        withdraws = root.data.withdraws;
+      else if (Array.isArray(root.data?.withdrawHistory))
+        withdraws = root.data.withdrawHistory;
+
+      if (Array.isArray(withdraws)) {
+        const normalizeStatus = (s) => {
+          const v = String(s || "").toLowerCase();
+          if (
+            [
+              "completed",
+              "complete",
+              "done",
+              "success",
+              "thanh cong",
+              "hoàn thành",
+              "thành công",
+            ].includes(v)
+          )
+            return "completed";
+          if (["approved", "approve"].includes(v)) return "approved";
+          if (
+            [
+              "rejected",
+              "reject",
+              "failed",
+              "fail",
+              "error",
+              "từ chối",
+              "that bai",
+            ].includes(v)
+          )
+            return "rejected";
+          if (["cancelled", "canceled", "cancel"].includes(v))
+            return "rejected"; // map cancel -> rejected
+          return "pending";
+        };
+
+        const toNumber = (a) => {
+          if (typeof a === "number") return a;
+          if (a == null) return 0;
+          let s = String(a).trim();
+          s = s.replace(/[^0-9.,-]/g, "");
+          if (s.includes(",") && s.includes(".")) {
+            // xác định dấu thập phân
+            const lastComma = s.lastIndexOf(",");
+            const lastDot = s.lastIndexOf(".");
+            const dec = lastComma > lastDot ? "," : ".";
+            if (dec === ",") {
+              s = s.replace(/\./g, "");
+              s = s.replace(",", ".");
+            } else {
+              s = s.replace(/,/g, "");
+            }
+          } else if (s.includes(",")) {
+            s = s.replace(/,/g, "");
+          }
+          const n = parseFloat(s);
+          return Number.isFinite(n) ? n : 0;
+        };
+
+        // Transform data để phù hợp với UI (có fallback từ usersMap)
+        const transformedData = withdraws.map((withdraw) => {
+          const uid = withdraw.user_id ?? withdraw.userId ?? "";
+          const userFromMap = usersMap.get(String(uid));
+          const username =
             withdraw.user?.full_name ||
             withdraw.user?.username ||
-            `User ${withdraw.user_id}`,
-          email: withdraw.user?.email || "Không có email",
-          phone:
+            userFromMap?.full_name ||
+            userFromMap?.username ||
+            `User ${uid}`;
+          const email =
+            withdraw.user?.email || userFromMap?.email || "Không có email";
+          const phone =
             withdraw.user?.phone_number ||
             withdraw.user?.phone ||
-            "Không có SĐT",
-          bankName: withdraw.bank_name || "Không có thông tin ngân hàng",
-          accountNumber: withdraw.account_number || "N/A",
-          accountName:
-            withdraw.account_name || withdraw.user?.full_name || "N/A",
-          amount: parseFloat(withdraw.amount) || 0,
-          status: withdraw.status || "pending",
-          requestDate: withdraw.created_at,
-          processedDate:
-            withdraw.updated_at !== withdraw.created_at
-              ? withdraw.updated_at
-              : null,
-          note: withdraw.note || "Không có ghi chú",
-          adminNote: withdraw.admin_note || "",
-        }));
+            userFromMap?.phone_number ||
+            userFromMap?.phone ||
+            "Không có SĐT";
+          const accountName =
+            withdraw.account_name ||
+            withdraw.user?.full_name ||
+            userFromMap?.full_name ||
+            username; // fallback: hiển thị full name/username thay vì N/A
+
+          return {
+            id: withdraw.id,
+            userId: uid,
+            username,
+            email,
+            phone,
+            bankName: withdraw.bank_name || "Không có thông tin ngân hàng",
+            accountNumber: withdraw.account_number || "N/A",
+            accountName,
+            amount: toNumber(withdraw.amount),
+            status: normalizeStatus(withdraw.status),
+            requestDate: withdraw.created_at || withdraw.createdAt,
+            processedDate:
+              (withdraw.updated_at || withdraw.updatedAt) !==
+              (withdraw.created_at || withdraw.createdAt)
+                ? withdraw.updated_at || withdraw.updatedAt
+                : null,
+            note: withdraw.note || "Không có ghi chú",
+            adminNote: withdraw.admin_note || "",
+          };
+        });
 
         setWithdrawRequests(transformedData);
 
@@ -101,9 +201,9 @@ export default function WithdrawRequests() {
       else if (request.status === "completed") stats.completed++;
 
       // Sum amounts
-      stats.totalAmount += request.amount;
+      stats.totalAmount += request.amount || 0;
       if (request.status === "pending") {
-        stats.pendingAmount += request.amount;
+        stats.pendingAmount += request.amount || 0;
       }
     });
 
@@ -113,11 +213,14 @@ export default function WithdrawRequests() {
   // Lọc theo filter và search
   const filteredRequests = withdrawRequests.filter((request) => {
     const matchesFilter = filter === "all" || request.status === filter;
+    const keyword = (search || "").toLowerCase();
     const matchesSearch =
-      search === "" ||
-      request.username.toLowerCase().includes(search.toLowerCase()) ||
-      request.email.toLowerCase().includes(search.toLowerCase()) ||
-      request.userId.toLowerCase().includes(search.toLowerCase());
+      keyword === "" ||
+      (request.username || "").toLowerCase().includes(keyword) ||
+      (request.email || "").toLowerCase().includes(keyword) ||
+      String(request.userId || "")
+        .toLowerCase()
+        .includes(keyword);
     return matchesFilter && matchesSearch;
   });
 
