@@ -105,7 +105,7 @@ const Marketplace = () => {
         ) : errorProducts ? (
           <div className="text-center text-red-500 py-12">{errorProducts}</div>
         ) : (
-          <ProductsList products={products} />
+          <ProductsList products={products} isOwnShop={false} />
         )
       ) : view === "shops" ? (
         <ShopsList />

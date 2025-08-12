@@ -17,6 +17,10 @@ const CreateMarketplacePostSchema = Yup.object().shape({
     .min(10, "Description must be at least 10 characters")
     .max(1000, "Description cannot exceed 1000 characters")
     .required("Description is required"),
+  tier: Yup.number()
+    .min(1, "Cake must have at least 1 tier")
+    .max(8, "Cake cannot exceed 8 tiers")
+    .required("Number of tiers is required"),
   available: Yup.boolean().required(),
   expiry_date: Yup.string()
     .required("Expiry date is required")
@@ -27,6 +31,7 @@ const CreateMarketplacePostSchema = Yup.object().shape({
       today.setHours(0, 0, 0, 0);
       return selectedDate >= today;
     }),
+  is_public: Yup.boolean().required(),
   media: Yup.array().min(1, "Please add at least one media file"),
 });
 
@@ -170,9 +175,10 @@ const CreateMarketplacePost = ({
             initialValues={{
               title: initialData?.Post?.title || "",
               description: initialData?.Post?.description || "",
+              tier: initialData?.tier || 1,
               available: initialData?.available ?? true,
               expiry_date: initialData?.expiry_date || "",
-              is_public: true,
+              is_public: initialData?.is_public ?? true,
               media: [], // always upload new files
             }}
             validationSchema={CreateMarketplacePostSchema}
@@ -203,9 +209,10 @@ const CreateMarketplacePost = ({
                 const payload = {
                   title: values.title,
                   description: values.description,
+                  tier: values.tier,
                   available: values.available,
                   expiry_date: values.expiry_date,
-                  is_public: true,
+                  is_public: values.is_public,
                   media: uploadedMedia,
                   cakeSizes: cakeSizes.filter((s) => s.size && s.price),
                 };
@@ -374,6 +381,35 @@ const CreateMarketplacePost = ({
                   />
                 </div>
 
+                {/* Cake Tiers */}
+                <div className="space-y-2">
+                  <label className="block text-lg font-semibold text-gray-800">
+                    Number of Cake Tiers
+                  </label>
+                  <Field
+                    as="select"
+                    name="tier"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                  >
+                    <option value={1}>1 Tier - Single Layer</option>
+                    <option value={2}>2 Tiers - Double Layer</option>
+                    <option value={3}>3 Tiers - Triple Layer</option>
+                    <option value={4}>4 Tiers - Four Layer</option>
+                    <option value={5}>5 Tiers - Five Layer</option>
+                    <option value={6}>6 Tiers - Six Layer</option>
+                    <option value={7}>7 Tiers - Seven Layer</option>
+                    <option value={8}>8 Tiers - Eight Layer</option>
+                  </Field>
+                  <ErrorMessage
+                    name="tier"
+                    component="div"
+                    className="text-red-500 text-sm font-medium"
+                  />
+                  <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    🎂 Choose the number of layers/tiers for your cake design
+                  </p>
+                </div>
+
                 {/* Cake Sizes */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -465,24 +501,78 @@ const CreateMarketplacePost = ({
                   </label>
                 </div>
 
+                {/* Public Toggle */}
+                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                  <Field
+                    type="checkbox"
+                    name="is_public"
+                    id="is_public"
+                    className="w-5 h-5 text-pink-500 rounded focus:ring-pink-500"
+                  />
+                  <label
+                    htmlFor="is_public"
+                    className="text-lg font-semibold text-gray-800"
+                  >
+                    Make Product Public
+                  </label>
+                  <p className="text-sm text-gray-600 ml-2">
+                    (Public products are visible to all users)
+                  </p>
+                </div>
+
                 {/* Expiry Date */}
-                {!isEdit && (
-                  <div className="space-y-2">
-                    <label className="block text-lg font-semibold text-gray-800">
-                      Expiry Date
-                    </label>
+                <div className="space-y-2">
+                  <label className="block text-lg font-semibold text-gray-800">
+                    Product Expiry Date
+                  </label>
+                  <div className="relative">
                     <Field
                       name="expiry_date"
                       type="date"
-                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                      min={new Date().toISOString().split("T")[0]}
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 appearance-none"
                     />
-                    <ErrorMessage
-                      name="expiry_date"
-                      component="div"
-                      className="text-red-500 text-sm font-medium"
-                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
                   </div>
-                )}
+                  <ErrorMessage
+                    name="expiry_date"
+                    component="div"
+                    className="text-red-500 text-sm font-medium"
+                  />
+                  <div className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <svg
+                      className="w-4 h-4 text-amber-500 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span>
+                      Choose when this product listing should expire. Past dates
+                      are not allowed.
+                    </span>
+                  </div>
+                </div>
 
                 {/* General error */}
                 {errors.general && (
