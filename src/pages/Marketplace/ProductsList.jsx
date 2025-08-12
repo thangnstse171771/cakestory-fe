@@ -9,27 +9,45 @@ const FILTERS = [
   { id: "expired", label: "Expired" },
 ];
 
-const ProductsList = ({ products = [] }) => {
+const ProductsList = ({ products = [], isOwnShop = false }) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeProduct, setCustomizeProduct] = useState(null);
 
+  // Helper function to check if product is available based on expiry date
+  const isProductAvailable = (expiryDate) => {
+    if (!expiryDate) return true; // No expiry date means always available
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+    return expiry >= today;
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter((item) => {
-      const post = item.Post || {};
+      const post = item.Post || item.post || {};
       const shop = item.shop || {};
+
+      // Filter out private products unless it's own shop
+      if (!isOwnShop && post.is_public === false) {
+        return false;
+      }
+
+      const available = isProductAvailable(item.expiry_date);
+
       const matchesSearch =
         post.title?.toLowerCase().includes(search.toLowerCase()) ||
         post.description?.toLowerCase().includes(search.toLowerCase()) ||
         shop.business_name?.toLowerCase().includes(search.toLowerCase());
+
       let matchesFilter = true;
-      if (filter === "available") matchesFilter = item.available;
-      if (filter === "expired") matchesFilter = !item.available;
+      if (filter === "available") matchesFilter = available;
+      if (filter === "expired") matchesFilter = !available;
+
       return matchesSearch && matchesFilter;
     });
-  }, [products, search, filter]);
+  }, [products, search, filter, isOwnShop]);
 
   if (!products.length) {
     return (
@@ -99,6 +117,7 @@ const ProductsList = ({ products = [] }) => {
           };
           const displayPrice = getMinPrice(cakeSizes);
           const hasMultipleSizes = cakeSizes.length > 1;
+          const available = isProductAvailable(item.expiry_date);
 
           return (
             <div
@@ -113,13 +132,40 @@ const ProductsList = ({ products = [] }) => {
                   alt={post.title}
                   className="w-full h-56 object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
-                {item.available ? (
-                  <div className="absolute top-3 left-3 px-3 py-1 bg-green-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+
+                {/* Cake Tiers Badge */}
+                <div className="absolute top-3 left-3 z-20">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm">
+                    {item.tier || 1} {(item.tier || 1) === 1 ? "Tier" : "Tiers"}
+                  </span>
+                </div>
+
+                {/* Public/Private Badge - only show if it's own shop */}
+                {isOwnShop && (
+                  <div
+                    className="absolute top-3 left-3 z-20"
+                    style={{ marginTop: "32px" }}
+                  >
+                    <span
+                      className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium shadow-sm ${
+                        post.is_public !== false
+                          ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
+                          : "bg-gradient-to-r from-gray-500 to-gray-600 text-white"
+                      }`}
+                    >
+                      {post.is_public !== false ? "Public" : "Private"}
+                    </span>
+                  </div>
+                )}
+
+                {/* Available/Expired Badge */}
+                {available ? (
+                  <div className="absolute top-3 right-3 px-3 py-1 bg-green-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
                     Available
                   </div>
                 ) : (
-                  <div className="absolute top-3 left-3 px-3 py-1 bg-gray-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                    Out of stock
+                  <div className="absolute top-3 right-3 px-3 py-1 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+                    Expired
                   </div>
                 )}
               </div>

@@ -49,10 +49,17 @@ import SuggestedUsers from "./pages/Home/SuggestedUsers";
 import MyAlbum from "./pages/MyAlbum/MyAlbum";
 import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
 import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
+import OrderTrackingFormByShop from "./pages/OrderTrackingForm/OrderTrackingFormByShop";
+import OrderTrackingUserList from "./pages/OrderTrackingForm/OrderTrackingUserList";
+import OrderTrackingAdminAllList from "./pages/OrderTrackingForm/OrderTrackingAdminAllList";
 import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
 import AllShopCakes from "./pages/AllShopCakes";
 import AIGeneratedImages from "./pages/AIGeneratedImages";
 import ProductDetail from "./pages/Marketplace/ProductDetail";
+import UserComplaint from "./pages/ComplaintManagement/UserComplaint";
+import UserComplaintDetailPage from "./pages/ComplaintManagement/UserComplaintDetailPage";
+import ShopComplaintDetailPage from "./pages/ComplaintManagement/ShopComplaintDetailPage.jsx";
+import AdminComplaintList from "./pages/ComplaintManagement/AdminComplaintList.jsx";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
 function ProtectedRoute({ children }) {
@@ -70,13 +77,8 @@ function ProtectedRoute({ children }) {
 // Public routes — nếu đã auth thì redirect về home
 function PublicRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  if (isAuthenticated()) {
-    return <Navigate to="/home" replace />;
-  }
+  if (loading) return <div>Loading...</div>;
+  if (isAuthenticated()) return <Navigate to="/home" replace />;
   return children;
 }
 
@@ -105,7 +107,7 @@ export default function App() {
             }
           />
 
-          {/* Public pages (guest xem được) */}
+          {/* Public pages (guest) */}
           <Route element={<Layout />}>
             <Route index element={<Navigate to="home" replace />} />
             <Route path="home" element={<Home />} />
@@ -140,6 +142,26 @@ export default function App() {
               path="order-tracking/:orderId"
               element={<OrderTrackingList showOrderDetails={true} />}
             />
+            <Route
+              path="order-tracking-shop/:orderId"
+              element={<OrderTrackingFormByShop />}
+            />
+            <Route
+              path="order-tracking-user"
+              element={<OrderTrackingUserList />}
+            />
+            <Route
+              path="order-tracking-user/:orderId"
+              element={<OrderTrackingUserList showOrderDetails={true} />}
+            />
+            <Route
+              path="admin/order-tracking"
+              element={<OrderTrackingAdminAllList />}
+            />
+            <Route
+              path="admin/order-tracking/:orderId"
+              element={<OrderTrackingAdminAllList showOrderDetails={true} />}
+            />
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="ai-generated-images" element={<AIGeneratedImages />} />
             <Route path="challenge" element={<ChallengeList />} />
@@ -157,9 +179,13 @@ export default function App() {
             <Route path="suggested-users" element={<SuggestedUsers />} />
             <Route path="album/:id" element={<AlbumDetail />} />
             <Route path="complaints" element={<ComplaintList />} />
+            <Route
+              path="complaints/:id"
+              element={<ShopComplaintDetailPage />}
+            />
           </Route>
 
-          {/* Protected pages (chỉ login mới xem được) */}
+          {/* Protected pages */}
           <Route
             element={
               <ProtectedRoute>
@@ -171,6 +197,11 @@ export default function App() {
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="mypost" element={<MyPost />} />
             <Route path="myalbum" element={<MyAlbum />} />
+            <Route path="my-complaints" element={<UserComplaint />} />
+            <Route
+              path="my-complaints/:id"
+              element={<UserComplaintDetailPage />}
+            />
             <Route path="chat" element={<Chat />} />
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />
@@ -182,6 +213,11 @@ export default function App() {
             <Route
               path="admin/withdraw-requests/:id"
               element={<WithdrawRequestDetail />}
+            />
+            <Route path="admin/complaints" element={<AdminComplaintList />} />
+            <Route
+              path="admin/complaints/:id"
+              element={<ShopComplaintDetailPage />}
             />
             <Route path="/settings" element={<Settings />} />
             <Route path="/report" element={<Report />} />

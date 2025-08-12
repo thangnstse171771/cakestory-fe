@@ -7,6 +7,7 @@ import {
   fetchAllDepositsAdmin,
   fetchSystemWalletBalance,
   fetchTotalAmountAiGenerate,
+  fetchAllWithdrawHistory,
 } from "../../api/axios";
 
 // Mock data cho các ví (sẽ được thay thế bằng dữ liệu từ API)
@@ -27,7 +28,7 @@ const mockWalletData = {
     description: "Doanh thu hệ thống từ gói AI",
   },
   withdraw: {
-    balance: 5000000, // 5 triệu
+    balance: 0, // Sẽ được cập nhật từ withdraw API
     currency: "VND",
     description: "Tổng tiền đang chờ rút",
   },
@@ -72,8 +73,6 @@ const WalletManagement = () => {
   const [filters, setFilters] = useState({
     status: "",
     user_id: "",
-    start_date: "",
-    end_date: "",
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -88,17 +87,19 @@ const WalletManagement = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch multiple data sources bao gồm AI revenue và all user wallets
+      // Fetch multiple data sources bao gồm AI revenue, all user wallets và withdraw data
       const [
         systemBalanceResponse,
         depositsResponse,
         aiRevenueResponse,
         allWalletsResponse,
+        withdrawResponse,
       ] = await Promise.allSettled([
         fetchSystemWalletBalance(),
         fetchAllDepositsAdmin(appliedFilters), // Pass filters to API call
         fetchTotalAmountAiGenerate(), // Fetch AI revenue
         fetchAllUserWallets(), // Fetch all user wallets for total balance
+        fetchAllWithdrawHistory(), // Fetch withdraw data
       ]);
 
       // Update wallet data với system balance (holding wallet)
@@ -283,6 +284,44 @@ const WalletManagement = () => {
         setTotalUserWalletsBalance(totalBalance);
       }
 
+      // Update withdraw wallet với withdraw data thật
+      if (withdrawResponse.status === "fulfilled") {
+        const withdrawData = withdrawResponse.value;
+        console.log("Withdraw data received:", withdrawData);
+
+        let totalPendingWithdraw = 0;
+        let withdrawCount = 0;
+
+        if (
+          withdrawData &&
+          withdrawData.data &&
+          Array.isArray(withdrawData.data.withdraws)
+        ) {
+          const withdraws = withdrawData.data.withdraws;
+
+          // Tính tổng tiền đang chờ rút (pending)
+          totalPendingWithdraw = withdraws.reduce((sum, withdraw) => {
+            if (withdraw.status === "pending") {
+              withdrawCount++;
+              return sum + (parseFloat(withdraw.amount) || 0);
+            }
+            return sum;
+          }, 0);
+        }
+
+        console.log("Total pending withdraw calculated:", totalPendingWithdraw);
+        console.log("Pending withdraw count:", withdrawCount);
+
+        setWalletData((prev) => ({
+          ...prev,
+          withdraw: {
+            balance: totalPendingWithdraw,
+            currency: "VND",
+            description: `Tổng tiền đang chờ rút (${withdrawCount} yêu cầu)`,
+          },
+        }));
+      }
+
       // Keep original admin wallet fetch for accounting
       const response = await getAdminWallet();
       if (response.success && response.adminWallet) {
@@ -389,8 +428,6 @@ const WalletManagement = () => {
     const resetFilters = {
       status: "",
       user_id: "",
-      start_date: "",
-      end_date: "",
     };
     setFilters(resetFilters);
     fetchAdminWalletData(resetFilters);
@@ -699,36 +736,6 @@ const WalletManagement = () => {
                         handleFilterChange("user_id", e.target.value)
                       }
                       placeholder="Nhập User ID"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                    />
-                  </div>
-
-                  {/* Start Date Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Từ Ngày
-                    </label>
-                    <input
-                      type="date"
-                      value={filters.start_date}
-                      onChange={(e) =>
-                        handleFilterChange("start_date", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                    />
-                  </div>
-
-                  {/* End Date Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Đến Ngày
-                    </label>
-                    <input
-                      type="date"
-                      value={filters.end_date}
-                      onChange={(e) =>
-                        handleFilterChange("end_date", e.target.value)
-                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                     />
                   </div>

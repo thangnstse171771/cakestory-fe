@@ -31,29 +31,57 @@ const Sidebar = () => {
   const [showMore, setShowMore] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Menu cho mọi người
+  // Determine if current user owns/has a shop
+  const hasShop = Boolean(
+    user?.shop ||
+      user?.shopId ||
+      user?.shop_id ||
+      user?.isShopOwner ||
+      (Array.isArray(user?.shops) && user?.shops.length > 0) ||
+      (Array.isArray(user?.ownedShops) && user?.ownedShops.length > 0)
+  );
+
+  // Menu công khai (giữ mục track orders chung cho shop owners nếu có shop)
   const publicMenu = [
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
-    // { icon: Calendar, label: "Events", path: "/events" },
     { icon: Trophy, label: "Challenge", path: "/challenge" },
-    { icon: ListOrdered, label: "Track Orders", path: "/order-tracking" },
+    // Shop order tracking (dùng component lấy theo shop của user hiện tại)
+    { icon: ListOrdered, label: "Shop Orders", path: "/order-tracking" },
     { icon: MessageSquareWarning, label: "Khiếu nại", path: "/complaints" },
   ];
+
   // Menu cho user thường
   const userMenu = [
     { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: BookImage, label: "My Post", path: "/mypost" },
     { icon: SquareLibrary, label: "My Album", path: "/myalbum" },
+    {
+      icon: ListOrdered,
+      label: "Đơn hàng của tôi",
+      path: "/order-tracking-user",
+    },
+    {
+      icon: MessageSquareWarning,
+      label: "Khiếu nại của tôi",
+      path: "/my-complaints",
+    },
     { icon: User, label: "Profile", path: "/profile" },
-    { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
+    { icon: Wallet, label: "Nạp tiền", path: "/wallet" },
     { icon: ArrowDownToLine, label: "Rút tiền", path: "/withdraw" },
     { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
   ];
+
   // Menu cho admin/staff
   const adminMenu = [
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
+    { icon: ListOrdered, label: "All Orders", path: "/admin/order-tracking" },
+    {
+      icon: MessageSquareWarning,
+      label: "All Complaints",
+      path: "/admin/complaints",
+    },
     { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },
     {
       icon: CreditCard,
@@ -61,16 +89,35 @@ const Sidebar = () => {
       path: "/admin/withdraw-requests",
     },
     { icon: Trophy, label: "Admin Challenge", path: "/admin/challenge" },
-    { icon: User, label: "Profile", path: "/profile" }, // Thêm mục Profile cho admin
+    { icon: User, label: "Profile", path: "/profile" },
   ];
+
+  // Build menu based on role and shop ownership
+  const isAdminRole = ["admin", "account_staff", "staff"].includes(user?.role);
 
   let menuItems = publicMenu;
   if (user) {
-    if (["admin", "account_staff", "staff"].includes(user.role)) {
+    if (isAdminRole) {
       menuItems = [...publicMenu, ...adminMenu];
+      // Optional: also hide Shop Orders if admin account has no shop
+      if (!hasShop) {
+        menuItems = menuItems.filter((i) => i.path !== "/order-tracking");
+      }
     } else {
       menuItems = [...publicMenu, ...userMenu];
+      // User thường: chỉ hiển thị mục Khiếu nại (shop) và Shop Orders nếu có shop
+      if (!hasShop) {
+        menuItems = menuItems.filter(
+          (item) =>
+            item.path !== "/complaints" && item.path !== "/order-tracking"
+        );
+      }
     }
+  } else {
+    // Khách: ẩn mục Khiếu nại (shop) và Shop Orders
+    menuItems = publicMenu.filter(
+      (item) => item.path !== "/complaints" && item.path !== "/order-tracking"
+    );
   }
 
   useEffect(() => {
