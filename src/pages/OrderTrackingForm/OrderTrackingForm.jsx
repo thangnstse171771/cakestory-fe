@@ -127,7 +127,7 @@ export default function OrderTrackingForm({
   const { orderId } = useParams();
   const { user } = useAuth();
   const role = String(user?.role || "").toLowerCase();
-  const isShopActor = [
+  const shopRoleSet = new Set([
     "admin",
     "account_staff",
     "staff",
@@ -135,8 +135,52 @@ export default function OrderTrackingForm({
     "seller",
     "owner",
     "manager",
-  ].includes(role);
+    "shop_owner",
+    "shopowner",
+    "shop_admin",
+    "vendor",
+    "store",
+    "shop_member",
+  ]);
+  const [viewerShopId, setViewerShopId] = useState(null);
+  // Also infer a shop id directly from the user object if present
+  const inferredUserShopId =
+    user?.shop_id || user?.shopId || user?.shop?.id || null;
+  // Consider as shop actor if role suggests it OR a shop id is present
+  const isShopActor =
+    shopRoleSet.has(role) || Boolean(viewerShopId || inferredUserShopId);
   const isCustomerActor = !isShopActor;
+
+  useEffect(() => {
+    let mounted = true;
+    const inferFromUser = () => {
+      const cand = user?.shop_id || user?.shopId || user?.shop?.id;
+      return cand != null ? String(cand) : null;
+    };
+    (async () => {
+      try {
+        if (!user?.id) return;
+        const shopResp = await fetchShopByUserId(user.id);
+        const sid =
+          shopResp?.shop?.shop_id ||
+          shopResp?.shop_id ||
+          shopResp?.id ||
+          shopResp?.shop?.id ||
+          null;
+        if (mounted)
+          setViewerShopId(sid != null ? String(sid) : inferFromUser());
+      } catch (e) {
+        console.warn(
+          "Không thể lấy shopId của người dùng hiện tại:",
+          e?.message || e
+        );
+        if (mounted) setViewerShopId(inferFromUser());
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
 
   // Local state để cập nhật trạng thái động
   const [orderDetail, setOrderDetail] = useState(
@@ -146,10 +190,19 @@ export default function OrderTrackingForm({
           status: normalizeStatus(order.status),
           customer_user_id:
             order.customer_user_id || extractCustomerUserId(order) || null,
+          // Ensure shop_id is present even if only nested
+          shop_id:
+            order.shop_id ||
+            order.shopId ||
+            order.shop?.id ||
+            order.marketplace_post?.shop_id ||
+            order.order_details?.[0]?.marketplace_post?.shop_id ||
+            order.orderDetails?.[0]?.shop_id ||
+            null,
         }
       : order
   );
-  const [note, setNote] = useState("");
+  // Note feature removed
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -228,6 +281,14 @@ export default function OrderTrackingForm({
         status: normalizeStatus(order.status),
         customer_user_id:
           order.customer_user_id || extractCustomerUserId(order) || null,
+        shop_id:
+          order.shop_id ||
+          order.shopId ||
+          order.shop?.id ||
+          order.marketplace_post?.shop_id ||
+          order.order_details?.[0]?.marketplace_post?.shop_id ||
+          order.orderDetails?.[0]?.shop_id ||
+          null,
       });
     }
   }, [order]);
@@ -334,22 +395,7 @@ export default function OrderTrackingForm({
         shop_id: data.shop_id || data.shopId || data.shop?.id || null,
         marketplace_post_id: data.marketplace_post_id || null,
         customer_user_id: extractCustomerUserId(data),
-        history: [
-          {
-            date:
-              data.created_at || data.createdAt
-                ? new Date(data.created_at || data.createdAt)
-                    .toISOString()
-                    .split("T")[0]
-                : new Date().toISOString().split("T")[0],
-            time: new Date().toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            status: normalizeStatus(data.status || "pending"),
-            note: "Đơn hàng được tạo",
-          },
-        ],
+        // history removed (no API/data yet)
       };
 
       setOrderDetail(transformedOrder);
@@ -379,8 +425,13 @@ export default function OrderTrackingForm({
     const load = async () => {
       try {
         setLoadingIngredients(true);
-        // Resolve shop id: prefer derived from order; else, for shop actors, derive from current user
-        let shopIdToUse = derivedShopId;
+        // Resolve shop id in priority order:
+        // 1) From order/marketplace data (derivedShopId)
+        // 2) From pre-fetched viewerShopId (if actor is shop/admin)
+        // 3) Fallback: fetch by user id (as last resort)
+        let shopIdToUse = derivedShopId || (isShopActor ? viewerShopId : null);
+
+        // Last-resort fetch only if still missing and we have a user id
         if (!shopIdToUse && isShopActor && user?.id) {
           try {
             const shopResp = await fetchShopByUserId(user.id);
@@ -394,16 +445,44 @@ export default function OrderTrackingForm({
             console.warn("Không thể derive shopId từ user:", e?.message || e);
           }
         }
-        if (!shopIdToUse) return; // nothing to fetch
 
+        console.log(
+          "[OrderTrackingForm] derivedShopId:",
+          derivedShopId,
+          "; viewerShopId:",
+          viewerShopId,
+          "; chosen:",
+          shopIdToUse
+        );
+        if (!shopIdToUse) {
+          console.log(
+            "[OrderTrackingForm] Không có shopId để fetch ingredients"
+          );
+          return; // nothing to fetch
+        }
+        console.log(
+          "[OrderTrackingForm] Fetch ingredients với shopId:",
+          shopIdToUse
+        );
         let data = await fetchIngredients(shopIdToUse);
+        console.log("[OrderTrackingForm] Ingredients raw response:", data);
         if (!data) data = await fetchComplaintIngredientsByShop(shopIdToUse);
+        if (data) {
+          console.log(
+            "[OrderTrackingForm] Fallback ingredients (complaint endpoint) raw:",
+            data
+          );
+        }
         let listRaw = [];
         if (Array.isArray(data)) listRaw = data;
         else if (Array.isArray(data?.data)) listRaw = data.data;
         else if (Array.isArray(data?.ingredients)) listRaw = data.ingredients;
         else if (Array.isArray(data?.data?.ingredients))
           listRaw = data.data.ingredients;
+        console.log(
+          "[OrderTrackingForm] Ingredients normalized list:",
+          listRaw
+        );
         const mapped = listRaw.map((ing, idx) => ({
           id: ing.id || ing._id || idx,
           name: ing.name || ing.ingredient_name || "(No name)",
@@ -412,6 +491,14 @@ export default function OrderTrackingForm({
           description: ing.description || ing.note || "",
         }));
         const mapObj = Object.fromEntries(mapped.map((i) => [String(i.id), i]));
+        console.log(
+          "[OrderTrackingForm] Ingredients map keys:",
+          Object.keys(mapObj)
+        );
+        console.log(
+          "[OrderTrackingForm] Items trước khi enrich:",
+          orderDetail?.items
+        );
         if (mounted) setIngredientsMap(mapObj);
       } catch (err) {
         console.warn("Load ingredients failed:", err);
@@ -429,6 +516,7 @@ export default function OrderTrackingForm({
     marketplacePost,
     user?.id,
     isShopActor,
+    viewerShopId,
   ]);
 
   // Enrich items with ingredient names/images when available
@@ -469,6 +557,10 @@ export default function OrderTrackingForm({
         }
         return { ...it, ingredientId };
       });
+      console.log(
+        "[OrderTrackingForm] Items sau khi enrich ingredients:",
+        newItems
+      );
       if (!changed) return prev;
       return { ...prev, items: newItems };
     });
@@ -570,25 +662,15 @@ export default function OrderTrackingForm({
       : 0;
 
   // Hàm cập nhật trạng thái đơn hàng local
-  const handleUpdateStatus = async (orderId, newStatus, newHistoryEntry) => {
+  const handleUpdateStatus = async (orderId, newStatus, _newHistoryEntry) => {
     try {
       const normalized = normalizeStatus(newStatus);
-      // Cập nhật local state trước
-      setOrderDetail((prev) => {
-        if (!prev) return prev;
-        const updated = {
-          ...prev,
-          status: normalized,
-          history: newHistoryEntry
-            ? [...prev.history, { ...newHistoryEntry, status: normalized }]
-            : prev.history,
-        };
-        return updated;
-      });
+      // Cập nhật local state trước (không dùng lịch sử)
+      setOrderDetail((prev) => (prev ? { ...prev, status: normalized } : prev));
 
       // Gọi API để cập nhật trạng thái
       if (onUpdateStatus) {
-        await onUpdateStatus(orderId, normalized, newHistoryEntry);
+        await onUpdateStatus(orderId, normalized, undefined);
       }
 
       // Hiển thị thông báo thành công
@@ -600,35 +682,52 @@ export default function OrderTrackingForm({
     } catch (error) {
       console.error("Lỗi khi cập nhật trạng thái:", error);
 
-      // Hiển thị thông báo lỗi chi tiết hơn
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
         "Có lỗi khi cập nhật trạng thái đơn hàng";
       alert(errorMessage);
 
-      // Revert lại trạng thái cũ nếu API call thất bại
+      // Revert lại trạng thái cũ nếu có order prop
       if (order) {
         setOrderDetail({ ...order, status: normalizeStatus(order.status) });
       }
     }
   };
 
-  const handleAddNote = () => {
-    if (note.trim()) {
-      const newHistoryEntry = {
-        date: new Date().toISOString().split("T")[0],
-        time: new Date().toLocaleTimeString("vi-VN", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        status: orderDetail.status,
-        note: note.trim(),
-      };
-      handleUpdateStatus(orderDetail.id, orderDetail.status, newHistoryEntry);
-      setNote("");
-    }
-  };
+  // Note feature removed
+
+  // Track whether this order already has a complaint to hide the button
+  const [hasComplaint, setHasComplaint] = useState(
+    Boolean(
+      (orderDetail &&
+        (orderDetail.status === "complaining" ||
+          orderDetail.complaint_id ||
+          orderDetail.complaintId ||
+          orderDetail.has_complaint ||
+          orderDetail.hasComplaint)) ||
+        false
+    )
+  );
+
+  useEffect(() => {
+    setHasComplaint(
+      Boolean(
+        orderDetail &&
+          (orderDetail.status === "complaining" ||
+            orderDetail.complaint_id ||
+            orderDetail.complaintId ||
+            orderDetail.has_complaint ||
+            orderDetail.hasComplaint)
+      )
+    );
+  }, [
+    orderDetail?.status,
+    orderDetail?.complaint_id,
+    orderDetail?.complaintId,
+    orderDetail?.has_complaint,
+    orderDetail?.hasComplaint,
+  ]);
 
   // Derive order ownership for action gating
   const currentUserIdStr = user?.id != null ? String(user.id) : null;
@@ -648,6 +747,35 @@ export default function OrderTrackingForm({
   );
   const isOrderOwner = idMatches || emailMatches;
 
+  // Helper: derive order's shop id consistently for permission checks
+  const deriveOrderShopId = () => {
+    return (
+      orderDetail?.shop_id ||
+      orderDetail?.shopId ||
+      orderDetail?.shop?.id ||
+      marketplacePost?.shop_id ||
+      marketplacePost?.shopId ||
+      marketplacePost?.shop?.id ||
+      marketplacePost?.post?.shop_id ||
+      marketplacePost?.data?.shop_id ||
+      null
+    );
+  };
+  const orderShopIdStr = deriveOrderShopId()
+    ? String(deriveOrderShopId())
+    : null;
+  const viewerShopIdStr = viewerShopId
+    ? String(viewerShopId)
+    : inferredUserShopId
+    ? String(inferredUserShopId)
+    : null;
+  // Only shop (not the order owner) can control. If orderShopId is missing, allow logged-in shop by fallback.
+  const canShopControl = Boolean(
+    !isOrderOwner &&
+      viewerShopIdStr &&
+      (!orderShopIdStr || viewerShopIdStr === orderShopIdStr)
+  );
+
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
       <div className="max-w-4xl mx-auto">
@@ -658,17 +786,15 @@ export default function OrderTrackingForm({
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        {/* Hiện nút khiếu nại chỉ dành cho CHỦ đơn hàng khi trạng thái là shipped hoặc completed */}
-        {isOrderOwner &&
-          (orderDetail.status === "shipped" ||
-            orderDetail.status === "completed") && (
-            <button
-              className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-              onClick={() => setShowComplaintModal(true)}
-            >
-              Tạo khiếu nại
-            </button>
-          )}
+        {/* Hiện nút khiếu nại chỉ dành cho CHỦ đơn hàng khi trạng thái là shipped và chưa có khiếu nại */}
+  {isOrderOwner && orderDetail.status === "shipped" && !hasComplaint && (
+          <button
+            className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+            onClick={() => setShowComplaintModal(true)}
+          >
+            Tạo khiếu nại
+          </button>
+        )}
 
         <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
           {/* Progress Bar */}
@@ -707,11 +833,17 @@ export default function OrderTrackingForm({
           <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
               <MessageSquareText className="h-5 w-5" />
-              Cập nhật trạng thái & Ghi chú
+              Cập nhật trạng thái
             </h3>
+            {/* {isShopActor && !canShopControl && (
+              <div className="mb-3 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                Bạn đang đăng nhập bằng tài khoản Shop nhưng không phải chủ shop
+                của đơn này nên không thể thao tác cập nhật trạng thái.
+              </div>
+            )} */}
             <div className="flex flex-wrap gap-2 mb-4">
               {/* Nút chuyển sang ordered (chỉ hiện khi đang pending) - Shop only */}
-              {isShopActor && orderDetail.status === "pending" && (
+              {canShopControl && orderDetail.status === "pending" && (
                 <button
                   onClick={() => handleUpdateStatus(orderDetail.id, "ordered")}
                   className="px-4 py-2 rounded-lg font-semibold border bg-cyan-500 text-white border-cyan-500 hover:bg-cyan-600 transition-colors duration-200"
@@ -721,7 +853,7 @@ export default function OrderTrackingForm({
               )}
 
               {/* Nút chuyển sang prepared (hiện khi đang ordered) - Shop only */}
-              {isShopActor && orderDetail.status === "ordered" && (
+              {canShopControl && orderDetail.status === "ordered" && (
                 <button
                   onClick={() =>
                     handleUpdateStatus(orderDetail.id, "preparedForDelivery")
@@ -733,19 +865,22 @@ export default function OrderTrackingForm({
               )}
 
               {/* Nút chuyển sang shipped (hiện khi đang preparedForDelivery) - Shop only */}
-              {isShopActor && orderDetail.status === "preparedForDelivery" && (
-                <button
-                  onClick={() => handleUpdateStatus(orderDetail.id, "shipped")}
-                  className="px-4 py-2 rounded-lg font-semibold border bg-orange-500 text-white border-orange-500 hover:bg-orange-600 transition-colors duration-200"
-                >
-                  Giao hàng
-                </button>
-              )}
+              {canShopControl &&
+                orderDetail.status === "preparedForDelivery" && (
+                  <button
+                    onClick={() =>
+                      handleUpdateStatus(orderDetail.id, "shipped")
+                    }
+                    className="px-4 py-2 rounded-lg font-semibold border bg-orange-500 text-white border-orange-500 hover:bg-orange-600 transition-colors duration-200"
+                  >
+                    Giao hàng
+                  </button>
+                )}
 
               {/* Nút chuyển sang completed (hiện khi đang shipped hoặc complaining) - ONLY order owner */}
               {isOrderOwner &&
-                (orderDetail.status === "shipped" ||
-                  orderDetail.status === "complaining") && (
+                orderDetail.status === "shipped" &&
+                !hasComplaint && (
                   <button
                     onClick={() =>
                       handleUpdateStatus(orderDetail.id, "completed")
@@ -757,7 +892,7 @@ export default function OrderTrackingForm({
                 )}
 
               {/* Nút hủy đơn (hiện khi chưa hoàn thành) - Shop only */}
-              {isShopActor &&
+              {canShopControl &&
                 orderDetail.status !== "completed" &&
                 orderDetail.status !== "cancelled" && (
                   <button
@@ -771,55 +906,22 @@ export default function OrderTrackingForm({
                 )}
             </div>
 
-            {/* Ghi chú */}
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                placeholder="Thêm ghi chú..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="flex-1 border border-pink-200 focus:border-pink-400 focus:ring-pink-400 rounded-lg px-3 py-2 outline-none"
-              />
-              <button
-                onClick={handleAddNote}
-                className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-lg"
-              >
-                Thêm ghi chú
-              </button>
-            </div>
+            {/* Ghi chú đã được loại bỏ */}
 
-            {/* Status History */}
-            <h4 className="text-md font-semibold mb-2 text-pink-600">
-              Lịch sử trạng thái:
-            </h4>
-            <ul className="space-y-3">
-              {orderDetail.history.map((entry, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-3 p-3 bg-white rounded-lg shadow-sm border border-pink-50"
-                >
-                  <div className="flex-shrink-0 mt-1">
-                    {statusMap[entry.status]?.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-gray-700">
-                        {entry.date} {entry.time}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 text-xs rounded-lg font-semibold ${
-                          statusMap[entry.status]?.color ||
-                          "bg-gray-200 text-gray-700"
-                        }`}
-                      >
-                        {statusMap[entry.status]?.label || entry.status}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 text-sm">{entry.note}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {/* Chỉ hiển thị trạng thái hiện tại */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-md font-semibold text-pink-600">
+                Trạng thái hiện tại:
+              </span>
+              <span
+                className={`px-2 py-1 text-sm rounded-lg font-semibold ${
+                  statusMap[orderDetail.status]?.color ||
+                  "bg-gray-200 text-gray-700"
+                }`}
+              >
+                {statusMap[orderDetail.status]?.label || orderDetail.status}
+              </span>
+            </div>
           </div>
 
           {/* Customer Details */}
@@ -1022,7 +1124,15 @@ export default function OrderTrackingForm({
           isOpen={showComplaintModal}
           onClose={() => setShowComplaintModal(false)}
           order={orderDetail}
-          onSubmit={() => setShowComplaintModal(false)}
+          onSubmit={() => {
+            setShowComplaintModal(false);
+            setHasComplaint(true);
+            // Reload trang để đồng bộ trạng thái từ server và ẩn nút hoàn thành
+            try {
+              // React Router v6: navigate(0) sẽ reload hard
+              typeof window !== "undefined" && window.location && window.location.reload();
+            } catch {}
+          }}
         />
       )}
     </div>

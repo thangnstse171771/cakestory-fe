@@ -59,6 +59,17 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
   // Local state để hiển thị thông tin đơn hàng
   const [orderDetail, setOrderDetail] = useState(order);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [hasComplaint, setHasComplaint] = useState(
+    Boolean(
+      (order &&
+        (order.status === "complaining" ||
+          order.complaint_id ||
+          order.complaintId ||
+          order.has_complaint ||
+          order.hasComplaint)) ||
+        false
+    )
+  );
   const [loading, setLoading] = useState(false);
 
   // Fetch order detail nếu có orderId từ URL params
@@ -126,6 +137,15 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
       };
 
       setOrderDetail(transformedOrder);
+      setHasComplaint(
+        Boolean(
+          transformedOrder.status === "complaining" ||
+            transformedOrder.complaint_id ||
+            transformedOrder.complaintId ||
+            transformedOrder.has_complaint ||
+            transformedOrder.hasComplaint
+        )
+      );
     } catch (error) {
       console.error("Lỗi khi fetch order detail:", error);
       alert("Không thể tải thông tin đơn hàng");
@@ -200,9 +220,8 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        {/* Hiện nút khiếu nại nếu trạng thái là shipped hoặc completed */}
-        {(orderDetail.status === "shipped" ||
-          orderDetail.status === "completed") && (
+        {/* Hiện nút khiếu nại nếu trạng thái là shipped và CHƯA có khiếu nại; ẩn ở trạng thái completed */}
+        {orderDetail.status === "shipped" && !hasComplaint && (
           <button
             className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
             onClick={() => setShowComplaintModal(true)}
@@ -377,7 +396,10 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
           isOpen={showComplaintModal}
           onClose={() => setShowComplaintModal(false)}
           order={orderDetail}
-          onSubmit={() => setShowComplaintModal(false)}
+          onSubmit={() => {
+            setShowComplaintModal(false);
+            setHasComplaint(true);
+          }}
         />
       )}
     </div>

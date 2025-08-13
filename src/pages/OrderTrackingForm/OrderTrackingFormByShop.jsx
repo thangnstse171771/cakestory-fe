@@ -1,9 +1,11 @@
 // NOTE: This file was originally for shop tracking but misnamed.
 // Use OrderTrackingFormShop.jsx instead for shop view.
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ComplaintModal from "../ComplaintManagement/ComplaintModal";
 import { fetchOrderById } from "../../api/axios";
+import { fetchShopByUserId } from "../../api/axios";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   User,
   Package,
@@ -52,13 +54,98 @@ const statusMap = {
   },
 };
 
-export default function OrderTrackingFormByShop({ order, onBackToList }) {
+// Normalize backend status variants
+const normalizeStatus = (s = "") => {
+  const v = String(s).toLowerCase();
+  if (
+    ["accepted", "confirmed", "order_accepted", "received", "ordered"].includes(
+      v
+    )
+  )
+    return "ordered";
+  if (
+    [
+      "ready",
+      "ready_to_ship",
+      "prepared",
+      "preparing",
+      "preparedfordelivery",
+      "prepared_for_delivery",
+    ].includes(v)
+  )
+    return "preparedForDelivery";
+  if (["shipping", "delivering", "in_transit", "shipped"].includes(v))
+    return "shipped";
+  if (["done", "delivered", "completed", "complete"].includes(v))
+    return "completed";
+  if (["complaint", "complaining", "disputed"].includes(v))
+    return "complaining";
+  if (["cancel", "canceled", "cancelled"].includes(v)) return "cancelled";
+  if (["pending", "new"].includes(v)) return "pending";
+  return s;
+};
+
+export default function OrderTrackingFormByShop({
+  order,
+  onBackToList,
+  onUpdateStatus,
+}) {
   const navigate = useNavigate();
   const { orderId } = useParams();
+  const { user } = useAuth();
+  const role = String(user?.role || "").toLowerCase();
+  const shopRoleSet = new Set([
+    "admin",
+    "account_staff",
+    "staff",
+    "shop",
+    "seller",
+    "owner",
+    "manager",
+    "shop_owner",
+    "shopowner",
+    "shop_admin",
+    "vendor",
+    "store",
+    "shop_member",
+  ]);
+  const [viewerShopId, setViewerShopId] = useState(null);
+  // Also infer a shop id directly from the user object if present
+  const inferredUserShopId =
+    user?.shop_id || user?.shopId || user?.shop?.id || null;
+  // Consider as shop actor if role suggests it OR a shop id is present
+  const isShopActor = shopRoleSet.has(role) || Boolean(inferredUserShopId);
+  const hasFetchedShopIdRef = useRef(false);
 
   // Local state để hiển thị thông tin đơn hàng
-  const [orderDetail, setOrderDetail] = useState(order);
+  const [orderDetail, setOrderDetail] = useState(
+    order
+      ? {
+          ...order,
+          status: normalizeStatus(order.status),
+          shop_id:
+            order.shop_id ||
+            order.shopId ||
+            order.shop?.id ||
+            order.marketplace_post?.shop_id ||
+            order.order_details?.[0]?.marketplace_post?.shop_id ||
+            order.orderDetails?.[0]?.shop_id ||
+            null,
+        }
+      : order
+  );
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [hasComplaint, setHasComplaint] = useState(
+    Boolean(
+      (order &&
+        (order.status === "complaining" ||
+          order.complaint_id ||
+          order.complaintId ||
+          order.has_complaint ||
+          order.hasComplaint)) ||
+        false
+    )
+  );
   const [loading, setLoading] = useState(false);
 
   // Fetch order detail nếu có orderId từ URL params
@@ -67,6 +154,24 @@ export default function OrderTrackingFormByShop({ order, onBackToList }) {
       fetchOrderDetail();
     }
   }, [orderId]);
+
+  // Keep local detail in sync if parent passes a new order
+  useEffect(() => {
+    if (order) {
+      setOrderDetail({
+        ...order,
+        status: normalizeStatus(order.status),
+        shop_id:
+          order.shop_id ||
+          order.shopId ||
+          order.shop?.id ||
+          order.marketplace_post?.shop_id ||
+          order.order_details?.[0]?.marketplace_post?.shop_id ||
+          order.orderDetails?.[0]?.shop_id ||
+          null,
+      });
+    }
+  }, [order]);
 
   const fetchOrderDetail = async () => {
     try {
@@ -109,7 +214,7 @@ export default function OrderTrackingFormByShop({ order, onBackToList }) {
         ingredientTotal,
         total: basePrice, // total must equal base price per requirement
         base_price: basePrice,
-        status: response.status || "pending",
+        status: normalizeStatus(response.status || "pending"),
         orderNumber: response.orderNumber || `ORD-${response.id}`,
         placeDate: response.placeDate || new Date().toISOString().split("T")[0],
         history: response.history || [
@@ -123,14 +228,95 @@ export default function OrderTrackingFormByShop({ order, onBackToList }) {
             note: "Đơn hàng được tạo",
           },
         ],
+        shop_id:
+          response.shop_id ||
+          response.shopId ||
+          response.shop?.id ||
+          response.marketplace_post?.shop_id ||
+          response.order_details?.[0]?.marketplace_post?.shop_id ||
+          response.orderDetails?.[0]?.shop_id ||
+          null,
       };
 
       setOrderDetail(transformedOrder);
+      setHasComplaint(
+        Boolean(
+          transformedOrder.status === "complaining" ||
+            transformedOrder.complaint_id ||
+            transformedOrder.complaintId ||
+            transformedOrder.has_complaint ||
+            transformedOrder.hasComplaint
+        )
+      );
     } catch (error) {
       console.error("Lỗi khi fetch order detail:", error);
       alert("Không thể tải thông tin đơn hàng");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Resolve viewer's shop id for permission checks
+  useEffect(() => {
+    if (hasFetchedShopIdRef.current) return;
+    hasFetchedShopIdRef.current = true;
+    const inferFromUser = () => {
+      const cand = user?.shop_id || user?.shopId || user?.shop?.id;
+      return cand != null ? String(cand) : null;
+    };
+    (async () => {
+      try {
+        if (!user?.id) {
+          setViewerShopId(inferFromUser());
+          return;
+        }
+        const shopResp = await fetchShopByUserId(user.id);
+        const sid =
+          shopResp?.shop?.shop_id ||
+          shopResp?.shop_id ||
+          shopResp?.id ||
+          shopResp?.shop?.id ||
+          null;
+        setViewerShopId(sid != null ? String(sid) : inferFromUser());
+      } catch (e) {
+        console.warn(
+          "Không thể lấy shopId của người dùng hiện tại:",
+          e?.message || e
+        );
+        setViewerShopId(inferFromUser());
+      }
+    })();
+  }, [user?.id]);
+
+  // Update status locally and optionally via parent
+  const handleUpdateStatus = async (oid, newStatus) => {
+    try {
+      const normalized = normalizeStatus(newStatus);
+      setOrderDetail((prev) => (prev ? { ...prev, status: normalized } : prev));
+      if (onUpdateStatus) await onUpdateStatus(oid, normalized, undefined);
+      alert(
+        `Đã cập nhật trạng thái đơn hàng thành: ${
+          statusMap[normalized]?.label || normalized
+        }`
+      );
+    } catch (error) {
+      const viewerShopIdStr = viewerShopId
+        ? String(viewerShopId)
+        : inferredUserShopId
+        ? String(inferredUserShopId)
+        : null;
+      const canShopControl = Boolean(
+        viewerShopIdStr
+          ? !orderShopIdStr || viewerShopIdStr === orderShopIdStr
+          : isShopActor && !orderShopIdStr
+      );
+      console.debug("[OrderTrackingFormByShop] perm check:", {
+        viewerShopId,
+        inferredUserShopId,
+        orderShopId: orderDetail?.shop_id,
+        canShopControl,
+      });
+      alert(errorMessage);
     }
   };
 
@@ -190,6 +376,18 @@ export default function OrderTrackingFormByShop({ order, onBackToList }) {
       ? (currentStatusIndex / (mainStatusFlow.length - 1)) * 100
       : 0;
 
+  // Permission: only the shop owner of this order can control these buttons.
+  const orderShopIdStr =
+    orderDetail?.shop_id != null ? String(orderDetail.shop_id) : null;
+  const viewerShopIdStr = viewerShopId
+    ? String(viewerShopId)
+    : inferredUserShopId
+    ? String(inferredUserShopId)
+    : null;
+  const canShopControl = Boolean(
+    viewerShopIdStr && (!orderShopIdStr || viewerShopIdStr === orderShopIdStr)
+  );
+
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
       <div className="max-w-4xl mx-auto">
@@ -200,16 +398,7 @@ export default function OrderTrackingFormByShop({ order, onBackToList }) {
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        {/* Hiện nút khiếu nại nếu trạng thái là shipped hoặc completed */}
-        {(orderDetail.status === "shipped" ||
-          orderDetail.status === "completed") && (
-          <button
-            className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-            onClick={() => setShowComplaintModal(true)}
-          >
-            Tạo khiếu nại
-          </button>
-        )}
+        {/* Shop view: không hiển thị nút khiếu nại */}
 
         <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
           {/* Progress Bar */}
@@ -241,6 +430,84 @@ export default function OrderTrackingFormByShop({ order, onBackToList }) {
                 style={{ width: `${progressPercentage}%` }}
                 className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-pink-500 transition-all duration-500 ease-out"
               ></div>
+            </div>
+          </div>
+
+          {/* Cập nhật trạng thái - chỉ shop owner của đơn được thao tác */}
+          <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
+            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
+              <MessageSquareText className="h-5 w-5" />
+              Cập nhật trạng thái
+            </h3>
+            {isShopActor && !canShopControl && (
+              <div className="mb-3 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                Bạn đang đăng nhập bằng tài khoản Shop nhưng không phải chủ shop
+                của đơn này nên không thể thao tác cập nhật trạng thái.
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {/* pending -> ordered */}
+              {canShopControl && orderDetail.status === "pending" && (
+                <button
+                  onClick={() => handleUpdateStatus(orderDetail.id, "ordered")}
+                  className="px-4 py-2 rounded-lg font-semibold border bg-cyan-500 text-white border-cyan-500 hover:bg-cyan-600 transition-colors duration-200"
+                >
+                  Tiếp nhận đơn hàng
+                </button>
+              )}
+
+              {/* ordered -> preparedForDelivery */}
+              {canShopControl && orderDetail.status === "ordered" && (
+                <button
+                  onClick={() =>
+                    handleUpdateStatus(orderDetail.id, "preparedForDelivery")
+                  }
+                  className="px-4 py-2 rounded-lg font-semibold border bg-blue-500 text-white border-blue-500 hover:bg-blue-600 transition-colors duration-200"
+                >
+                  Sẵn sàng giao hàng
+                </button>
+              )}
+
+              {/* preparedForDelivery -> shipped */}
+              {canShopControl &&
+                orderDetail.status === "preparedForDelivery" && (
+                  <button
+                    onClick={() =>
+                      handleUpdateStatus(orderDetail.id, "shipped")
+                    }
+                    className="px-4 py-2 rounded-lg font-semibold border bg-orange-500 text-white border-orange-500 hover:bg-orange-600 transition-colors duration-200"
+                  >
+                    Giao hàng
+                  </button>
+                )}
+
+              {/* Hủy đơn: shop có thể hủy khi chưa hoàn thành/đã hủy */}
+              {canShopControl &&
+                orderDetail.status !== "completed" &&
+                orderDetail.status !== "cancelled" && (
+                  <button
+                    onClick={() =>
+                      handleUpdateStatus(orderDetail.id, "cancelled")
+                    }
+                    className="px-4 py-2 rounded-lg font-semibold border bg-red-500 text-white border-red-500 hover:bg-red-600 transition-colors duration-200"
+                  >
+                    Hủy đơn hàng
+                  </button>
+                )}
+            </div>
+
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-md font-semibold text-pink-600">
+                Trạng thái hiện tại:
+              </span>
+              <span
+                className={`px-2 py-1 text-sm rounded-lg font-semibold ${
+                  statusMap[orderDetail.status]?.color ||
+                  "bg-gray-200 text-gray-700"
+                }`}
+              >
+                {statusMap[orderDetail.status]?.label || orderDetail.status}
+              </span>
             </div>
           </div>
 
@@ -377,7 +644,10 @@ export default function OrderTrackingFormByShop({ order, onBackToList }) {
           isOpen={showComplaintModal}
           onClose={() => setShowComplaintModal(false)}
           order={orderDetail}
-          onSubmit={() => setShowComplaintModal(false)}
+          onSubmit={() => {
+            setShowComplaintModal(false);
+            setHasComplaint(true);
+          }}
         />
       )}
     </div>

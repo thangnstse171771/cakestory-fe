@@ -59,6 +59,17 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
   // Local state để hiển thị thông tin đơn hàng
   const [orderDetail, setOrderDetail] = useState(order);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [hasComplaint, setHasComplaint] = useState(
+    Boolean(
+      (order &&
+        (order.status === "complaining" ||
+          order.complaint_id ||
+          order.complaintId ||
+          order.has_complaint ||
+          order.hasComplaint)) ||
+        false
+    )
+  );
   const [loading, setLoading] = useState(false);
 
   // Fetch order detail nếu có orderId từ URL params
@@ -200,16 +211,7 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        {/* Hiện nút khiếu nại nếu trạng thái là shipped hoặc completed */}
-        {(orderDetail.status === "shipped" ||
-          orderDetail.status === "completed") && (
-          <button
-            className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-            onClick={() => setShowComplaintModal(true)}
-          >
-            Tạo khiếu nại
-          </button>
-        )}
+        {/* Admin view: không hiển thị nút khiếu nại */}
 
         <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
           {/* Progress Bar */}
@@ -377,7 +379,10 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
           isOpen={showComplaintModal}
           onClose={() => setShowComplaintModal(false)}
           order={orderDetail}
-          onSubmit={() => setShowComplaintModal(false)}
+          onSubmit={() => {
+            setShowComplaintModal(false);
+            setHasComplaint(true);
+          }}
         />
       )}
     </div>
