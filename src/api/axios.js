@@ -292,7 +292,9 @@ export const fetchWithdrawRequestById = async (id) => {
 export const fetchAllWithdrawHistory = async () => {
   try {
     console.log("Gọi API fetchAllWithdrawHistory...");
-    const response = await axiosInstance.get("/wallet/withdrawAll-history");
+    const response = await axiosInstance.get(
+      "/wallet/withdrawAll-historyAdmin"
+    );
     console.log("All withdraw history response:", response.data);
     return response.data;
   } catch (error) {
@@ -318,18 +320,39 @@ export const fetchWithdrawHistoryByUserId = async (userId) => {
   }
 };
 
-// Hủy yêu cầu rút tiền
-export const cancelWithdrawRequest = async (withdrawId) => {
+// Admin: Duyệt yêu cầu rút tiền
+export const confirmWithdrawRequest = async (withdrawId) => {
   try {
-    console.log("Hủy yêu cầu rút tiền với withdrawId:", withdrawId);
+    if (!withdrawId) throw new Error("Thiếu withdrawId");
+    console.log("Confirm withdraw:", withdrawId);
     const response = await axiosInstance.put(
-      `/wallet/cancel-withdraw/${withdrawId}`
+      `/wallet/confirmRequestByAdmin/${withdrawId}`
     );
-    console.log("Cancel withdraw response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Lỗi khi hủy yêu cầu rút tiền:", error);
-    console.error("Error response:", error.response?.data);
+    console.error(
+      "Confirm withdraw failed:",
+      error.response?.status,
+      error.response?.data
+    );
+    throw error;
+  }
+};
+
+export const cancelWithdrawRequest = async (withdrawId) => {
+  try {
+    if (!withdrawId) throw new Error("Thiếu withdrawId");
+    console.log("Reject withdraw by admin:", withdrawId);
+    const response = await axiosInstance.put(
+      `/wallet/rejectRequestbyAdmin/${withdrawId}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Reject withdraw failed:",
+      error.response?.status,
+      error.response?.data
+    );
     throw error;
   }
 };
@@ -427,19 +450,12 @@ export const fetchUserWalletById = async (userId) => {
 export const fetchAllDepositsAdmin = async (filters = {}) => {
   try {
     console.log("Gọi API fetchAllDepositsAdmin với filters:", filters);
-
-    // Build params object
     const params = {
       page: filters.page || 1,
-      limit: filters.limit || 999999, // Set limit rất lớn để lấy tất cả
+      limit: filters.limit || 999999,
     };
-
-    // Add optional filters
     if (filters.status) params.status = filters.status;
     if (filters.user_id) params.user_id = filters.user_id;
-    if (filters.start_date) params.start_date = filters.start_date;
-    if (filters.end_date) params.end_date = filters.end_date;
-
     const response = await axiosInstance.get("/wallet/allDepositsAdmin", {
       params,
     });
@@ -502,14 +518,46 @@ export const fetchShopOrders = async (shopId) => {
   }
 };
 
+// Lấy tất cả orders (admin)
+export const fetchAllOrders = async () => {
+  try {
+    const response = await axiosInstance.get("/cake-orders");
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy tất cả orders:", error);
+    throw error;
+  }
+};
+
+// Lấy orders theo user (customer)
+export const fetchUserOrders = async (userId) => {
+  try {
+    if (!userId) throw new Error("Thiếu userId");
+    const response = await axiosInstance.get(`/cake-orders/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy orders theo user:", error);
+    throw error;
+  }
+};
+
+// Lấy orders theo shop (nếu cần dùng endpoint chuẩn thay vì fetchShopOrders cũ)
+export const fetchOrdersByShopId = async (shopId) => {
+  try {
+    if (!shopId) throw new Error("Thiếu shopId");
+    const response = await axiosInstance.get(`/cake-orders/shop/${shopId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy orders theo shop:", error);
+    throw error;
+  }
+};
+
 // Cập nhật trạng thái order
 export const updateOrderStatus = async (orderId, status) => {
   try {
     console.log("Cập nhật trạng thái order:", { orderId, status });
-
-    // API hỗ trợ 4 endpoint cụ thể
     let endpoint = "";
-
     switch (status) {
       case "ordered":
         endpoint = `/cake-orders/${orderId}/ordered`;
@@ -524,11 +572,8 @@ export const updateOrderStatus = async (orderId, status) => {
         endpoint = `/cake-orders/${orderId}/cancel`;
         break;
       default:
-        throw new Error(
-          `API không hỗ trợ cập nhật trạng thái "${status}". Chỉ hỗ trợ: ordered, shipped, completed, cancelled`
-        );
+        throw new Error("Trạng thái không hợp lệ");
     }
-
     const response = await axiosInstance.put(endpoint, {});
     console.log("Update order status response:", response.data);
     return response.data;
@@ -549,6 +594,151 @@ export const createComplaint = async (complaintData) => {
   } catch (error) {
     console.error("Lỗi khi tạo complaint:", error);
     console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
+// Lấy complaints của một shop
+export const fetchComplaintsByShop = async (shopId) => {
+  try {
+    if (!shopId) throw new Error("Thiếu shopId");
+    const res = await axiosInstance.get(`/complaints/shop/${shopId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy complaints theo shop:", error);
+    throw error;
+  }
+};
+
+export const fetchComplaintsByCustomer = async (customerId) => {
+  try {
+    if (!customerId) throw new Error("Thiếu customerId");
+    const res = await axiosInstance.get(`/complaints/customer/${customerId}`);
+    const data = res.data;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.complaints)) return data.complaints;
+    return [];
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    console.error("Lỗi khi lấy complaints theo customer:", error);
+    throw error;
+  }
+};
+
+export const fetchComplaintById = async (complaintId) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    const res = await axiosInstance.get(`/complaints/${complaintId}`);
+    return res.data;
+  } catch (error) {
+    console.warn(
+      "fetchComplaintById thất bại:",
+      complaintId,
+      error.response?.status
+    );
+    throw error;
+  }
+};
+
+// Admin: lấy tất cả complaints
+export const fetchAllComplaints = async () => {
+  try {
+    const res = await axiosInstance.get(`/complaints`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy tất cả complaints:", error);
+    throw error;
+  }
+};
+
+// Lấy ingredients sử dụng trong order của complaint (nếu backend có endpoint)
+export const fetchComplaintIngredientsByShop = async (shopId) => {
+  try {
+    if (!shopId) throw new Error("Thiếu shopId");
+    const res = await axiosInstance.get(`/ingredients?shop_id=${shopId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy ingredients shop:", error);
+    throw error;
+  }
+};
+
+export const fetchMarketplacePostById = async (postId) => {
+  try {
+    if (!postId) throw new Error("Thiếu postId");
+    console.log("Gọi API fetchMarketplacePostById với postId:", postId);
+    const res = await axiosInstance.get(`/marketplace-posts/${postId}`);
+    return res.data; // expects { message, post }
+  } catch (error) {
+    console.error(
+      "Lỗi khi fetchMarketplacePostById:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// Admin: approve complaint (cancel related order)
+export const approveComplaint = async (complaintId) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    console.log("Approve complaint:", complaintId);
+    const res = await axiosInstance.put(`/complaints/${complaintId}/approve`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "Lỗi approve complaint:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// Admin: reject complaint (mark related order as completed)
+export const rejectComplaint = async (complaintId) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    console.log("Reject complaint:", complaintId);
+    const res = await axiosInstance.put(`/complaints/${complaintId}/reject`);
+    return res.data;
+  } catch (error) {
+    console.error(
+      "Lỗi reject complaint:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// Admin: update complaint admin note
+export const updateComplaintAdminNote = async (complaintId, adminNote) => {
+  try {
+    if (!complaintId) throw new Error("Thiếu complaintId");
+    console.log("Update complaint admin note:", { complaintId, adminNote });
+    const res = await axiosInstance.put(`/complaints/${complaintId}`, {
+      admin_note: adminNote ?? "",
+    });
+    return res.data;
+  } catch (error) {
+    console.error(
+      "Lỗi update complaint admin note:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
+
+// Lấy đơn mua bánh theo userId (để hiển thị vào lịch sử giao dịch)
+export const fetchCakeOrdersByUserId = async (userId) => {
+  try {
+    if (!userId) throw new Error("Thiếu userId");
+    const response = await axiosInstance.get(`/cake-orders/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchCakeOrdersByUserId:", error);
     throw error;
   }
 };

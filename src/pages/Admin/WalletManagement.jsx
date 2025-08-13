@@ -7,6 +7,7 @@ import {
   fetchAllDepositsAdmin,
   fetchSystemWalletBalance,
   fetchTotalAmountAiGenerate,
+  fetchAllWithdrawHistory,
 } from "../../api/axios";
 
 // Mock data cho các ví (sẽ được thay thế bằng dữ liệu từ API)
@@ -27,7 +28,7 @@ const mockWalletData = {
     description: "Doanh thu hệ thống từ gói AI",
   },
   withdraw: {
-    balance: 5000000, // 5 triệu
+    balance: 0, // Sẽ được cập nhật từ withdraw API
     currency: "VND",
     description: "Tổng tiền đang chờ rút",
   },
@@ -66,14 +67,16 @@ const WalletManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalUserWalletsBalance, setTotalUserWalletsBalance] = useState(0); // Tổng số dư user wallets
+  const [pendingWithdraw, setPendingWithdraw] = useState({
+    amount: 0,
+    count: 0,
+  }); // Pending withdraw stats
   const navigate = useNavigate();
 
   // Filter states
   const [filters, setFilters] = useState({
     status: "",
     user_id: "",
-    start_date: "",
-    end_date: "",
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -88,17 +91,19 @@ const WalletManagement = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch multiple data sources bao gồm AI revenue và all user wallets
+      // Fetch multiple data sources bao gồm AI revenue, all user wallets và withdraw data
       const [
         systemBalanceResponse,
         depositsResponse,
         aiRevenueResponse,
         allWalletsResponse,
+        withdrawResponse,
       ] = await Promise.allSettled([
         fetchSystemWalletBalance(),
         fetchAllDepositsAdmin(appliedFilters), // Pass filters to API call
         fetchTotalAmountAiGenerate(), // Fetch AI revenue
         fetchAllUserWallets(), // Fetch all user wallets for total balance
+        fetchAllWithdrawHistory(), // Fetch withdraw data
       ]);
 
       // Update wallet data với system balance (holding wallet)
@@ -269,18 +274,153 @@ const WalletManagement = () => {
         console.log("Wallet array length:", walletArray.length);
 
         if (walletArray.length > 0) {
+          // Chuẩn hóa parsing VND: hỗ trợ định dạng có dấu phẩy/chấm và ký tự tiền tệ
+          const toVndNumber = (val) => {
+            if (typeof val === "number") return Math.round(val);
+            if (val == null) return 0;
+            let s = String(val).trim();
+            // loại bỏ ký tự không phải số, dấu chấm, dấu phẩy hoặc dấu trừ
+            s = s.replace(/[^0-9.,-]/g, "");
+            // nếu có cả dấu phẩy và chấm, xác định dấu thập phân theo ký tự xuất hiện sau cùng
+            if (s.includes(",") && s.includes(".")) {
+              const lastComma = s.lastIndexOf(",");
+              const lastDot = s.lastIndexOf(".");
+              const dec = lastComma > lastDot ? "," : ".";
+              if (dec === ",") {
+                s = s.replace(/\./g, "");
+                s = s.replace(",", ".");
+              } else {
+                s = s.replace(/,/g, "");
+              }
+            } else if (s.includes(",")) {
+              // chỉ có dấu phẩy: coi như phân cách nghìn → bỏ hết
+              s = s.replace(/,/g, "");
+            }
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? Math.round(n) : 0;
+          };
+
           totalBalance = walletArray.reduce((sum, wallet) => {
-            // Parse balance as string or number
-            const balance = parseFloat(wallet.balance) || 0;
+            const parsed = toVndNumber(wallet.balance);
             console.log(
-              `Wallet ${wallet.user_id}: balance = ${wallet.balance} -> parsed = ${balance}`
+              `Wallet ${wallet.user_id}: balance = ${wallet.balance} -> parsed = ${parsed}`
             );
-            return sum + balance;
+            return sum + parsed;
           }, 0);
         }
 
         console.log("Total user wallets balance calculated:", totalBalance);
         setTotalUserWalletsBalance(totalBalance);
+      }
+
+      // Update withdraw wallet với withdraw data thật
+      if (withdrawResponse.status === "fulfilled") {
+        const wd = withdrawResponse.value;
+        console.log("Withdraw data received:", wd);
+
+        // Hỗ trợ nhiều dạng response khác nhau
+        let withdraws = [];
+        if (Array.isArray(wd?.data?.withdraws)) withdraws = wd.data.withdraws;
+        else if (Array.isArray(wd?.withdraws)) withdraws = wd.withdraws;
+        else if (Array.isArray(wd?.withdrawHistory))
+          withdraws = wd.withdrawHistory;
+        else if (Array.isArray(wd)) withdraws = wd;
+
+        const normalizeStatus = (s) => {
+          const v = String(s || "").toLowerCase();
+          if (
+            [
+              "completed",
+              "complete",
+              "done",
+              "success",
+              "thanh cong",
+              "hoàn thành",
+              "thành công",
+            ].includes(v)
+          )
+            return "completed";
+          if (["approved", "approve"].includes(v)) return "approved";
+          if (
+            [
+              "rejected",
+              "reject",
+              "failed",
+              "fail",
+              "error",
+              "từ chối",
+              "that bai",
+            ].includes(v)
+          )
+            return "rejected";
+          if (["cancelled", "canceled", "cancel"].includes(v))
+            return "rejected";
+          return "pending";
+        };
+
+        const toNumber = (a) => {
+          if (typeof a === "number") return a;
+          if (a == null) return 0;
+          let s = String(a).trim();
+          s = s.replace(/[^0-9.,-]/g, "");
+          if (s.includes(",") && s.includes(".")) {
+            const lastComma = s.lastIndexOf(",");
+            const lastDot = s.lastIndexOf(".");
+            const dec = lastComma > lastDot ? "," : ".";
+            if (dec === ",") {
+              s = s.replace(/\./g, "");
+              s = s.replace(",", ".");
+            } else {
+              s = s.replace(/,/g, "");
+            }
+          } else if (s.includes(",")) {
+            s = s.replace(/,/g, "");
+          }
+          const n = parseFloat(s);
+          return Number.isFinite(n) ? n : 0;
+        };
+
+        let pendingCount = 0;
+        let completedCount = 0;
+        let totalPendingWithdraw = 0;
+        let totalCompletedWithdraw = 0;
+
+        (withdraws || []).forEach((w) => {
+          const st = normalizeStatus(w?.status);
+          const amt = toNumber(w?.amount);
+          if (st === "pending") {
+            pendingCount += 1;
+            totalPendingWithdraw += amt;
+          } else if (st === "completed") {
+            completedCount += 1;
+            totalCompletedWithdraw += amt;
+          }
+        });
+
+        console.log("Pending withdraw:", {
+          pendingCount,
+          totalPendingWithdraw,
+        });
+        console.log("Completed withdraw:", {
+          completedCount,
+          totalCompletedWithdraw,
+        });
+
+        // Card "Ví Withdraw" hiển thị: Số tiền đã rút (completed)
+        setWalletData((prev) => ({
+          ...prev,
+          withdraw: {
+            balance: totalCompletedWithdraw,
+            currency: "VND",
+            description: `Tổng tiền đã rút (${completedCount} yêu cầu hoàn thành)`,
+          },
+        }));
+
+        // Summary giữ nguyên: Tiền Chờ Rút (pending)
+        setPendingWithdraw({
+          amount: totalPendingWithdraw,
+          count: pendingCount,
+        });
       }
 
       // Keep original admin wallet fetch for accounting
@@ -389,8 +529,6 @@ const WalletManagement = () => {
     const resetFilters = {
       status: "",
       user_id: "",
-      start_date: "",
-      end_date: "",
     };
     setFilters(resetFilters);
     fetchAdminWalletData(resetFilters);
@@ -417,6 +555,10 @@ const WalletManagement = () => {
         return "💰";
     }
   };
+
+  // Tổng doanh thu = AI + Hệ Thống
+  const totalRevenue =
+    (walletData.floating?.balance || 0) + (walletData.accounting?.balance || 0);
 
   const getWalletColor = (walletType) => {
     switch (walletType) {
@@ -533,7 +675,7 @@ const WalletManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(walletData.accounting?.balance || 0)}
+                {formatCurrency(totalRevenue)}
               </p>
               <p className="text-sm text-gray-600">Tổng Doanh Thu</p>
             </div>
@@ -547,7 +689,7 @@ const WalletManagement = () => {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-red-600">
-                {formatCurrency(walletData.withdraw?.balance || 0)}
+                {formatCurrency(pendingWithdraw.amount || 0)}
               </p>
               <p className="text-sm text-gray-600">Tiền Chờ Rút</p>
             </div>
@@ -699,36 +841,6 @@ const WalletManagement = () => {
                         handleFilterChange("user_id", e.target.value)
                       }
                       placeholder="Nhập User ID"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                    />
-                  </div>
-
-                  {/* Start Date Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Từ Ngày
-                    </label>
-                    <input
-                      type="date"
-                      value={filters.start_date}
-                      onChange={(e) =>
-                        handleFilterChange("start_date", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
-                    />
-                  </div>
-
-                  {/* End Date Filter */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Đến Ngày
-                    </label>
-                    <input
-                      type="date"
-                      value={filters.end_date}
-                      onChange={(e) =>
-                        handleFilterChange("end_date", e.target.value)
-                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                     />
                   </div>

@@ -49,12 +49,7 @@ const Marketplace = () => {
             Discover amazing cakes from local bakers
           </p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-white rounded-xl border px-4 py-2">
-            <Search className="w-5 h-5 text-gray-400" />
-            <span className="text-gray-500">Search marketplace</span>
-          </div>
-        </div>
+        <div className="flex items-center space-x-4"></div>
       </div>
 
       <div className="flex items-center mb-6">
@@ -110,7 +105,7 @@ const Marketplace = () => {
         ) : errorProducts ? (
           <div className="text-center text-red-500 py-12">{errorProducts}</div>
         ) : (
-          <ProductsList products={products} />
+          <ProductsList products={products} isOwnShop={false} />
         )
       ) : view === "shops" ? (
         <ShopsList />

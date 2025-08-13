@@ -19,9 +19,13 @@ import UpdateAlbum from "./UpdateAlbum";
 import UpdateAlbumPost from "./AlbumPost/UpdateAlbumPost";
 import AlbumPostDetail from "./AlbumPost/AlbumPostDetail";
 import DeletePostPopup from "../MyPost/DeletePostPopup";
+import { useAuth } from "../../contexts/AuthContext";
+import dayjs from "dayjs";
 
 const AlbumDetail = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  const currentUser = user?.id;
   const [album, setAlbum] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -41,6 +45,7 @@ const AlbumDetail = () => {
 
       const formattedAlbum = {
         title: data.name,
+        user_id: data.user_id,
         description: data.description,
         createdDate: data.created_at,
         coverImage:
@@ -75,7 +80,7 @@ const AlbumDetail = () => {
     try {
       await authAPI.deleteAlbumPost(selectedPost.id);
       setIsDeletePostOpen(false); // close popup
-      fetchAlbum(); 
+      fetchAlbum();
       setSelectedPost(null);
     } catch (error) {
       console.error("Delete post failed:", error);
@@ -152,13 +157,15 @@ const AlbumDetail = () => {
             </div>
 
             <div>
-              <button
-                className="flex items-center gap-2 bg-pink-500 px-4 py-2 rounded-xl hover:bg-pink-600 transition transition-all duration-300 shadow-lg hover:shadow-xl"
-                onClick={() => setIsCreatePostOpen(true)}
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create Post</span>
-              </button>
+              {currentUser === album.user_id && (
+                <button
+                  className="flex items-center gap-2 bg-pink-500 px-4 py-2 rounded-xl hover:bg-pink-600 transition transition-all duration-300 shadow-lg hover:shadow-xl"
+                  onClick={() => setIsCreatePostOpen(true)}
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Post</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -276,14 +283,19 @@ const AlbumDetail = () => {
                   <h3 className="font-semibold text-gray-800 line-clamp-1">
                     {post.title}
                   </h3>
-                  <button
-                    className="text-gray-400 hover:text-gray-600"
-                    onClick={() =>
-                      setOpenDropdown(openDropdown === post.id ? null : post.id)
-                    }
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
+                  {currentUser === album.user_id && (
+                    <button
+                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() =>
+                        setOpenDropdown(
+                          openDropdown === post.id ? null : post.id
+                        )
+                      }
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                  )}
+
                   {openDropdown === post.id && (
                     <div className="absolute bottom-1 right-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
                       <button
@@ -331,7 +343,7 @@ const AlbumDetail = () => {
                   </div> */}
                   <span className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>{formatDate(post.date)}</span>
+                    <span>{dayjs(post.date).format("D MMM, YYYY")}</span>
                   </span>
                 </div>
               </div>
@@ -356,17 +368,25 @@ const AlbumDetail = () => {
                         <img
                           src={firstImage.image_url}
                           alt={post.title}
-                          className="w-32 h-32 object-cover rounded-lg flex-shrink-0"
+                          className="w-32 h-32 object-cover rounded-lg flex-shrink-0 cursor-pointer"
+                          onClick={() => {
+                            setSelectedPost(post);
+                            setIsAlbumPostOpen(true);
+                          }}
                         />
                       );
                     } else if (firstVideo) {
                       return (
                         <video
                           src={firstVideo.video_url}
-                          className="w-32 h-32 object-cover rounded-lg flex-shrink-0"
+                          className="w-32 h-32 object-cover rounded-lg flex-shrink-0 cursor-pointer"
                           muted
                           autoPlay
                           loop
+                          onClick={() => {
+                            setSelectedPost(post);
+                            setIsAlbumPostOpen(true);
+                          }}
                         />
                       );
                     } else {
@@ -374,7 +394,11 @@ const AlbumDetail = () => {
                         <img
                           src="https://placehold.co/600x400?text=No+Media"
                           alt={post.title}
-                          className="w-32 h-32 object-cover rounded-lg flex-shrink-0"
+                          className="w-32 h-32 object-cover rounded-lg flex-shrink-0 cursor-pointer"
+                          onClick={() => {
+                            setSelectedPost(post);
+                            setIsAlbumPostOpen(true);
+                          }}
                         />
                       );
                     }
@@ -385,16 +409,19 @@ const AlbumDetail = () => {
                       <h3 className="text-xl font-semibold text-gray-800">
                         {post.title}
                       </h3>
-                      <button
-                        className="text-gray-400 hover:text-gray-600"
-                        onClick={() =>
-                          setOpenDropdown(
-                            openDropdown === post.id ? null : post.id
-                          )
-                        }
-                      >
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+                      {currentUser === album.user_id && (
+                        <button
+                          className="text-gray-400 hover:text-gray-600"
+                          onClick={() =>
+                            setOpenDropdown(
+                              openDropdown === post.id ? null : post.id
+                            )
+                          }
+                        >
+                          <MoreHorizontal className="w-5 h-5" />
+                        </button>
+                      )}
+
                       {openDropdown === post.id && (
                         <div className="absolute top-11 right-2 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
                           <button
@@ -443,7 +470,7 @@ const AlbumDetail = () => {
                       </div> */}
                       <span className="flex items-center space-x-1 text-sm text-gray-500">
                         <Calendar className="w-4 h-4" />
-                        <span>{formatDate(post.date)}</span>
+                        <span>{dayjs(post.date).format("D MMM, YYYY")}</span>
                       </span>
                     </div>
                   </div>

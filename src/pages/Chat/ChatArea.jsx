@@ -237,10 +237,10 @@ const ChatArea = () => {
   ];
 
   return (
-    <div className="flex flex-1 bg-white rounded-r-xl shadow-sm border-t border-r border-b border-gray-100">
+    <div className="flex flex-1 rounded-r-xl shadow-sm border-t border-r border-b border-gray-100">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        <div className="p-4  border-b border-gray-200 flex items-center justify-between">
+        <div className="p-4 bg-white border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <img
               src={
@@ -264,7 +264,7 @@ const ChatArea = () => {
           </div>
         </div>
 
-        <div className="flex-1 p-4 overflow-y-auto">
+        <div className="flex-1 p-4 overflow-y-auto bg-gray">
           <div className="space-y-4">
             {chat?.messages?.map((message) => {
               // const isOwnMessage = (() => {
@@ -353,7 +353,7 @@ const ChatArea = () => {
                         className="chat-image rounded-md max-w-[350px] object-cover"
                       />
                     )}
-                    <div className="bg-gray-100 rounded-lg p-3 max-w-xs">
+                    <div className="bg-pink-100 rounded-lg p-3 max-w-xs">
                       <p className="text-sm text-gray-800">{message.text}</p>
                       <span className="text-xs text-gray-500 mt-1 block">
                         {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
@@ -403,7 +403,7 @@ const ChatArea = () => {
           </div>
         </div>
 
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t bg-white border-gray-200">
           {image && (
             <div className="relative w-full max-w-[120px] mb-4">
               <img

@@ -40,6 +40,7 @@ import {
 import "./ShopAnalystic.css";
 import { Star } from "lucide-react";
 import OrderTrackingList from "../OrderTrackingForm/OrderTrackingList";
+import ShopStatsCard from "./ShopStatsCard";
 import {
   fetchShopMembers,
   fetchAllActiveUsers,
@@ -54,8 +55,14 @@ import {
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { removeUserFromGroupChatByShopId } from "../Chat/libs/shopChatUtils";
 import { db } from "../../firebase";
+import {
+  fetchShopCustomers,
+  fetchShopOrderStats,
+  fetchShopRevenue,
+  fetchShopMonthlyRevenue,
+} from "../../api/shopStats";
 
-// Dữ liệu ảo cho biểu đồ
+// Dữ liệu dự phòng cho biểu đồ (sử dụng khi API lỗi)
 const revenueData = [
   { month: "T1", revenue: 2000000 },
   { month: "T2", revenue: 2500000 },
@@ -66,23 +73,18 @@ const revenueData = [
   { month: "T7", revenue: 1200000 },
 ];
 const orderData = [
-  { name: "Đã hoàn thành", value: 220 },
-  { name: "Đang xử lý", value: 70 },
-  { name: "Đã hủy", value: 30 },
+  { name: "Đã hoàn thành", value: 220, color: "#52c41a" },
+  { name: "Đang xử lý", value: 70, color: "#1890ff" },
+  { name: "Đã hủy", value: 30, color: "#ff7875" },
 ];
-const ratingData = [
-  { name: "5★", value: 180 },
-  { name: "4★", value: 90 },
-  { name: "3★", value: 30 },
-  { name: "2★", value: 10 },
-  { name: "1★", value: 10 },
+const COLORS = [
+  "#52c41a",
+  "#1890ff",
+  "#ff7875",
+  "#722ed1",
+  "#fadb14",
+  "#f59e42",
 ];
-const productData = [
-  { name: "Bánh kem", value: 10 },
-  { name: "Bánh sinh nhật", value: 8 },
-  { name: "Bánh cupcake", value: 7 },
-];
-const COLORS = ["#f59e42", "#52c41a", "#ff7875", "#1890ff", "#fadb14"];
 
 const ShopAnalystic = ({ onBack }) => {
   const [tab, setTab] = useState("overview");
@@ -110,7 +112,12 @@ const ShopAnalystic = ({ onBack }) => {
     totalProducts: 0,
     totalRevenue: 0,
     rating: 0,
+    totalCustomers: 0,
+    completionRate: 0,
   });
+  const [orderStatsData, setOrderStatsData] = useState([]);
+  const [revenueChartData, setRevenueChartData] = useState([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Fetch dữ liệu shop thật
@@ -126,6 +133,8 @@ const ShopAnalystic = ({ onBack }) => {
       );
 
       if (userShop) {
+        const currentShopId = userShop.shop_id || userShop.id;
+
         setShopInfo({
           name: userShop.business_name || userShop.name || "Chưa có tên shop",
           owner: user.full_name || user.username || "Chủ shop",
@@ -133,32 +142,113 @@ const ShopAnalystic = ({ onBack }) => {
           phone_number: userShop.phone_number || "",
           business_address: userShop.business_address || "",
         });
-        setShopId(userShop.shop_id || userShop.id);
+        setShopId(currentShopId);
 
-        // Fetch orders để tính stats
+        // Fetch dữ liệu từ 4 API mới
         try {
-          const ordersData = await fetchShopOrders(
-            userShop.shop_id || userShop.id
-          );
-          const orders = ordersData.orders || [];
+          // 1. Fetch customer statistics
+          const customerData = await fetchShopCustomers(currentShopId);
+          const totalCustomers = customerData.data?.total_unique_customers || 0;
 
-          const totalRevenue = orders.reduce(
-            (sum, order) => sum + (parseFloat(order.total_price) || 0),
-            0
+          // 2. Fetch order statistics
+          const orderStatsResponse = await fetchShopOrderStats(currentShopId);
+          const orderStats = orderStatsResponse.data?.order_statistics || {};
+
+          // Chuyển đổi dữ liệu order stats cho biểu đồ
+          const orderChartData = [
+            {
+              name: "Đã hoàn thành",
+              value: orderStats.completed_orders || 0,
+              color: "#52c41a",
+            },
+            {
+              name: "Đã đặt hàng",
+              value: orderStats.ordered_orders || 0,
+              color: "#1890ff",
+            },
+            {
+              name: "Đã giao",
+              value: orderStats.shipped_orders || 0,
+              color: "#722ed1",
+            },
+            {
+              name: "Đang chờ",
+              value: orderStats.pending_orders || 0,
+              color: "#fadb14",
+            },
+            {
+              name: "Đã hủy",
+              value: orderStats.cancelled_orders || 0,
+              color: "#ff7875",
+            },
+            {
+              name: "Khiếu nại",
+              value: orderStats.complaining_orders || 0,
+              color: "#ff4d4f",
+            },
+          ].filter((item) => item.value > 0); // Chỉ hiển thị những trạng thái có giá trị > 0
+
+          setOrderStatsData(orderChartData);
+
+          // 3. Fetch revenue statistics
+          const revenueResponse = await fetchShopRevenue(currentShopId);
+          const financialSummary =
+            revenueResponse.data?.financial_summary || {};
+
+          const totalRevenue = parseFloat(
+            financialSummary.completed_money || 0
           );
 
+          // 4. Fetch monthly revenue for progress
+          const monthlyRevenueResponse = await fetchShopMonthlyRevenue(
+            currentShopId
+          );
+          const monthlyFinancial =
+            monthlyRevenueResponse.data?.financial_summary || {};
+          const monthlyTotal = parseFloat(
+            monthlyFinancial.completed_money || 0
+          );
+
+          setMonthlyRevenue({
+            current: monthlyTotal,
+            target: 10000000, // Mục tiêu 10 triệu VND
+            month:
+              monthlyRevenueResponse.data?.month_info?.current_month ||
+              "Tháng hiện tại",
+          });
+
+          // Cập nhật shop stats
           setShopStats({
-            totalOrders: orders.length,
+            totalOrders: orderStats.total_orders || 0,
             totalRevenue: totalRevenue,
+            totalCustomers: totalCustomers,
+            completionRate: parseFloat(
+              orderStatsResponse.data?.completion_rate || 0
+            ),
             rating: 4.5, // TODO: Fetch từ API review nếu có
             totalProducts: 0, // Sẽ fetch từ marketplace posts
           });
-        } catch (orderError) {
-          console.error("Error fetching orders:", orderError);
+
+          // Tạo dữ liệu cho biểu đồ doanh thu (mock data - có thể thay bằng API thực tế)
+          const revenueChartData = [
+            { month: "T1", revenue: totalRevenue * 0.8 },
+            { month: "T2", revenue: totalRevenue * 0.9 },
+            { month: "T3", revenue: totalRevenue * 0.7 },
+            { month: "T4", revenue: totalRevenue * 1.1 },
+            { month: "T5", revenue: totalRevenue * 0.95 },
+            { month: "T6", revenue: totalRevenue * 1.2 },
+            { month: "T7", revenue: totalRevenue },
+          ];
+          setRevenueChartData(revenueChartData);
+        } catch (apiError) {
+          console.error("Error fetching shop statistics:", apiError);
+          // Fallback với dữ liệu cũ nếu API mới lỗi
           setShopStats((prev) => ({
             ...prev,
             totalOrders: 0,
             totalRevenue: 0,
+            totalCustomers: 0,
+            completionRate: 0,
           }));
         }
 
@@ -166,7 +256,7 @@ const ShopAnalystic = ({ onBack }) => {
         try {
           const postsData = await fetchMarketplacePosts();
           const userPosts = (postsData.marketplacePosts || []).filter(
-            (post) => post.shop_id === (userShop.shop_id || userShop.id)
+            (post) => post.shop_id === currentShopId
           );
           setShopStats((prev) => ({
             ...prev,
@@ -434,39 +524,63 @@ const ShopAnalystic = ({ onBack }) => {
             ),
             children: (
               <>
-                <Row gutter={24} className="overview-row">
-                  <Col span={6}>
-                    <Statistic
-                      title="Doanh thu"
-                      value={loading ? 0 : shopStats.totalRevenue}
-                      suffix="VND"
-                      valueStyle={{ color: "#52c41a" }}
-                      loading={loading}
-                    />
+                <ShopStatsCard
+                  totalRevenue={shopStats.totalRevenue}
+                  totalOrders={shopStats.totalOrders}
+                  totalCustomers={shopStats.totalCustomers}
+                  completionRate={shopStats.completionRate}
+                  totalProducts={shopStats.totalProducts}
+                  loading={loading}
+                />
+
+                <Row gutter={24} style={{ marginBottom: 24 }}>
+                  <Col span={12}>
+                    <Card
+                      size="small"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+                        border: "1px solid #0ea5e9",
+                      }}
+                    >
+                      <Statistic
+                        title={`📈 Doanh thu ${
+                          monthlyRevenue.month || "tháng này"
+                        }`}
+                        value={monthlyRevenue.current || 0}
+                        suffix="VND"
+                        valueStyle={{
+                          color: "#0369a1",
+                          fontSize: "18px",
+                          fontWeight: 600,
+                        }}
+                        formatter={(value) =>
+                          `${parseFloat(value).toLocaleString()}`
+                        }
+                      />
+                    </Card>
                   </Col>
-                  <Col span={6}>
-                    <Statistic
-                      title="Đơn hàng"
-                      value={loading ? 0 : shopStats.totalOrders}
-                      prefix={<ShoppingCartOutlined />}
-                      loading={loading}
-                    />
-                  </Col>
-                  <Col span={6}>
-                    <Statistic
-                      title="Sản phẩm"
-                      value={loading ? 0 : shopStats.totalProducts}
-                      loading={loading}
-                    />
-                  </Col>
-                  <Col span={6}>
-                    <Statistic
-                      title="Đánh giá"
-                      value={loading ? 0 : shopStats.rating}
-                      suffix="★"
-                      valueStyle={{ color: "#fadb14" }}
-                      loading={loading}
-                    />
+                  <Col span={12}>
+                    <Card
+                      size="small"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, #fefce8 0%, #fef3c7 100%)",
+                        border: "1px solid #f59e0b",
+                      }}
+                    >
+                      <Statistic
+                        title="⭐ Đánh giá trung bình"
+                        value={loading ? 0 : shopStats.rating}
+                        suffix="★"
+                        valueStyle={{
+                          color: "#d97706",
+                          fontSize: "18px",
+                          fontWeight: 600,
+                        }}
+                        loading={loading}
+                      />
+                    </Card>
                   </Col>
                 </Row>
                 <Row gutter={24} style={{ marginTop: 32 }}>
@@ -482,20 +596,36 @@ const ShopAnalystic = ({ onBack }) => {
                     >
                       <ResponsiveContainer width="100%" height={220}>
                         <LineChart
-                          data={revenueData}
+                          data={
+                            revenueChartData.length > 0
+                              ? revenueChartData
+                              : revenueData
+                          }
                           margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" />
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#f0f0f0"
+                          />
                           <XAxis dataKey="month" />
-                          <YAxis />
-                          <RTooltip formatter={(v) => v.toLocaleString()} />
+                          <YAxis
+                            tickFormatter={(value) =>
+                              `${(value / 1000000).toFixed(1)}M`
+                            }
+                          />
+                          <RTooltip
+                            formatter={(v) => [
+                              `${parseFloat(v).toLocaleString()} VND`,
+                              "Doanh thu",
+                            ]}
+                          />
                           <Line
                             type="monotone"
                             dataKey="revenue"
-                            stroke="#f59e42"
+                            stroke="#52c41a"
                             strokeWidth={3}
-                            dot={{ r: 5 }}
-                            activeDot={{ r: 8 }}
+                            dot={{ r: 5, fill: "#52c41a" }}
+                            activeDot={{ r: 8, fill: "#389e0d" }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -514,23 +644,34 @@ const ShopAnalystic = ({ onBack }) => {
                       <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
                           <Pie
-                            data={orderData}
+                            data={
+                              orderStatsData.length > 0
+                                ? orderStatsData
+                                : orderData
+                            }
                             dataKey="value"
                             nameKey="name"
                             cx="50%"
                             cy="50%"
                             outerRadius={70}
-                            label
+                            label={({ name, value }) => `${name}: ${value}`}
                           >
-                            {orderData.map((entry, idx) => (
+                            {(orderStatsData.length > 0
+                              ? orderStatsData
+                              : orderData
+                            ).map((entry, idx) => (
                               <Cell
                                 key={`cell-${idx}`}
-                                fill={COLORS[idx % COLORS.length]}
+                                fill={
+                                  entry.color || COLORS[idx % COLORS.length]
+                                }
                               />
                             ))}
                           </Pie>
                           <Legend />
-                          <RTooltip />
+                          <RTooltip
+                            formatter={(value, name) => [`${value} đơn`, name]}
+                          />
                         </PieChart>
                       </ResponsiveContainer>
                     </Card>
@@ -539,58 +680,113 @@ const ShopAnalystic = ({ onBack }) => {
                 <Row gutter={24} style={{ marginTop: 32 }}>
                   <Col span={12}>
                     <Card
-                      title={
-                        <span>
-                          <BarChartOutlined /> Phân loại sản phẩm
-                        </span>
-                      }
+                      title={<span>💰 Thống kê doanh thu</span>}
                       variant={false}
                       style={{ minHeight: 320 }}
                     >
-                      <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={productData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Bar dataKey="value" fill="#52c41a">
-                            {productData.map((entry, idx) => (
-                              <Cell
-                                key={`cell-bar-${idx}`}
-                                fill={COLORS[idx % COLORS.length]}
-                              />
-                            ))}
-                          </Bar>
-                          <RTooltip />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      <div style={{ padding: "20px 0" }}>
+                        <Row gutter={16}>
+                          <Col span={12}>
+                            <Statistic
+                              title="Doanh thu đã hoàn thành"
+                              value={loading ? 0 : shopStats.totalRevenue}
+                              suffix="VND"
+                              valueStyle={{
+                                color: "#52c41a",
+                                fontSize: "16px",
+                              }}
+                              formatter={(value) =>
+                                `${parseFloat(value).toLocaleString()}`
+                              }
+                            />
+                          </Col>
+                          <Col span={12}>
+                            <Statistic
+                              title="Tỉ lệ hoàn thành đơn hàng"
+                              value={loading ? 0 : shopStats.completionRate}
+                              suffix="%"
+                              valueStyle={{
+                                color: "#1890ff",
+                                fontSize: "16px",
+                              }}
+                            />
+                          </Col>
+                        </Row>
+                        <Row gutter={16} style={{ marginTop: 24 }}>
+                          <Col span={12}>
+                            <Statistic
+                              title="Tổng số khách hàng"
+                              value={loading ? 0 : shopStats.totalCustomers}
+                              valueStyle={{
+                                color: "#722ed1",
+                                fontSize: "16px",
+                              }}
+                            />
+                          </Col>
+                          <Col span={12}>
+                            <Statistic
+                              title="Tổng sản phẩm"
+                              value={loading ? 0 : shopStats.totalProducts}
+                              valueStyle={{
+                                color: "#f59e42",
+                                fontSize: "16px",
+                              }}
+                            />
+                          </Col>
+                        </Row>
+                      </div>
                     </Card>
                   </Col>
                   <Col span={12}>
                     <Card
-                      title={
-                        <span>
-                          <Star style={{ color: "#fadb14" }} /> Phân bố đánh giá
-                        </span>
-                      }
+                      title={<span>📊 Phân tích hiệu quả</span>}
                       variant={false}
                       style={{ minHeight: 320 }}
                     >
-                      <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={ratingData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Bar dataKey="value" fill="#fadb14">
-                            {ratingData.map((entry, idx) => (
-                              <Cell
-                                key={`cell-rating-${idx}`}
-                                fill={COLORS[idx % COLORS.length]}
-                              />
-                            ))}
-                          </Bar>
-                          <RTooltip />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      <div style={{ padding: "20px 0" }}>
+                        <div style={{ marginBottom: 24 }}>
+                          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                            Hiệu quả hoàn thành đơn hàng
+                          </div>
+                          <Progress
+                            percent={shopStats.completionRate || 0}
+                            strokeColor={{
+                              "0%": "#ff7875",
+                              "50%": "#fadb14",
+                              "100%": "#52c41a",
+                            }}
+                            trailColor="#f5f5f5"
+                          />
+                        </div>
+
+                        <div style={{ marginBottom: 24 }}>
+                          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                            Mức độ phổ biến (số khách hàng)
+                          </div>
+                          <Progress
+                            percent={Math.min(
+                              (shopStats.totalCustomers / 100) * 100,
+                              100
+                            )}
+                            strokeColor="#1890ff"
+                            trailColor="#f5f5f5"
+                          />
+                        </div>
+
+                        <div>
+                          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                            Đa dạng sản phẩm
+                          </div>
+                          <Progress
+                            percent={Math.min(
+                              (shopStats.totalProducts / 50) * 100,
+                              100
+                            )}
+                            strokeColor="#722ed1"
+                            trailColor="#f5f5f5"
+                          />
+                        </div>
+                      </div>
                     </Card>
                   </Col>
                 </Row>
@@ -623,7 +819,7 @@ const ShopAnalystic = ({ onBack }) => {
                 />
                 {showAddModal && (
                   <div
-                    className="add-member-modal-overlay"
+                    className="add-member-modal-overlay responsive-modal"
                     style={{
                       position: "fixed",
                       top: 0,
@@ -635,19 +831,27 @@ const ShopAnalystic = ({ onBack }) => {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      overflowY: "auto",
+                      padding: "16px",
                     }}
                   >
                     <div
+                      className="responsive-modal-content"
                       style={{
                         background: "#fff",
-                        padding: 56,
-                        minWidth: 700,
-                        maxWidth: 1100,
-                        width: "98%",
+                        padding: "2vw 1vw",
+                        minWidth: "500px",
+                        maxWidth: "1100px",
+                        width: "100%",
                         borderRadius: 24,
                         boxShadow: "0 6px 40px rgba(245,158,66,0.18)",
                         border: "2px solid #f59e42",
                         position: "relative",
+                        maxHeight: "90vh",
+                        overflowY: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
                       }}
                     >
                       <Button
@@ -660,17 +864,19 @@ const ShopAnalystic = ({ onBack }) => {
                           fontSize: 22,
                           color: "#f59e42",
                           fontWeight: 700,
+                          zIndex: 2,
                         }}
                       >
                         ×
                       </Button>
                       <h2
                         style={{
-                          marginBottom: 32,
+                          marginBottom: "2vw",
                           textAlign: "center",
                           color: "#f59e42",
                           fontWeight: 700,
-                          fontSize: 28,
+                          fontSize: "max(20px,2vw)",
+                          wordBreak: "break-word",
                         }}
                       >
                         Thêm thành viên vào shop
@@ -777,8 +983,8 @@ const ShopAnalystic = ({ onBack }) => {
                         rowKey="id"
                         loading={loadingUsers}
                         pagination={{ pageSize: 8 }}
-                        style={{ marginTop: 8 }}
-                        scroll={{ y: 700 }}
+                        style={{ marginTop: 8, width: "100%", minWidth: 240 }}
+                        scroll={{ y: 400 }}
                       />
                     </div>
                   </div>
@@ -897,8 +1103,67 @@ const ShopAnalystic = ({ onBack }) => {
         ]}
       />
       <div className="shop-progress-section">
-        <h3>Tiến độ hoàn thành mục tiêu tháng</h3>
-        <Progress percent={75} status="active" strokeColor="#f59e42" />
+        <Row gutter={24} align="middle">
+          <Col span={18}>
+            <h3 style={{ margin: 0 }}>
+              Tiến độ mục tiêu doanh thu {monthlyRevenue.month || "tháng này"}
+            </h3>
+            <div style={{ marginTop: 8 }}>
+              <Progress
+                percent={Math.min(
+                  Math.round(
+                    (monthlyRevenue.current / monthlyRevenue.target) * 100
+                  ),
+                  100
+                )}
+                status="active"
+                strokeColor={{
+                  "0%": "#52c41a",
+                  "100%": "#73d13d",
+                }}
+                trailColor="#f5f5f5"
+                strokeWidth={8}
+                format={(percent) => `${percent}%`}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginTop: 4,
+                  fontSize: "12px",
+                  color: "#666",
+                }}
+              >
+                <span>
+                  Hiện tại:{" "}
+                  {parseFloat(monthlyRevenue.current || 0).toLocaleString()} VND
+                </span>
+                <span>
+                  Mục tiêu:{" "}
+                  {parseFloat(monthlyRevenue.target || 0).toLocaleString()} VND
+                </span>
+              </div>
+            </div>
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="Còn lại để đạt mục tiêu"
+              value={Math.max(
+                0,
+                (monthlyRevenue.target || 0) - (monthlyRevenue.current || 0)
+              )}
+              suffix="VND"
+              valueStyle={{
+                color:
+                  (monthlyRevenue.current || 0) >= (monthlyRevenue.target || 0)
+                    ? "#52c41a"
+                    : "#f59e42",
+                fontSize: "16px",
+              }}
+              formatter={(value) => `${parseFloat(value).toLocaleString()}`}
+            />
+          </Col>
+        </Row>
       </div>
     </div>
   );

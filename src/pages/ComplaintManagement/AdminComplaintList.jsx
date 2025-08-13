@@ -10,6 +10,7 @@ import {
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchComplaintsByShop, fetchShopByUserId } from "../../api/axios";
+import { fetchAllComplaints } from "../../api/axios";
 
 export default function ComplaintList({
   complaints: initialComplaints,
@@ -23,9 +24,10 @@ export default function ComplaintList({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [shopId, setShopId] = useState(propShopId || null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
-  // Status map (UI) aligned with normalized statuses
+  // Status map (UI)
   const complaintStatusMap = {
     pending: { label: "Chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
     complete: { label: "Đã hoàn tiền", color: "bg-green-100 text-green-700" },
@@ -35,7 +37,7 @@ export default function ComplaintList({
   // Robust status normalization aligned with user complaint logic
   const normalizeStatus = (raw = "") => {
     const r = (raw || "").toString().trim().toLowerCase();
-    if (["pending", "complaining"].includes(r)) return "pending"; // internal pending
+    if (["pending", "complaining"].includes(r)) return "pending";
     if (
       [
         "complete",
@@ -54,7 +56,21 @@ export default function ComplaintList({
 
   // Fetch shopId if not provided (derive from current user => fetch shop)
   useEffect(() => {
+    // detect admin role from localStorage user
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      const role = user?.role || user?.user_role || user?.userRole;
+      if (
+        role &&
+        ["admin", "administrator", "superadmin"].includes(role.toLowerCase())
+      ) {
+        setIsAdmin(true);
+      }
+    } catch (e) {
+      console.warn("[ComplaintList] Cannot parse user for role", e);
+    }
     const deriveShopId = async () => {
+      if (isAdmin) return; // admin lấy tất cả, không cần shopId
       if (shopId) return;
       try {
         const user = JSON.parse(localStorage.getItem("user"));
@@ -86,11 +102,13 @@ export default function ComplaintList({
 
   // Fetch complaints for shop
   const loadComplaints = async (sid = shopId) => {
-    if (!sid) return;
+    if (!isAdmin && !sid) return;
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchComplaintsByShop(sid);
+      const data = isAdmin
+        ? await fetchAllComplaints()
+        : await fetchComplaintsByShop(sid);
       console.log("[ComplaintList] Raw complaints response:", data);
       // unify list
       let listRaw = [];
@@ -171,12 +189,14 @@ export default function ComplaintList({
   };
 
   useEffect(() => {
-    if (shopId) loadComplaints(shopId);
+    if (isAdmin) loadComplaints();
+    else if (shopId) loadComplaints(shopId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId]);
+  }, [shopId, isAdmin]);
 
   const handleRefresh = () => {
-    if (shopId) loadComplaints(shopId);
+    if (isAdmin) loadComplaints();
+    else if (shopId) loadComplaints(shopId);
   };
 
   // Only real complaints (no fake fallback)
@@ -215,7 +235,11 @@ export default function ComplaintList({
   });
 
   const handleViewDetails = (complaint) =>
-    navigate(`/complaints/${complaint.id}`);
+    navigate(
+      isAdmin
+        ? `/admin/complaints/${complaint.id}`
+        : `/complaints/${complaint.id}`
+    );
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
@@ -223,14 +247,16 @@ export default function ComplaintList({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <h2 className="text-3xl font-bold text-red-700 flex items-center gap-3">
             <MessageSquareWarning className="h-7 w-7" />
-            Khiếu nại của Shop {shopId ? `#${shopId}` : ""} (
-            {filteredComplaints.length})
+            {isAdmin
+              ? "Tất cả Khiếu nại"
+              : `Khiếu nại của Shop ${shopId ? `#${shopId}` : ""}`}{" "}
+            ({filteredComplaints.length})
           </h2>
           <div className="flex items-center gap-3">
             {error && <span className="text-sm text-red-600">{error}</span>}
             <button
               onClick={handleRefresh}
-              disabled={loading || !shopId}
+              disabled={loading || (!shopId && !isAdmin)}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 rounded-lg text-red-600 font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               <RefreshCw

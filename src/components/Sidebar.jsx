@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
+import { fetchAllShops } from "../api/axios";
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -31,29 +32,92 @@ const Sidebar = () => {
   const [showMore, setShowMore] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Menu cho mọi người
+  // Determine if current user owns/has a shop (quick client-side check)
+  const computedHasShop = Boolean(
+    user?.shop ||
+      user?.shopId ||
+      user?.shop_id ||
+      user?.isShopOwner ||
+      (Array.isArray(user?.shops) && user?.shops.length > 0) ||
+      (Array.isArray(user?.ownedShops) && user?.ownedShops.length > 0)
+  );
+
+  // Robust: verify from API if the quick check fails
+  const [hasShopResolved, setHasShopResolved] = useState(computedHasShop);
+  useEffect(() => {
+    setHasShopResolved(computedHasShop);
+  }, [computedHasShop]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const userId = user?.id ?? user?.user_id;
+        if (userId && !computedHasShop) {
+          const shopsData = await fetchAllShops();
+          // Support different response shapes
+          let shops = [];
+          if (Array.isArray(shopsData?.shops)) shops = shopsData.shops;
+          else if (Array.isArray(shopsData?.data?.shops))
+            shops = shopsData.data.shops;
+          else if (Array.isArray(shopsData?.data)) shops = shopsData.data;
+          else if (Array.isArray(shopsData)) shops = shopsData;
+
+          const found = shops.some(
+            (s) => String(s?.user_id) === String(userId)
+          );
+          if (!cancelled && found) setHasShopResolved(true);
+        }
+      } catch (_) {
+        // silent: sidebar visibility shouldn't crash the app
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, user?.user_id, computedHasShop]);
+
+  // Menu công khai (giữ mục track orders chung cho shop owners nếu có shop)
   const publicMenu = [
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
     { icon: Cake, label: "Cake Design", path: "/cake-design" },
-    // { icon: Calendar, label: "Events", path: "/events" },
     { icon: Trophy, label: "Challenge", path: "/challenge" },
-    { icon: ListOrdered, label: "Track Orders", path: "/order-tracking" },
+    // Shop order tracking (dùng component lấy theo shop của user hiện tại)
+    { icon: ListOrdered, label: "Đơn hàng của shop", path: "/order-tracking" },
     { icon: MessageSquareWarning, label: "Khiếu nại", path: "/complaints" },
   ];
+
   // Menu cho user thường
   const userMenu = [
     { icon: MessageCircle, label: "Messages", path: "/chat" },
     { icon: BookImage, label: "My Post", path: "/mypost" },
     { icon: SquareLibrary, label: "My Album", path: "/myalbum" },
+    {
+      icon: ListOrdered,
+      label: "Đơn hàng của tôi",
+      path: "/order-tracking-user",
+    },
+    {
+      icon: MessageSquareWarning,
+      label: "Khiếu nại của tôi",
+      path: "/my-complaints",
+    },
     { icon: User, label: "Profile", path: "/profile" },
-    { icon: Wallet, label: "Nạp tiền", path: "/wallet" }, // Thêm mục Nạp tiền cho user
+    { icon: Wallet, label: "Nạp tiền", path: "/wallet" },
     { icon: ArrowDownToLine, label: "Rút tiền", path: "/withdraw" },
     { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
   ];
+
   // Menu cho admin/staff
   const adminMenu = [
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
+    { icon: ListOrdered, label: "All Orders", path: "/admin/order-tracking" },
+    {
+      icon: MessageSquareWarning,
+      label: "All Complaints",
+      path: "/admin/complaints",
+    },
     { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },
     {
       icon: CreditCard,
@@ -61,16 +125,35 @@ const Sidebar = () => {
       path: "/admin/withdraw-requests",
     },
     { icon: Trophy, label: "Admin Challenge", path: "/admin/challenge" },
-    { icon: User, label: "Profile", path: "/profile" }, // Thêm mục Profile cho admin
+    { icon: User, label: "Profile", path: "/profile" },
   ];
+
+  // Build menu based on role and shop ownership
+  const isAdminRole = ["admin", "account_staff", "staff"].includes(user?.role);
 
   let menuItems = publicMenu;
   if (user) {
-    if (["admin", "account_staff", "staff"].includes(user.role)) {
+    if (isAdminRole) {
       menuItems = [...publicMenu, ...adminMenu];
+      // Optional: also hide Shop Orders if admin account has no shop
+      if (!hasShopResolved) {
+        menuItems = menuItems.filter((i) => i.path !== "/order-tracking");
+      }
     } else {
       menuItems = [...publicMenu, ...userMenu];
+      // User thường: chỉ hiển thị mục Khiếu nại (shop) và Shop Orders nếu có shop
+      if (!hasShopResolved) {
+        menuItems = menuItems.filter(
+          (item) =>
+            item.path !== "/complaints" && item.path !== "/order-tracking"
+        );
+      }
     }
+  } else {
+    // Khách: ẩn mục Khiếu nại (shop) và Shop Orders
+    menuItems = publicMenu.filter(
+      (item) => item.path !== "/complaints" && item.path !== "/order-tracking"
+    );
   }
 
   useEffect(() => {

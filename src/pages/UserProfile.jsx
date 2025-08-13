@@ -12,6 +12,7 @@ import {
   Tag,
   UserPlus,
   UserCheck,
+  Search,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -20,6 +21,9 @@ import useFollowersFollowing from "../hooks/useFollowersFollowing";
 import usePersonalFollowersFollowing from "../hooks/usePersonalFollowersFollowing";
 import { authAPI } from "../api/auth";
 import { useAuth } from "../contexts/AuthContext";
+import { toast } from "react-toastify";
+import dayjs from "dayjs";
+import PostDetail from "./MyPost/PostDetail";
 
 const FAKE_ACHIEVEMENTS = [
   { name: "Master Baker", icon: Award, color: "text-pink-400" },
@@ -69,9 +73,16 @@ const UserProfile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingAlbums, setLoadingAlbums] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [showFollowers, setShowFollowers] = useState(false);
   const [showFollowing, setShowFollowing] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [activeTab, setActiveTab] = useState("photos");
   // Danh sách followers/following của user đang xem
   const {
     followers,
@@ -82,10 +93,57 @@ const UserProfile = () => {
     setFollowing,
   } = useFollowersFollowing(id);
   // Danh sách following của bản thân
-  const {
-    following: myFollowing,
-    fetchFollowing: fetchMyFollowing,
-  } = usePersonalFollowersFollowing(user?.id);
+  const { following: myFollowing, fetchFollowing: fetchMyFollowing } =
+    usePersonalFollowersFollowing(user?.id);
+
+  const [likesData, setLikesData] = useState({});
+
+  useEffect(() => {
+    const fetchLikesForPosts = async () => {
+      const initialLikes = {};
+      for (const post of posts) {
+        try {
+          const res = await authAPI.getLikesByPostId(post.id);
+          const data = res.likes;
+          const totalLikes = res.total_likes || data.length;
+          const liked = data.some((like) => like.user_id === user?.id);
+          initialLikes[post.id] = { liked, count: totalLikes };
+        } catch (error) {
+          console.error("Failed to fetch likes for post", post.id, error);
+          initialLikes[post.id] = {
+            liked: false,
+            count: post.total_likes || 0,
+          };
+        }
+      }
+      setLikesData(initialLikes);
+    };
+
+    if (posts.length > 0) {
+      fetchLikesForPosts();
+    }
+  }, [posts]);
+
+  const handleLike = async (postId) => {
+    try {
+      await authAPI.likePost(postId); // your likePost function that can like/unlike
+      setLikesData((prev) => {
+        const wasLiked = prev[postId]?.liked;
+        const newCount = wasLiked
+          ? prev[postId].count - 1
+          : prev[postId].count + 1;
+        return {
+          ...prev,
+          [postId]: {
+            liked: !wasLiked,
+            count: newCount,
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Failed to toggle like", error);
+    }
+  };
 
   useEffect(() => {
     if (user && String(user.id) === String(id)) {
@@ -110,7 +168,9 @@ const UserProfile = () => {
   }, [id, user, navigate, fetchFollowers, fetchFollowing, fetchMyFollowing]);
 
   // Xác định trạng thái follow dựa vào danh sách following của bản thân
-  const isFollowingProfile = myFollowing.some((u) => String(u.id) === String(id));
+  const isFollowingProfile = myFollowing.some(
+    (u) => String(u.id) === String(id)
+  );
 
   const handleFollow = async () => {
     try {
@@ -149,9 +209,79 @@ const UserProfile = () => {
     }
   };
 
-  if (loading) {
+  const fetchPosts = async () => {
+    try {
+      const data = await authAPI.getMemoryPostByUserId(id);
+      const mappedPosts = (data.posts || []).map((item) => ({
+        id: item.Post.id,
+        title: item.Post.title,
+        description: item.Post.description,
+        date: item.event_date,
+        category: item.event_type,
+        media: item.Post.media,
+        user: item.Post.user,
+        created_at: item.Post.created_at,
+        is_public: item.Post.is_public,
+        total_likes: item.Post.total_likes,
+        total_comments: item.Post.total_comments,
+      }));
+      setPosts(mappedPosts);
+    } catch (err) {
+      toast.error("Không thể tải bài viết. Vui lòng thử lại!");
+      setPosts([]);
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  const fetchAlbums = async () => {
+    try {
+      const response = await authAPI.getAlbumsByUserId(id);
+      const rawAlbums = response.data.albums;
+
+      const formatted = rawAlbums.map((album) => ({
+        id: album.id,
+        title: album.name,
+        description: album.description,
+        image:
+          album.AlbumPosts?.[0]?.Post?.media?.[0]?.image_url ||
+          "https://www.shutterstock.com/image-vector/default-ui-image-placeholder-wireframes-600nw-1037719192.jpg",
+        date: album.created_at,
+        category: "default",
+        postCount: album.AlbumPosts.length,
+      }));
+
+      setAlbums(formatted);
+      console.log("Fetched albums ", albums);
+    } catch (error) {
+      console.error("Error fetching albums:", error);
+    } finally {
+      setLoadingAlbums(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  useEffect(() => {
+    fetchAlbums();
+  }, []);
+
+  const postStat =
+    posts.length + albums.reduce((total, album) => total + album.postCount, 0);
+
+  const likeStat = posts.reduce((total, post) => {
+    const likeCount =
+      likesData[post.id]?.count !== undefined
+        ? likesData[post.id].count
+        : post.total_likes || 0;
+    return total + likeCount;
+  }, 0);
+
+  if (loading || loadingPosts || loadingAlbums) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-100 to-pink-300">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-pink-500"></div>
       </div>
     );
@@ -168,12 +298,12 @@ const UserProfile = () => {
   // Dữ liệu mặc định cho các trường không có từ API
   const stats = profile.stats || FAKE_STATS;
   const achievements = profile.achievements || FAKE_ACHIEVEMENTS;
-  const albums = profile.albums || FAKE_ALBUMS;
+  // const albums = profile.albums || FAKE_ALBUMS;
   const recentPhotos = profile.recentPhotos || FAKE_RECENT_PHOTOS;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-pink-200">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="min-h-screen bg-pink-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Profile Header */}
         <div className="bg-white rounded-3xl shadow-xl border border-pink-100 p-8 mb-10 flex flex-col md:flex-row items-center md:items-start gap-8 relative">
           <div className="relative flex-shrink-0">
@@ -240,21 +370,41 @@ const UserProfile = () => {
             <p className="text-gray-700 text-base italic mb-2">
               {profile.bio || "Chưa có mô tả cá nhân."}
             </p>
-            <div className="flex gap-8 mb-2">
-              <div className="text-center">
-                <div className="font-bold text-2xl text-pink-500">{stats.posts}</div>
-                <div className="text-gray-500 text-sm">Bài viết</div>
-              </div>
-              <div className="text-center cursor-pointer" onClick={() => { fetchFollowers(); setShowFollowers(true); }}>
-                <div className="font-bold text-2xl text-pink-500">{followers.length}</div>
+            <div className="grid grid-cols-4 gap-4">
+              <div
+                className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer"
+                onClick={() => {
+                  fetchFollowers();
+                  setShowFollowers(true);
+                }}
+              >
+                <div className="font-bold text-2xl text-pink-500">
+                  {followers.length}
+                </div>
                 <div className="text-gray-500 text-sm">Người theo dõi</div>
               </div>
-              <div className="text-center cursor-pointer" onClick={() => { fetchFollowing(); setShowFollowing(true); }}>
-                <div className="font-bold text-2xl text-pink-500">{following.length}</div>
+              <div
+                className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer"
+                onClick={() => {
+                  fetchFollowing();
+                  setShowFollowing(true);
+                }}
+              >
+                <div className="font-bold text-2xl text-pink-500">
+                  {following.length}
+                </div>
                 <div className="text-gray-500 text-sm">Đang theo dõi</div>
               </div>
-              <div className="text-center">
-                <div className="font-bold text-2xl text-pink-500">{stats.likes}</div>
+              <div className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer">
+                <div className="font-bold text-2xl text-pink-500">
+                  {postStat}
+                </div>
+                <div className="text-gray-500 text-sm">Bài viết</div>
+              </div>
+              <div className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer">
+                <div className="font-bold text-2xl text-pink-500">
+                  {likeStat}
+                </div>
                 <div className="text-gray-500 text-sm">Lượt thích</div>
               </div>
             </div>
@@ -298,80 +448,165 @@ const UserProfile = () => {
             </div>
           </div>
         </div>
-        {/* Albums */}
-        <div className="mb-10">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Albums nổi bật
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {albums.map((album) => (
-              <div
-                key={album.id}
-                className="bg-white rounded-2xl shadow-md border border-pink-100 p-4 hover:shadow-lg transition-shadow flex flex-col"
-              >
-                <img
-                  src={album.cover}
-                  alt={album.title}
-                  className="w-full h-40 object-cover rounded-lg mb-3 shadow-sm"
-                />
-                <div className="font-semibold text-gray-800 text-lg mb-1">
-                  {album.title}
-                </div>
-                <div className="text-gray-500 text-sm mb-1">
-                  {album.count} ảnh
-                </div>
-                <div className="flex gap-2 flex-wrap mb-2">
-                  {album.tags &&
-                    album.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-pink-100 text-pink-600 px-2 py-1 rounded-full text-xs"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                </div>
-                <div className="text-gray-600 text-sm flex-1">
-                  {album.description}
-                </div>
-              </div>
-            ))}
+
+        <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">
+          {/* Tabs Header */}
+          <div className="flex border-b border-pink-100 mb-6">
+            <button
+              onClick={() => setActiveTab("photos")}
+              className={`flex-1 flex items-center justify-center px-3 py-2 text-lg font-semibold transition ${
+                activeTab === "photos"
+                  ? "text-pink-500 border-b-2 border-pink-500"
+                  : "text-gray-500 hover:text-pink-400"
+              }`}
+            >
+              <Image className="w-5 h-5 mr-2" />
+              Ảnh gần đây
+            </button>
+
+            <button
+              onClick={() => setActiveTab("albums")}
+              className={`flex-1 flex items-center justify-center px-3 py-2 text-lg font-semibold transition ${
+                activeTab === "albums"
+                  ? "text-pink-500 border-b-2 border-pink-500"
+                  : "text-gray-500 hover:text-pink-400"
+              }`}
+            >
+              <BookOpen className="w-5 h-5 mr-2" />
+              Albums nổi bật
+            </button>
           </div>
-        </div>
-        {/* Recent Photos */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Ảnh gần đây</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {recentPhotos.map((photo) => (
-              <div
-                key={photo.id}
-                className="relative group rounded-xl overflow-hidden shadow hover:shadow-lg transition-shadow"
-              >
-                <img
-                  src={photo.image}
-                  alt="Recent"
-                  className="w-full h-32 object-cover rounded-lg"
-                />
-                <div className="absolute bottom-2 left-2 bg-white/80 text-pink-500 px-2 py-1 rounded-full text-xs flex items-center gap-1 shadow">
-                  <Heart className="w-3 h-3" />
-                  {photo.likes}
-                </div>
-                <div className="absolute top-2 right-2 flex gap-1">
-                  {photo.tags &&
-                    photo.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-pink-100 text-pink-600 px-2 py-1 rounded-full text-xs shadow"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                </div>
+
+          {/* Tab Content */}
+
+          {activeTab === "photos" &&
+            (posts.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {posts.map((post) => {
+                  const firstImage = post.media?.find((m) => m.image_url);
+                  const firstVideo = post.media?.find((m) => m.video_url);
+                  return (
+                    <div
+                      key={post.id}
+                      className="relative group cursor-pointer"
+                      onClick={() => {
+                        setSelectedPost(post);
+                        setIsPostDetailOpen(true);
+                      }}
+                    >
+                      {firstImage ? (
+                        <img
+                          src={firstImage.image_url}
+                          alt={post.title}
+                          className="w-full h-64 object-cover rounded-xl"
+                        />
+                      ) : firstVideo ? (
+                        <video
+                          src={firstVideo.video_url}
+                          className="w-full h-64 object-cover rounded-xl"
+                          muted
+                        />
+                      ) : (
+                        <img
+                          src="https://placehold.co/600x400?text=No+Image"
+                          alt={post.title}
+                          className="w-full h-64 object-cover rounded-xl"
+                        />
+                      )}
+
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-xl flex items-center justify-center">
+                        <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <Heart className="w-5 h-5" />
+                            <span className="text-lg">
+                              {likesData[post.id]?.count ?? post.total_likes}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            <span className="bg-pink-400 text-white px-3 py-1 rounded-full text-sm">
+                              {post.category}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+            ) : (
+              !loadingPosts && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-pink-500" />
+                  </div>
+                  <p className="text-gray-500 text-lg">No posts found.</p>
+                </div>
+              )
             ))}
-          </div>
+
+          {activeTab === "albums" &&
+            (albums.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {albums.map((album) => (
+                  <div key={album.id} className="bg-pink-50 rounded-xl">
+                    <div
+                      className="relative overflow-hidden group cursor-pointer rounded-t-xl"
+                      onClick={() => navigate(`/album/${album.id}`)}
+                    >
+                      <img
+                        src={album.image}
+                        alt={album.title}
+                        className="w-full h-64 object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
+                        <div className="text-white opacity-0 group-hover:opacity-100 transition-opacity text-center p-4">
+                          <div className="text-xl font-semibold mb-2 bg-red-400 text-white px-3 py-1 rounded-xl">
+                            {album.title}
+                          </div>
+                          <div className="text-sm mb-3">
+                            {album.description}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {album.title}
+                        </h3>
+                        <span className="text-pink-500">
+                          {album.postCount} posts
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <span className="flex items-center space-x-1 text-sm bg-pink-200 text-pink-600 px-2 py-1 rounded-full">
+                          <Calendar className="w-4 h-4" />
+                          <span>{dayjs(album.date).format("D MMM, YYYY")}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              !loadingAlbums && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Search className="w-8 h-8 text-pink-500" />
+                  </div>
+                  <p className="text-gray-500 text-lg">No albums found.</p>
+                </div>
+              )
+            ))}
         </div>
       </div>
+      <PostDetail
+        isOpen={isPostDetailOpen}
+        post={selectedPost}
+        likesData={likesData}
+        handleLike={handleLike}
+        onClose={() => setIsPostDetailOpen(false)}
+      />
     </div>
   );
 };
