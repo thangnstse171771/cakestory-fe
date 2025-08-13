@@ -642,11 +642,7 @@ const WalletManagement = () => {
                   {getWalletIcon(key)}
                 </div>
                 <button
-                  onClick={() =>
-                    key === "withdraw"
-                      ? handleNavigateToWithdraw()
-                      : handleViewTransactions(key)
-                  }
+                  onClick={() => handleViewTransactions(key)}
                   className="text-pink-600 hover:text-pink-700 text-sm font-medium"
                 >
                   Xem chi tiết

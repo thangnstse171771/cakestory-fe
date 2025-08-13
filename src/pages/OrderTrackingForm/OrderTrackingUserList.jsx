@@ -50,7 +50,7 @@ export default function OrderTrackingList({
   // Lấy user ID từ localStorage
   const getUserId = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user?.id;
+    return user?.id ?? user?.user_id;
   };
 
   // Fetch orders từ API
@@ -187,11 +187,7 @@ export default function OrderTrackingList({
 
   // Ưu tiên sử dụng real API data, chỉ dùng fake data khi không có data thật
   const displayOrders =
-    realOrders?.length > 0
-      ? realOrders
-      : orders?.length > 0
-      ? orders
-      : fakeOrders;
+    Array.isArray(orders) && orders.length > 0 ? orders : realOrders;
 
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -221,14 +217,17 @@ export default function OrderTrackingList({
       console.log("Fetching order detail for ID:", orderId);
 
       // Fetch chi tiết order từ API
-      const orderDetail = await fetchOrderById(orderId);
-      console.log("Order detail fetched:", orderDetail);
+      const response = await fetchOrderById(orderId);
+      const orderDetail = response?.order || response?.data || response;
+      if (!orderDetail || !orderDetail.id) {
+        throw new Error("ORDER_NOT_FOUND");
+      }
 
       // Transform data để match với UI format
       const transformedOrder = {
         id: orderDetail.id,
         orderNumber: `ORD-${String(orderDetail.id).padStart(3, "0")}`,
-        placedDate: orderDetail.created_at,
+        placedDate: orderDetail.created_at || orderDetail.createdAt || null,
         status: orderDetail.status,
         customerName:
           orderDetail.user?.full_name ||
@@ -280,8 +279,12 @@ export default function OrderTrackingList({
         },
         history: [
           {
-            date: new Date(orderDetail.created_at).toLocaleDateString("vi-VN"),
-            time: new Date(orderDetail.created_at).toLocaleTimeString("vi-VN"),
+            date: orderDetail.created_at
+              ? new Date(orderDetail.created_at).toLocaleDateString("vi-VN")
+              : "-",
+            time: orderDetail.created_at
+              ? new Date(orderDetail.created_at).toLocaleTimeString("vi-VN")
+              : "-",
             status: orderDetail.status,
             note: "Đơn hàng được tạo",
           },
@@ -291,7 +294,14 @@ export default function OrderTrackingList({
       setSelectedOrder(transformedOrder);
     } catch (error) {
       console.error("Lỗi khi fetch order detail:", error);
-      alert("Không thể tải chi tiết đơn hàng");
+      // Fallback: nếu không lấy được chi tiết, quay về danh sách
+      setSelectedOrder(null);
+      setLoadingOrderDetail(false);
+      // Điều hướng về danh sách thay vì alert
+      if (window.location.pathname.includes("/order-tracking-user/")) {
+        navigate("/order-tracking-user", { replace: true });
+      }
+      return;
     } finally {
       setLoadingOrderDetail(false);
     }
@@ -570,7 +580,12 @@ export default function OrderTrackingList({
                         {order.orderNumber}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        {new Date(order.placedDate).toLocaleDateString("vi-VN")}
+                        {(() => {
+                          const d = new Date(order.placedDate);
+                          return isNaN(d.getTime())
+                            ? "-"
+                            : d.toLocaleDateString("vi-VN");
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {order.items.length}
@@ -586,7 +601,14 @@ export default function OrderTrackingList({
                         </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-pink-600 whitespace-nowrap">
-                        {order.base_price.toLocaleString("vi-VN")}đ
+                        {(() => {
+                          const raw = order?.base_price ?? order?.total ?? 0;
+                          const num =
+                            typeof raw === "number"
+                              ? raw
+                              : parseFloat(String(raw)) || 0;
+                          return num.toLocaleString("vi-VN") + "đ";
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <button
