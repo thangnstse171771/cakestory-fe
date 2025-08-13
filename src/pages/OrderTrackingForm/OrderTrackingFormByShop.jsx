@@ -177,6 +177,7 @@ export default function OrderTrackingFormByShop({
     try {
       setLoading(true);
       const response = await fetchOrderById(orderId);
+      console.log("[OrderTrackingFormByShop] Raw response:", response);
 
       // Normalize numeric prices with heuristics
       const parseAmount = (v) => {
@@ -214,9 +215,18 @@ export default function OrderTrackingFormByShop({
         ingredientTotal,
         total: basePrice, // total must equal base price per requirement
         base_price: basePrice,
+        size:
+          response.size ||
+          response.order_details?.[0]?.size ||
+          response.orderDetails?.[0]?.size ||
+          "-",
         status: normalizeStatus(response.status || "pending"),
         orderNumber: response.orderNumber || `ORD-${response.id}`,
-        placeDate: response.placeDate || new Date().toISOString().split("T")[0],
+        placeDate:
+          response.created_at ||
+          response.createdAt ||
+          response.placeDate ||
+          new Date().toISOString(),
         history: response.history || [
           {
             date: response.placeDate || new Date().toISOString().split("T")[0],
@@ -353,15 +363,6 @@ export default function OrderTrackingFormByShop({
       </div>
     );
   }
-
-  // Các trạng thái chính theo thứ tự flow
-  const mainStatusFlow = [
-    "pending",
-    "ordered",
-    "preparedForDelivery",
-    "shipped",
-    "completed",
-  ];
 
   // Tính progress dựa trên flow chính, bỏ qua complaining và cancelled
   let currentStatusIndex = mainStatusFlow.indexOf(orderDetail.status);
@@ -512,7 +513,7 @@ export default function OrderTrackingFormByShop({
           </div>
 
           {/* Order Basic Info */}
-          <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
+          {/* <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
               <Package className="h-5 w-5" />
               Thông tin đơn hàng
@@ -538,6 +539,7 @@ export default function OrderTrackingFormByShop({
               </div>
               <div>
                 <span className="font-medium">Giá bánh:</span>{" "}
+                <p>Kích thước: {orderDetail.size}</p>
                 <span>{orderDetail.basePrice.toLocaleString("vi-VN")}đ</span>
               </div>
               {orderDetail.ingredientTotal > 0 && (
@@ -555,7 +557,7 @@ export default function OrderTrackingFormByShop({
                 </span>
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* Order Items */}
           <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
@@ -576,7 +578,6 @@ export default function OrderTrackingFormByShop({
                     </p>
                     {item.customization && (
                       <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                        <p>Kích thước: {item.customization.size}</p>
                         {item.customization.toppings?.length > 0 && (
                           <p>
                             Topping:{" "}
@@ -618,7 +619,10 @@ export default function OrderTrackingFormByShop({
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-sm font-medium text-gray-700">
-                        {entry.date} {entry.time}
+                        {entry.datetime ||
+                          (entry.date && entry.time
+                            ? `${entry.date} ${entry.time}`
+                            : "-")}
                       </span>
                       <span
                         className={`px-2 py-0.5 text-xs rounded-lg font-semibold ${
