@@ -7,7 +7,9 @@ import {
   createMagicDesign,
   generateAIImage,
   getCakeDesigns,
+  getCakeDesignsByUserId,
 } from "../api/cakeDesigns";
+import { useAuth } from "../contexts/AuthContext";
 
 // Import cake design assets
 const CakeDesign = () => {
@@ -50,6 +52,7 @@ const CakeDesign = () => {
   const [currentPage, setCurrentPage] = useState(1); // Pagination state
   const [imagesPerPage] = useState(6); // Number of images per page
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get current user
 
   // Available design options
   const shapes = ["Round", "Square", "Heart"]; // Removed Rect as it's not in the image assets
@@ -181,10 +184,15 @@ const CakeDesign = () => {
     );
   };
 
-  // Load AI generated images
+  // Load AI generated images for current user
   const loadAIImages = async () => {
     try {
-      const response = await getCakeDesigns(1, 10);
+      if (!user?.id) {
+        console.log("No user logged in");
+        return;
+      }
+
+      const response = await getCakeDesignsByUserId(user.id, 1, 50, false); // Get more items to ensure we get all AI designs
       if (response.success) {
         const imagesWithAI = response.data.cakeDesigns.filter(
           (design) => design.ai_generated
@@ -196,10 +204,12 @@ const CakeDesign = () => {
     }
   };
 
-  // Load AI images on component mount
+  // Load AI images on component mount and when user changes
   useEffect(() => {
-    loadAIImages();
-  }, []);
+    if (user?.id) {
+      loadAIImages();
+    }
+  }, [user?.id]);
 
   // Handle pagination when images change
   useEffect(() => {
