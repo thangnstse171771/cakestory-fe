@@ -832,6 +832,13 @@ export default function ComplaintDetails({ complaint, onBack }) {
                         </button>
                       </div>
                     )}
+                    {(status === "complete" || status === "rejected") && (
+                      <div className="bg-gray-100 rounded p-3 text-sm text-gray-600">
+                        {status === "complete"
+                          ? "Đã hoàn tiền cho khiếu nại này"
+                          : "Khiếu nại này đã bị từ chối"}
+                      </div>
+                    )}
                     {actionMessage && (
                       <p className="text-xs text-gray-500">{actionMessage}</p>
                     )}
@@ -879,41 +886,6 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     </div>
                   </div>
                 </div>
-
-                {/* Admin note input */}
-                {isAdmin && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-800 mb-2">
-                      Ghi chú xử lý (lý do)
-                    </h3>
-                    <textarea
-                      className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none ${
-                        isNoteLocked ? "bg-gray-100 cursor-not-allowed" : ""
-                      }`}
-                      rows="3"
-                      placeholder="Nhập lý do/ghi chú nội bộ..."
-                      value={adminNote}
-                      onChange={(e) => setAdminNote(e.target.value)}
-                      readOnly={isNoteLocked}
-                    />
-                    <div className="flex justify-end mt-2">
-                      {!isNoteLocked ? (
-                        <button
-                          type="button"
-                          className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
-                          onClick={handleSaveAdminNote}
-                          disabled={savingNote}
-                        >
-                          {savingNote ? "Đang lưu..." : "Lưu ghi chú"}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-500 italic">
-                          Ghi chú đã lưu và không thể chỉnh sửa
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {/* Processing Actions */}
                 {/* <div className="bg-gray-50 rounded-lg p-4">
