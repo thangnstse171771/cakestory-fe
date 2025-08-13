@@ -83,8 +83,7 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
     try {
       setLoading(true);
       const response = await fetchOrderById(orderId);
-
-      // Normalize numeric prices with heuristics
+      // --- Begin migrated logic from OrderTrackingFormByShop ---
       const parseAmount = (v) => {
         if (v === null || v === undefined || v === "") return 0;
         const n = parseFloat(v);
@@ -97,19 +96,13 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
       let totalRaw = parseAmount(
         response.total_price || response.total || response.final_price
       );
-
-      // Heuristic: if total missing -> base + ingredients
       if (totalRaw === 0) totalRaw = baseRaw + ingRaw;
-      // Case: API sets base_price already = total (includes ingredients) and also gives ingredient_total
-      // Example: baseRaw = 44, ingRaw = 14, totalRaw = 44. We want basePrice = 30, ingredientTotal=14, total=44.
       let basePrice = baseRaw;
       let ingredientTotal = ingRaw;
       if (totalRaw === baseRaw && ingRaw > 0 && baseRaw > ingRaw) {
-        basePrice = baseRaw - ingRaw; // derive core cake price
+        basePrice = baseRaw - ingRaw;
       }
       const totalPrice = totalRaw;
-
-      // Transform data để phù hợp với component
       const transformedOrder = {
         id: response.id || response._id,
         customerName: response.customer_id?.name || "Không có tên",
@@ -118,11 +111,20 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
         items: response.items || [],
         basePrice,
         ingredientTotal,
-        total: basePrice, // total must equal base price per requirement
+        total: basePrice,
         base_price: basePrice,
+        size:
+          response.size ||
+          response.order_details?.[0]?.size ||
+          response.orderDetails?.[0]?.size ||
+          "-",
         status: response.status || "pending",
         orderNumber: response.orderNumber || `ORD-${response.id}`,
-        placeDate: response.placeDate || new Date().toISOString().split("T")[0],
+        placeDate:
+          response.created_at ||
+          response.createdAt ||
+          response.placeDate ||
+          new Date().toISOString(),
         history: response.history || [
           {
             date: response.placeDate || new Date().toISOString().split("T")[0],
@@ -135,7 +137,6 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
           },
         ],
       };
-
       setOrderDetail(transformedOrder);
       setHasComplaint(
         Boolean(
@@ -146,6 +147,7 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
             transformedOrder.hasComplaint
         )
       );
+      // --- End migrated logic ---
     } catch (error) {
       console.error("Lỗi khi fetch order detail:", error);
       alert("Không thể tải thông tin đơn hàng");
@@ -292,16 +294,20 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
                 <span className="font-medium">Giá bánh:</span>{" "}
                 <span>{orderDetail.basePrice.toLocaleString("vi-VN")}đ</span>
               </div>
-              {orderDetail.ingredientTotal > 0 && (
-                <div>
-                  <span className="font-medium">Nguyên liệu thêm:</span>{" "}
-                  <span>
-                    {orderDetail.ingredientTotal.toLocaleString("vi-VN")}đ
-                  </span>
-                </div>
-              )}
+              <div>
+                <span className="font-medium">Tổng nguyên liệu:</span>{" "}
+                <span>
+                  {orderDetail.ingredientTotal > 0
+                    ? orderDetail.ingredientTotal.toLocaleString("vi-VN") + "đ"
+                    : "-"}
+                </span>
+              </div>
               <div className="col-span-2">
                 <span className="font-medium">Tổng tiền:</span>{" "}
+                <div>
+                  <span className="font-medium">Kích thước:</span>{" "}
+                  <span>{orderDetail.size || "-"}</span>
+                </div>
                 <span className="text-pink-600 font-bold">
                   {orderDetail.base_price.toLocaleString("vi-VN")}đ
                 </span>

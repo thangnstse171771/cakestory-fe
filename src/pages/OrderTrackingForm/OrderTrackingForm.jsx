@@ -393,7 +393,8 @@ export default function OrderTrackingForm({
         placeDate:
           data.created_at ||
           data.createdAt ||
-          new Date().toISOString().split("T")[0],
+          data.placeDate ||
+          new Date().toISOString(),
         // Extra fields from backend
         size: data.size || null,
         ingredient_total: Number.isFinite(ingredientTotalField)
@@ -454,43 +455,43 @@ export default function OrderTrackingForm({
           }
         }
 
-        console.log(
-          "[OrderTrackingForm] derivedShopId:",
-          derivedShopId,
-          "; viewerShopId:",
-          viewerShopId,
-          "; chosen:",
-          shopIdToUse
-        );
-        if (!shopIdToUse) {
-          console.log(
-            "[OrderTrackingForm] Không có shopId để fetch ingredients"
-          );
-          return; // nothing to fetch
-        }
-        console.log(
-          "[OrderTrackingForm] Fetch ingredients với shopId:",
-          shopIdToUse
-        );
+        // console.log(
+        //   "[OrderTrackingForm] derivedShopId:",
+        //   derivedShopId,
+        //   "; viewerShopId:",
+        //   viewerShopId,
+        //   "; chosen:",
+        //   shopIdToUse
+        // );
+        // if (!shopIdToUse) {
+        //   console.log(
+        //     "[OrderTrackingForm] Không có shopId để fetch ingredients"
+        //   );
+        //   return; // nothing to fetch
+        // }
+        // console.log(
+        //   "[OrderTrackingForm] Fetch ingredients với shopId:",
+        //   shopIdToUse
+        // );
         let data = await fetchIngredients(shopIdToUse);
-        console.log("[OrderTrackingForm] Ingredients raw response:", data);
+        // console.log("[OrderTrackingForm] Ingredients raw response:", data);
         if (!data) data = await fetchComplaintIngredientsByShop(shopIdToUse);
-        if (data) {
-          console.log(
-            "[OrderTrackingForm] Fallback ingredients (complaint endpoint) raw:",
-            data
-          );
-        }
+        // if (data) {
+        //   console.log(
+        //     "[OrderTrackingForm] Fallback ingredients (complaint endpoint) raw:",
+        //     data
+        //   );
+        // }
         let listRaw = [];
         if (Array.isArray(data)) listRaw = data;
         else if (Array.isArray(data?.data)) listRaw = data.data;
         else if (Array.isArray(data?.ingredients)) listRaw = data.ingredients;
         else if (Array.isArray(data?.data?.ingredients))
           listRaw = data.data.ingredients;
-        console.log(
-          "[OrderTrackingForm] Ingredients normalized list:",
-          listRaw
-        );
+        // console.log(
+        //   "[OrderTrackingForm] Ingredients normalized list:",
+        //   listRaw
+        // );
         const mapped = listRaw.map((ing, idx) => ({
           id: ing.id || ing._id || idx,
           name: ing.name || ing.ingredient_name || "(No name)",
@@ -499,14 +500,14 @@ export default function OrderTrackingForm({
           description: ing.description || ing.note || "",
         }));
         const mapObj = Object.fromEntries(mapped.map((i) => [String(i.id), i]));
-        console.log(
-          "[OrderTrackingForm] Ingredients map keys:",
-          Object.keys(mapObj)
-        );
-        console.log(
-          "[OrderTrackingForm] Items trước khi enrich:",
-          orderDetail?.items
-        );
+        // console.log(
+        //   "[OrderTrackingForm] Ingredients map keys:",
+        //   Object.keys(mapObj)
+        // );
+        // console.log(
+        //   "[OrderTrackingForm] Items trước khi enrich:",
+        //   orderDetail?.items
+        // );
         if (mounted) setIngredientsMap(mapObj);
       } catch (err) {
         console.warn("Load ingredients failed:", err);
@@ -565,10 +566,10 @@ export default function OrderTrackingForm({
         }
         return { ...it, ingredientId };
       });
-      console.log(
-        "[OrderTrackingForm] Items sau khi enrich ingredients:",
-        newItems
-      );
+      // console.log(
+      //   "[OrderTrackingForm] Items sau khi enrich ingredients:",
+      //   newItems
+      // );
       if (!changed) return prev;
       return { ...prev, items: newItems };
     });
@@ -981,7 +982,7 @@ export default function OrderTrackingForm({
             </ul>
           </div>
 
-          {/* Order Meta Info */}
+          {/* Order Meta Info - Hiển thị tất cả attribute trả về từ API */}
           <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
             <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
               <Package className="h-5 w-5" />
@@ -993,15 +994,51 @@ export default function OrderTrackingForm({
                 {orderDetail.orderNumber}
               </li>
               <li>
+                <span className="font-medium">ID:</span> {orderDetail.id}
+              </li>
+              <li>
                 <span className="font-medium">Ngày tạo:</span>{" "}
-                {(() => {
-                  const d = new Date(orderDetail.placeDate);
-                  return isNaN(d.getTime()) ? "-" : d.toLocaleString("vi-VN");
-                })()}
+                {orderDetail.createdAt
+                  ? new Date(orderDetail.createdAt).toLocaleString("vi-VN")
+                  : "-"}
+              </li>
+              <li>
+                <span className="font-medium">Ngày cập nhật:</span>{" "}
+                {orderDetail.updatedAt
+                  ? new Date(orderDetail.updatedAt).toLocaleString("vi-VN")
+                  : "-"}
+              </li>
+              <li>
+                <span className="font-medium">Trạng thái:</span>{" "}
+                {statusMap[orderDetail.status]?.label || orderDetail.status}
+              </li>
+              <li>
+                <span className="font-medium">Shop ID:</span>{" "}
+                {orderDetail.shop_id ?? "-"}
+              </li>
+              <li>
+                <span className="font-medium">Customer ID:</span>{" "}
+                {orderDetail.customer_id ?? "-"}
+              </li>
+              <li>
+                <span className="font-medium">Username:</span>{" "}
+                {orderDetail.User?.username ?? "-"}
+              </li>
+              <li>
+                <span className="font-medium">Marketplace Post ID:</span>{" "}
+                {orderDetail.marketplace_post_id ?? "-"}
               </li>
               <li>
                 <span className="font-medium">Kích thước:</span>{" "}
                 {orderDetail.size || "-"}
+              </li>
+              <li>
+                <span className="font-medium">Tier:</span>{" "}
+                {orderDetail.tier ?? "-"}
+              </li>
+              <li>
+                <span className="font-medium">Ghi chú:</span>{" "}
+                {orderDetail.special_instructions || "-"}
               </li>
               <li>
                 <span className="font-medium">Tổng nguyên liệu:</span>{" "}
@@ -1011,17 +1048,24 @@ export default function OrderTrackingForm({
                     ) + "đ"
                   : "-"}
               </li>
-              <li className="md:col-span-2">
-                <span className="font-medium">Ghi chú:</span>{" "}
-                {orderDetail.special_instructions || "-"}
+              <li>
+                <span className="font-medium">Base Price:</span>{" "}
+                {orderDetail.base_price != null
+                  ? Number(orderDetail.base_price).toLocaleString("vi-VN") + "đ"
+                  : "-"}
               </li>
               <li>
-                <span className="font-medium">Shop ID:</span>{" "}
-                {orderDetail.shop_id ?? "-"}
+                <span className="font-medium">Total Price:</span>{" "}
+                {orderDetail.total_price != null
+                  ? Number(orderDetail.total_price).toLocaleString("vi-VN") +
+                    "đ"
+                  : "-"}
               </li>
               <li>
-                <span className="font-medium">Marketplace Post ID:</span>{" "}
-                {orderDetail.marketplace_post_id ?? "-"}
+                <span className="font-medium">Shipped At:</span>{" "}
+                {orderDetail.shipped_at
+                  ? new Date(orderDetail.shipped_at).toLocaleString("vi-VN")
+                  : "-"}
               </li>
             </ul>
           </div>
@@ -1058,14 +1102,34 @@ export default function OrderTrackingForm({
                       )}
                       {item.customization && (
                         <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                          <p>Kích thước: {item.customization.size}</p>
-                          {item.customization.toppings?.length > 0 && (
-                            <p>
-                              Topping:{" "}
-                              {item.customization.toppings
-                                .map((t) => `${t.name} (${t.quantity})`)
-                                .join(", ")}
-                            </p>
+                          {Object.entries(item.customization).map(
+                            ([key, value]) => {
+                              if (
+                                key === "toppings" &&
+                                Array.isArray(value) &&
+                                value.length > 0
+                              ) {
+                                return (
+                                  <p key={key}>
+                                    Topping:{" "}
+                                    {value
+                                      .map((t) => `${t.name} (${t.quantity})`)
+                                      .join(", ")}
+                                  </p>
+                                );
+                              }
+                              if (
+                                typeof value === "string" ||
+                                typeof value === "number"
+                              ) {
+                                return (
+                                  <p key={key}>
+                                    {key}: {value}
+                                  </p>
+                                );
+                              }
+                              return null;
+                            }
                           )}
                         </div>
                       )}
@@ -1082,6 +1146,7 @@ export default function OrderTrackingForm({
             </ul>
             <div className="flex justify-between items-center mt-4 p-4 bg-pink-100 rounded-lg font-bold text-lg text-pink-800">
               <span>Tổng cộng:</span>
+
               <span>{orderDetail.base_price.toLocaleString("vi-VN")}đ</span>
             </div>
           </div>
@@ -1118,38 +1183,6 @@ export default function OrderTrackingForm({
               </div>
             </div>
           )}
-
-          {/* Thông tin đơn hàng (Extra Order Info) */}
-          <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-              <Sparkles className="h-5 w-5" />
-              Thông tin đơn hàng
-            </h3>
-            <ul className="space-y-1 text-gray-800">
-              <li>
-                <span className="font-medium">Kích thước:</span>{" "}
-                {orderDetail.size || "Không xác định"}
-              </li>
-              <li>
-                <span className="font-medium">Tổng nguyên liệu:</span>{" "}
-                {orderDetail.ingredient_total !== null
-                  ? orderDetail.ingredient_total
-                  : "Không xác định"}
-              </li>
-              <li>
-                <span className="font-medium">Hướng dẫn đặc biệt:</span>{" "}
-                {orderDetail.special_instructions || "Không có"}
-              </li>
-              <li>
-                <span className="font-medium">Shop ID:</span>{" "}
-                {orderDetail.shop_id || "Không xác định"}
-              </li>
-              <li>
-                <span className="font-medium">Marketplace Post ID:</span>{" "}
-                {orderDetail.marketplace_post_id || "Không xác định"}
-              </li>
-            </ul>
-          </div>
         </div>
       </div>
 
