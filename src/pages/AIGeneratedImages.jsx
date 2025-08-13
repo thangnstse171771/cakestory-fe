@@ -24,7 +24,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { fetchWalletBalance } from "../api/axios";
 
 const AI_GENERATION_COST = 3000; // 3000 VND mỗi lần gen (cho 3 tấm)
-const IMAGES_PER_PAGE = 12; // 12 ảnh mỗi trang
+const IMAGES_PER_PAGE = 6; // 12 ảnh mỗi trang
 
 export default function AIGeneratedImages() {
   const { user } = useAuth();
