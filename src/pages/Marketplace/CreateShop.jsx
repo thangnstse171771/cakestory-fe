@@ -10,13 +10,11 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 const ShopSchema = Yup.object().shape({
   business_name: Yup.string().required("Tên cửa hàng không được để trống"),
   province: Yup.string().required("Vui lòng chọn Tỉnh/Thành phố"),
-  district: Yup.string().required("Vui lòng chọn Quận/Huyện"),
-  ward: Yup.string().required("Vui lòng chọn Phường/Xã"),
+  ward: Yup.string().required("Phường/Xã không được để trống"),
   detail_address: Yup.string().required("Địa chỉ chi tiết không được để trống"),
   phone_number: Yup.string()
     .required("Số điện thoại không được để trống")
     .matches(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ"),
-  specialty: Yup.string().required("Chuyên môn không được để trống"),
   bio: Yup.string()
     .required("Giới thiệu không được để trống")
     .min(10, "Giới thiệu phải có ít nhất 10 ký tự")
@@ -92,22 +90,6 @@ const provinces = [
   "Yên Bái",
 ];
 
-// Danh sách các loại bánh
-const specialtyOptions = [
-  "Bánh sinh nhật",
-  "Bánh cưới",
-  "Bánh kỷ niệm",
-  "Bánh cupcake",
-  "Bánh theo yêu cầu",
-  "Bánh su kem",
-  "Bánh mousse",
-  "Bánh trung thu",
-  "Bánh mì",
-  "Cookies & Brownies",
-  "Bánh tart trái cây",
-  "Bánh flan/caramen",
-];
-
 // Danh sách giờ làm việc
 const businessHoursOptions = [
   "Thứ 2-Thứ 7: 9:00-19:00, Chủ nhật: 10:00-16:00",
@@ -143,9 +125,6 @@ const CreateShop = () => {
   }); // Hà Nội mặc định
   const [marker, setMarker] = useState(null);
   const [selectedProvince, setSelectedProvince] = useState("");
-  const [districts, setDistricts] = useState([]);
-  const [selectedDistrict, setSelectedDistrict] = useState("");
-  const [wards, setWards] = useState([]);
 
   useEffect(() => {
     const checkUserShop = async () => {
@@ -171,43 +150,7 @@ const CreateShop = () => {
     return await getDownloadURL(imageRef);
   };
 
-  // Cập nhật districts khi chọn province
-  useEffect(() => {
-    if (selectedProvince) {
-      // Trong thực tế, bạn sẽ gọi API để lấy danh sách quận/huyện dựa trên tỉnh/thành phố
-      // Ở đây, chúng tôi sử dụng dữ liệu giả
-      const mockDistricts = [
-        `${selectedProvince} - Quận 1`,
-        `${selectedProvince} - Quận 2`,
-        `${selectedProvince} - Quận 3`,
-        `${selectedProvince} - Quận Tân Bình`,
-        `${selectedProvince} - Huyện Củ Chi`,
-      ];
-      setDistricts(mockDistricts);
-      setSelectedDistrict("");
-      setWards([]);
-    } else {
-      setDistricts([]);
-    }
-  }, [selectedProvince]);
-
-  // Cập nhật wards khi chọn district
-  useEffect(() => {
-    if (selectedDistrict) {
-      // Trong thực tế, bạn sẽ gọi API để lấy danh sách phường/xã dựa trên quận/huyện
-      // Ở đây, chúng tôi sử dụng dữ liệu giả
-      const mockWards = [
-        `${selectedDistrict} - Phường 1`,
-        `${selectedDistrict} - Phường 2`,
-        `${selectedDistrict} - Phường 3`,
-        `${selectedDistrict} - Xã An Nhơn Tây`,
-        `${selectedDistrict} - Xã Tân Phú Trung`,
-      ];
-      setWards(mockWards);
-    } else {
-      setWards([]);
-    }
-  }, [selectedDistrict]);
+  // Cập nhật districts khi chọn province (bỏ logic này vì không cần nữa)
 
   // Xử lý click trên bản đồ (Google Maps iframe)
   const handleMapClick = (e) => {
@@ -218,21 +161,53 @@ const CreateShop = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100 py-10 px-4">
-      <div className="w-full max-w-4xl bg-white rounded-2xl shadow-lg border border-pink-100 p-8">
-        <h2 className="text-3xl font-bold text-center text-pink-500 mb-8">
-          Tạo cửa hàng mới
-        </h2>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 py-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600 mb-4">
+            Tạo cửa hàng mới
+          </h2>
+          <p className="text-gray-600 text-lg">
+            Bắt đầu hành trình kinh doanh bánh ngọt của bạn
+          </p>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-xl border border-pink-100 overflow-hidden">
+          {/* Background Image Preview */}
+          {backgroundPreview && (
+            <div className="w-full h-64 relative">
+              <img
+                src={backgroundPreview}
+                alt="Background Preview"
+                className="w-full h-full object-cover"
+                draggable={false}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <div className="absolute bottom-4 left-6">
+                <div className="flex items-center space-x-4">
+                  {avatarPreview && (
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar Preview"
+                      className="w-20 h-20 rounded-full border-4 border-white shadow-lg object-cover"
+                    />
+                  )}
+                  <div className="text-white">
+                    <h3 className="text-xl font-bold">Preview Shop</h3>
+                    <p className="text-white/80">Giao diện shop của bạn</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
         <Formik
           initialValues={{
             business_name: "",
             province: "",
-            district: "",
             ward: "",
             detail_address: "",
             phone_number: "",
-            specialty: "",
             bio: "",
             is_active: true,
             longitude: 0,
@@ -267,13 +242,12 @@ const CreateShop = () => {
               }
 
               // Tạo địa chỉ đầy đủ từ các phần
-              const fullAddress = `${values.detail_address}, ${values.ward}, ${values.district}, ${values.province}`;
+              const fullAddress = `${values.detail_address}, ${values.ward}, ${values.province}`;
 
               await createShop({
                 business_name: values.business_name,
                 business_address: fullAddress,
                 phone_number: values.phone_number,
-                specialty: values.specialty,
                 bio: values.bio,
                 is_active: values.is_active,
                 longitude: marker?.lng || 0,
@@ -298,113 +272,154 @@ const CreateShop = () => {
           }}
         >
           {({ isSubmitting, setFieldValue }) => (
-            <Form className="space-y-6">
-              {/* Preview background image */}
-              {backgroundPreview && (
-                <div className="w-full h-40 md:h-56 mb-6 rounded-xl overflow-hidden shadow">
-                  <img
-                    src={backgroundPreview}
-                    alt="Background Preview"
-                    className="w-full h-full object-cover"
-                    draggable={false}
-                  />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Form className="p-8 space-y-8">
+              {/* Upload Images Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Upload avatar image */}
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M5 3a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5z"
-                      />
-                    </svg>
+                <div className="space-y-4">
+                  <label className="block text-gray-800 font-semibold text-lg flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
                     Ảnh đại diện Shop
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      setAvatarFile(file);
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () =>
-                          setAvatarPreview(reader.result);
-                        reader.readAsDataURL(file);
-                      } else {
-                        setAvatarPreview("");
-                      }
-                    }}
-                    className="block w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
-                  />
-                  {avatarPreview && (
-                    <img
-                      src={avatarPreview}
-                      alt="Avatar Preview"
-                      className="mt-2 w-full h-32 object-cover rounded-lg border shadow-sm"
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        setAvatarFile(file);
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () =>
+                            setAvatarPreview(reader.result);
+                          reader.readAsDataURL(file);
+                        } else {
+                          setAvatarPreview("");
+                        }
+                      }}
+                      className="w-full border-2 border-dashed border-gray-300 rounded-xl px-6 py-4 focus:outline-none focus:border-pink-400 bg-gray-50 hover:bg-gray-100 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
                     />
+                    {!avatarPreview && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-gray-400">Chọn ảnh đại diện</span>
+                      </div>
+                    )}
+                  </div>
+                  {avatarPreview && (
+                    <div className="relative">
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar Preview"
+                        className="w-full h-48 object-cover rounded-xl border-2 border-pink-200 shadow-lg"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAvatarFile(null);
+                            setAvatarPreview("");
+                          }}
+                          className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
 
                 {/* Upload background image */}
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"
-                      />
-                    </svg>
+                <div className="space-y-4">
+                  <label className="block text-gray-800 font-semibold text-lg flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-teal-500 rounded-full flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-4-4v8a2 2 0 01-2 2H8a2 2 0 01-2-2v-8a2 2 0 012-2h8a2 2 0 012 2z"
+                        />
+                      </svg>
+                    </div>
                     Ảnh nền Shop
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      setBackgroundFile(file);
-                      if (file) {
-                        const reader = new FileReader();
-                        reader.onloadend = () =>
-                          setBackgroundPreview(reader.result);
-                        reader.readAsDataURL(file);
-                      } else {
-                        setBackgroundPreview("");
-                      }
-                    }}
-                    className="block w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
-                  />
-                  {backgroundPreview && (
-                    <img
-                      src={backgroundPreview}
-                      alt="Background Preview"
-                      className="mt-2 w-full h-32 object-cover rounded-lg border shadow-sm"
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        setBackgroundFile(file);
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () =>
+                            setBackgroundPreview(reader.result);
+                          reader.readAsDataURL(file);
+                        } else {
+                          setBackgroundPreview("");
+                        }
+                      }}
+                      className="w-full border-2 border-dashed border-gray-300 rounded-xl px-6 py-4 focus:outline-none focus:border-blue-400 bg-gray-50 hover:bg-gray-100 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
+                    {!backgroundPreview && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-gray-400">Chọn ảnh nền</span>
+                      </div>
+                    )}
+                  </div>
+                  {backgroundPreview && (
+                    <div className="relative">
+                      <img
+                        src={backgroundPreview}
+                        alt="Background Preview"
+                        className="w-full h-48 object-cover rounded-xl border-2 border-blue-200 shadow-lg"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBackgroundFile(null);
+                            setBackgroundPreview("");
+                          }}
+                          className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
+              </div>
 
-                {/* Shop Location Map */}
-                <div className="md:col-span-1 flex flex-col justify-between">
-                  <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
+              {/* Map Section */}
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
+                <label className="block text-gray-800 font-semibold text-lg mb-4 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                     <svg
-                      className="w-5 h-5 text-gray-400"
+                      className="w-5 h-5 text-white"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -422,9 +437,11 @@ const CreateShop = () => {
                         d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                       />
                     </svg>
-                    Vị trí Shop (nhấn vào bản đồ để nhập toạ độ)
-                  </label>
-                  <div className="w-full h-32 rounded-lg overflow-hidden border mb-2 relative">
+                  </div>
+                  Vị trí Shop trên bản đồ
+                </label>
+                <div className="relative">
+                  <div className="w-full h-64 rounded-xl overflow-hidden border-2 border-green-200 relative">
                     <iframe
                       title="Google Map"
                       width="100%"
@@ -442,19 +459,26 @@ const CreateShop = () => {
                       onClick={handleMapClick}
                     ></iframe>
                     {marker && (
-                      <div className="absolute bottom-2 left-2 bg-white/80 text-pink-500 px-3 py-1 rounded-full text-xs shadow">
-                        Lat: {marker.lat}, Lng: {marker.lng}
+                      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-green-700 px-4 py-2 rounded-full text-sm shadow-lg font-medium">
+                        📍 Lat: {marker.lat.toFixed(6)}, Lng: {marker.lng.toFixed(6)}
                       </div>
                     )}
                   </div>
-                  <div className="text-gray-400 text-xs mt-1">
-                    Nhấn vào bản đồ để nhập toạ độ (demo, có thể tích hợp Google
-                    Maps API nâng cao hơn)
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleMapClick}
+                    className="mt-3 bg-green-500 text-white px-6 py-2 rounded-full hover:bg-green-600 transition-colors text-sm font-medium"
+                  >
+                    📍 Nhấn để đặt vị trí
+                  </button>
+                  <p className="text-gray-500 text-sm mt-2">
+                    Nhấn vào nút trên để nhập toạ độ vị trí shop của bạn
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+              {/* Form Fields Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Business Name */}
                 <div>
                   <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
@@ -515,80 +539,6 @@ const CreateShop = () => {
                   />
                 </div>
 
-                {/* Specialty */}
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18zm-3-9v-2a2 2 0 00-2-2H8a2 2 0 00-2 2v2h12z"
-                      />
-                    </svg>
-                    Chuyên môn
-                  </label>
-                  <Field
-                    name="specialty"
-                    className="hidden"
-                    render={({ field, form }) => {
-                      const [selectedOption, setSelectedOption] = useState(
-                        field.value
-                      );
-                      const [customValue, setCustomValue] = useState("");
-
-                      return (
-                        <div className="space-y-2">
-                          <select
-                            {...field}
-                            className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setSelectedOption(val);
-                              if (val !== "other") {
-                                form.setFieldValue("specialty", val);
-                              }
-                            }}
-                            value={selectedOption}
-                          >
-                            <option value="">-- Chọn chuyên môn --</option>
-                            {specialtyOptions.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {opt}
-                              </option>
-                            ))}
-                            <option value="other">Khác (tuỳ chỉnh)</option>
-                          </select>
-
-                          {selectedOption === "other" && (
-                            <input
-                              type="text"
-                              className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
-                              placeholder="Nhập chuyên môn của bạn"
-                              value={customValue}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setCustomValue(val);
-                                form.setFieldValue("specialty", val);
-                              }}
-                            />
-                          )}
-                        </div>
-                      );
-                    }}
-                  />
-                  <ErrorMessage
-                    name="specialty"
-                    component="div"
-                    className="text-red-500 text-sm mt-1"
-                  />
-                </div>
-
                 {/* Province */}
                 <div>
                   <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
@@ -621,7 +571,6 @@ const CreateShop = () => {
                       const value = e.target.value;
                       setFieldValue("province", value);
                       setSelectedProvince(value);
-                      setFieldValue("district", "");
                       setFieldValue("ward", "");
                     }}
                   >
@@ -634,50 +583,6 @@ const CreateShop = () => {
                   </Field>
                   <ErrorMessage
                     name="province"
-                    component="div"
-                    className="text-red-500 text-sm mt-1"
-                  />
-                </div>
-
-                {/* District */}
-                <div>
-                  <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                    </svg>
-                    Quận/Huyện
-                  </label>
-                  <Field
-                    as="select"
-                    name="district"
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
-                    disabled={!selectedProvince}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      setFieldValue("district", value);
-                      setSelectedDistrict(value);
-                      setFieldValue("ward", "");
-                    }}
-                  >
-                    <option value="">-- Chọn Quận/Huyện --</option>
-                    {districts.map((district) => (
-                      <option key={district} value={district}>
-                        {district}
-                      </option>
-                    ))}
-                  </Field>
-                  <ErrorMessage
-                    name="district"
                     component="div"
                     className="text-red-500 text-sm mt-1"
                   />
@@ -702,18 +607,11 @@ const CreateShop = () => {
                     Phường/Xã
                   </label>
                   <Field
-                    as="select"
                     name="ward"
                     className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
-                    disabled={!selectedDistrict}
-                  >
-                    <option value="">-- Chọn Phường/Xã --</option>
-                    {wards.map((ward) => (
-                      <option key={ward} value={ward}>
-                        {ward}
-                      </option>
-                    ))}
-                  </Field>
+                    placeholder={selectedProvince ? "Nhập tên phường/xã" : "Vui lòng chọn tỉnh/thành phố trước"}
+                    disabled={!selectedProvince}
+                  />
                   <ErrorMessage
                     name="ward"
                     component="div"
@@ -904,51 +802,79 @@ const CreateShop = () => {
               </div>
 
               {/* Bio */}
-              <div className="col-span-1 md:col-span-2 lg:col-span-3">
-                <label className="block text-gray-700 font-semibold mb-2 flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-gray-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
+              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-6 border border-yellow-200">
+                <label className="block text-gray-800 font-semibold text-lg mb-4 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
                   Giới thiệu về cửa hàng
                 </label>
                 <Field
                   as="textarea"
                   name="bio"
-                  rows={4}
-                  className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 bg-gray-50"
-                  placeholder="Mô tả ngắn về cửa hàng của bạn, các sản phẩm nổi bật, đặc trưng..."
+                  rows={5}
+                  className="w-full border-2 border-yellow-200 rounded-xl px-4 py-3 focus:outline-none focus:border-yellow-400 bg-white hover:border-yellow-300 transition-colors text-gray-800 resize-none"
+                  placeholder="Mô tả ngắn về cửa hàng của bạn, các sản phẩm nổi bật, đặc trưng, kinh nghiệm làm bánh..."
                 />
                 <ErrorMessage
                   name="bio"
                   component="div"
-                  className="text-red-500 text-sm mt-1"
+                  className="text-red-500 text-sm mt-2"
                 />
+                <div className="text-gray-500 text-sm mt-2">
+                  💡 Hãy viết một đoạn giới thiệu thu hút để khách hàng hiểu rõ về shop của bạn
+                </div>
               </div>
 
               {error && (
-                <div className="text-red-500 text-sm mt-2">{error}</div>
+                <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl text-center">
+                  ❌ {error}
+                </div>
               )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting || loading}
-                className="w-full bg-gradient-to-r from-pink-500 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-pink-700 transition-colors shadow-lg mt-8 disabled:opacity-60 text-lg tracking-wide"
-              >
-                {loading ? "Đang tạo..." : "Tạo cửa hàng"}
-              </button>
+              <div className="text-center">
+                <button
+                  type="submit"
+                  disabled={isSubmitting || loading}
+                  className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white px-12 py-4 rounded-2xl font-bold text-lg hover:from-pink-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 shadow-xl disabled:opacity-60 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
+                >
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Đang tạo cửa hàng...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-3">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      🏪 Tạo cửa hàng của tôi
+                    </div>
+                  )}
+                </button>
+                <p className="text-gray-500 text-sm mt-4">
+                  Bằng việc tạo cửa hàng, bạn đồng ý với điều khoản sử dụng của chúng tôi
+                </p>
+              </div>
             </Form>
           )}
         </Formik>
+        </div>
       </div>
     </div>
   );
