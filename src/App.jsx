@@ -49,7 +49,7 @@ import SuggestedUsers from "./pages/Home/SuggestedUsers";
 import MyAlbum from "./pages/MyAlbum/MyAlbum";
 import AlbumDetail from "./pages/MyAlbum/AlbumDetail";
 import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
-import OrderTrackingFormByShop from "./pages/OrderTrackingForm/OrderTrackingFormByShop";
+// import OrderTrackingFormByShop from "./pages/OrderTrackingForm/OrderTrackingFormByShop";
 import OrderTrackingUserList from "./pages/OrderTrackingForm/OrderTrackingUserList";
 import OrderTrackingAdminAllList from "./pages/OrderTrackingForm/OrderTrackingAdminAllList";
 import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
@@ -144,10 +144,7 @@ export default function App() {
               path="order-tracking/:orderId"
               element={<OrderTrackingList showOrderDetails={true} />}
             />
-            <Route
-              path="order-tracking-shop/:orderId"
-              element={<OrderTrackingFormByShop />}
-            />
+
             <Route
               path="order-tracking-user"
               element={<OrderTrackingUserList />}
