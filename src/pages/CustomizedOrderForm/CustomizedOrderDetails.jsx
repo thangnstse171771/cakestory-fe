@@ -26,6 +26,7 @@ export default function CakeShop() {
 
   // State for checkout process
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // State for wallet balance
   const [walletBalance, setWalletBalance] = useState(0);
@@ -250,8 +251,8 @@ export default function CakeShop() {
         autoClose: 3000,
       });
 
-      // Navigate to success page or order tracking
-      navigate("/orders", {
+      // Navigate to marketplace page sau khi thanh toán thành công
+      navigate("/marketplace", {
         state: {
           orderId: response.id,
           orderData: response,
@@ -707,7 +708,7 @@ export default function CakeShop() {
                 </div>
 
                 <button
-                  onClick={handleDirectCheckout}
+                  onClick={() => setShowConfirmModal(true)}
                   disabled={
                     isCheckingOut ||
                     !selectedSize ||
@@ -736,6 +737,73 @@ export default function CakeShop() {
         </div>
       </div>
 
+      {/* Modal xác nhận thanh toán */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 flex flex-col items-center">
+            <div className="text-3xl font-bold text-pink-600 mb-4 flex items-center gap-2">
+              <span role="img" aria-label="bell">
+                🔔
+              </span>{" "}
+              Xác nhận thanh toán
+            </div>
+            <div className="text-gray-700 text-base mb-4 text-center">
+              Sau khi thanh toán, bạn có{" "}
+              <span className="font-bold text-pink-600">5 phút</span> để hủy đơn
+              hàng.
+              <br />
+              Quá thời gian trên, đơn hàng sẽ không thể hủy.
+            </div>
+            <div className="w-full mb-4 bg-pink-50 rounded-lg p-4">
+              <div className="font-semibold text-pink-700 mb-2">
+                Thông tin đơn hàng
+              </div>
+              <div className="text-sm text-gray-800 mb-1">
+                Tên bánh: <span className="font-bold">{cake.name}</span>
+              </div>
+              <div className="text-sm text-gray-800 mb-1">
+                Kích thước: <span className="font-bold">{selectedSize}</span>
+              </div>
+              <div className="text-sm text-gray-800 mb-1">
+                Số lượng: <span className="font-bold">{quantity}</span>
+              </div>
+              {selectedToppings.length > 0 && (
+                <div className="text-sm text-gray-800 mb-1">
+                  Topping:
+                  <ul className="ml-4 list-disc">
+                    {selectedToppings.map((t) => (
+                      <li key={t.id}>
+                        {t.name} (x{t.quantity})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="text-lg font-bold text-pink-600 mt-2">
+                Tổng tiền: {formatCurrency(getTotalPrice())}
+              </div>
+            </div>
+            <div className="flex gap-4 w-full mt-2">
+              <button
+                className="flex-1 h-12 text-base bg-transparent border border-pink-300 rounded-lg text-pink-600 hover:bg-pink-50"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="flex-1 h-12 text-base bg-pink-500 hover:bg-pink-600 rounded-lg text-white font-semibold"
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  handleDirectCheckout();
+                }}
+                disabled={isCheckingOut}
+              >
+                Xác nhận thanh toán
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Toast Container for notifications */}
       <ToastContainer />
     </div>
