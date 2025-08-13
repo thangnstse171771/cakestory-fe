@@ -622,12 +622,14 @@ export default function OrderTrackingForm({
   ]);
 
   const handleBackToList = () => {
-    try {
-      navigate("/order-tracking");
-    } catch (e) {
-      if (typeof window !== "undefined" && window.location) {
-        window.location.href = "/order-tracking";
-      }
+    // Quay về trang trước nếu có, nếu không thì về /order-tracking và reload lại
+    if (window.history.length > 1) {
+      window.history.back();
+      setTimeout(() => {
+        window.location.reload();
+      }, 300);
+    } else {
+      window.location.href = "/order-tracking";
     }
   };
 
@@ -652,20 +654,23 @@ export default function OrderTrackingForm({
   }
 
   if (!orderDetail) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-8">
-        <h2 className="text-2xl font-bold mb-4">Không tìm thấy đơn hàng</h2>
-        <p className="text-gray-500 mb-6">
-          Vui lòng chọn một đơn hàng từ danh sách.
-        </p>
-        <button
-          onClick={handleBackToList}
-          className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-        >
-          Quay lại danh sách đơn hàng
-        </button>
-      </div>
-    );
+    // Nếu orderDetail null hoặc không có id thì mới báo không tìm thấy
+    if (!orderDetail || (!orderDetail.id && !orderDetail.orderNumber)) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-8">
+          <h2 className="text-2xl font-bold mb-4">Không tìm thấy đơn hàng</h2>
+          <p className="text-gray-500 mb-6">
+            Vui lòng chọn một đơn hàng từ danh sách.
+          </p>
+          <button
+            onClick={handleBackToList}
+            className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+          >
+            Quay lại danh sách đơn hàng
+          </button>
+        </div>
+      );
+    }
   }
 
   // Các trạng thái chính theo thứ tự flow
@@ -928,18 +933,12 @@ export default function OrderTrackingForm({
                 )}
 
               {/* Nút hủy đơn (hiện khi chưa hoàn thành) - Shop only */}
-              {canShopControl &&
-                orderDetail.status !== "completed" &&
-                orderDetail.status !== "cancelled" && (
-                  <button
-                    onClick={() =>
-                      handleUpdateStatus(orderDetail.id, "cancelled")
-                    }
-                    className="px-4 py-2 rounded-lg font-semibold border bg-red-500 text-white border-red-500 hover:bg-red-600 transition-colors duration-200"
-                  >
-                    Hủy đơn hàng
-                  </button>
-                )}
+              {/* Ẩn nút hủy đơn ở phía shop, chỉ hiện cho chủ đơn hàng */}
+              {
+                canShopControl &&
+                  !isOrderOwner &&
+                  false /* Ẩn nút hủy đơn cho shop */
+              }
             </div>
 
             {/* Ghi chú đã được loại bỏ */}
