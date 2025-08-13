@@ -441,16 +441,15 @@ const Home = () => {
                                   {/* Shop Info */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-gray-600">
-                                      <div className="w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                        {post.shop?.business_name?.charAt(0) ||
-                                          "M"}
-                                        {/* <img
-                                        src={shop.avatar_image}
+                                      <img
+                                        src={post.shop?.avatar_image}
                                         alt={
-                                          shop.business_name || "Shop Avatar"
+                                          post.shop?.business_name ||
+                                          "Shop Avatar"
                                         }
-                                      ></img> */}
-                                      </div>
+                                        className="w-8 h-8 rounded-full flex items-center justify-center"
+                                      ></img>
+
                                       <div>
                                         <p className="font-medium text-sm text-gray-500">
                                           <Link
