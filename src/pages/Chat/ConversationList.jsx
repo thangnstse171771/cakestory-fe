@@ -227,7 +227,7 @@ const ConversationList = () => {
                   </div>
 
                   <p
-                    className={`text-sm truncate ${
+                    className={`text-sm truncate max-w-[260px] ${
                       isUnread ? "text-gray-900 font-medium" : "text-gray-600"
                     }`}
                   >

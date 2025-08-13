@@ -326,8 +326,10 @@ const ChatArea = () => {
                     />
                   )}
                   <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
-                    <p className="text-sm">{message.text}</p>
-                    <span className="text-xs text-white-500 mt-1 block">
+                    <p className="text-sm break-words whitespace-pre-wrap">
+                      {message.text}
+                    </p>
+                    <span className="text-xs text-white/70 mt-1 block">
                       {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
                     </span>
                   </div>
@@ -354,7 +356,9 @@ const ChatArea = () => {
                       />
                     )}
                     <div className="bg-pink-100 rounded-lg p-3 max-w-xs">
-                      <p className="text-sm text-gray-800">{message.text}</p>
+                      <p className="text-sm text-gray-800 break-words whitespace-pre-wrap">
+                        {message.text}
+                      </p>
                       <span className="text-xs text-gray-500 mt-1 block">
                         {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
                       </span>
