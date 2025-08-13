@@ -150,6 +150,8 @@ export default function OrderTrackingForm({
   const isShopActor =
     shopRoleSet.has(role) || Boolean(viewerShopId || inferredUserShopId);
   const isCustomerActor = !isShopActor;
+  // Timer to control user's 5-minute cancel window
+  const [nowTs, setNowTs] = useState(Date.now());
 
   useEffect(() => {
     let mounted = true;
@@ -181,6 +183,12 @@ export default function OrderTrackingForm({
       mounted = false;
     };
   }, [user?.id]);
+
+  // Tick 'now' every 1s to keep the cancel countdown accurate and auto-hide when 5 minutes pass
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Local state để cập nhật trạng thái động
   const [orderDetail, setOrderDetail] = useState(
@@ -614,12 +622,25 @@ export default function OrderTrackingForm({
   ]);
 
   const handleBackToList = () => {
-    if (onBackToList) {
-      onBackToList();
-    } else {
+    try {
       navigate("/order-tracking");
+    } catch (e) {
+      if (typeof window !== "undefined" && window.location) {
+        window.location.href = "/order-tracking";
+      }
     }
   };
+
+  // Reload order detail every 30s if pending
+  useEffect(() => {
+    if (orderDetail?.status !== "pending") return;
+    const interval = setInterval(() => {
+      if (orderId && !order) {
+        fetchOrderDetail();
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [orderDetail?.status, orderId, order]);
 
   if (loading) {
     return (
@@ -787,7 +808,7 @@ export default function OrderTrackingForm({
         </button>
 
         {/* Hiện nút khiếu nại chỉ dành cho CHỦ đơn hàng khi trạng thái là shipped và chưa có khiếu nại */}
-  {isOrderOwner && orderDetail.status === "shipped" && !hasComplaint && (
+        {isOrderOwner && orderDetail.status === "shipped" && !hasComplaint && (
           <button
             className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
             onClick={() => setShowComplaintModal(true)}
@@ -842,6 +863,21 @@ export default function OrderTrackingForm({
               </div>
             )} */}
             <div className="flex flex-wrap gap-2 mb-4">
+              {/* Nút hủy đơn cho user khi trạng thái pending và trong 5 phút đầu */}
+              {isOrderOwner &&
+                orderDetail.status === "pending" &&
+                orderDetail.status !== "completed" &&
+                orderDetail.status !== "cancelled" && (
+                  <button
+                    onClick={() =>
+                      handleUpdateStatus(orderDetail.id, "cancelled")
+                    }
+                    className="px-4 py-2 rounded-lg font-semibold border bg-rose-500 text-white border-rose-500 hover:bg-rose-600 transition-colors duration-200"
+                  >
+                    Hủy đơn
+                  </button>
+                )}
+
               {/* Nút chuyển sang ordered (chỉ hiện khi đang pending) - Shop only */}
               {canShopControl && orderDetail.status === "pending" && (
                 <button
@@ -1130,7 +1166,9 @@ export default function OrderTrackingForm({
             // Reload trang để đồng bộ trạng thái từ server và ẩn nút hoàn thành
             try {
               // React Router v6: navigate(0) sẽ reload hard
-              typeof window !== "undefined" && window.location && window.location.reload();
+              typeof window !== "undefined" &&
+                window.location &&
+                window.location.reload();
             } catch {}
           }}
         />

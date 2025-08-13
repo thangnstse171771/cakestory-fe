@@ -28,7 +28,7 @@ const statusMap = {
 };
 
 export default function OrderTrackingList({
-  orders,
+  orders = [],
   onSelectOrder,
   showOrderDetails = false,
 }) {
@@ -275,7 +275,9 @@ export default function OrderTrackingList({
       ? orders
       : fakeOrders;
 
+  // Loại bỏ đơn hàng có trạng thái 'pending' khỏi danh sách shop
   const filteredOrders = displayOrders.filter((o) => {
+    if (o.status === "pending") return false;
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     const s = search.toLowerCase();
     const matchSearch =
