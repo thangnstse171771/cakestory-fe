@@ -562,6 +562,10 @@ export const updateOrderStatus = async (orderId, status) => {
       case "ordered":
         endpoint = `/cake-orders/${orderId}/ordered`;
         break;
+      case "preparedForDelivery":
+      case "prepared":
+        endpoint = `/cake-orders/${orderId}/prepared`;
+        break;
       case "shipped":
         endpoint = `/cake-orders/${orderId}/ship`;
         break;

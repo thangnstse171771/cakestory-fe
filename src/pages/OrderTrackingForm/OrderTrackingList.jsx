@@ -125,35 +125,59 @@ export default function OrderTrackingList({
       // Transform data từ API response để match với UI
       const transformedOrders = ordersArray.map((order) => {
         console.log("Transforming order:", order);
+        const userObj = order.User || order.user || {};
+        const customerName =
+          userObj.full_name ||
+          userObj.username ||
+          `Khách hàng #${order.customer_id || userObj.id || "N/A"}`;
+        const customerEmail = userObj.email || userObj.username || "";
+        const customerPhone = userObj.phone_number || userObj.phone || "";
         const basePrice =
           parseFloat(order.base_price) || parseFloat(order.total_price) || 0;
+
+        // Build items from either order_details or orderDetails
+        let items = [];
+        if (Array.isArray(order.order_details)) {
+          items = order.order_details.map((item) => ({
+            name:
+              item.cake?.name ||
+              item.marketplace_post?.title ||
+              `Bánh tùy chỉnh #${item.id || "N/A"}`,
+            quantity: parseInt(item.quantity) || 1,
+            price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
+          }));
+        } else if (Array.isArray(order.orderDetails)) {
+          items = order.orderDetails.map((od) => {
+            const q = Number(od.quantity) || 1;
+            const total = parseFloat(od.total_price) || 0;
+            const unit = q > 0 ? total / q : total;
+            return {
+              name: `Nguyên liệu #${od.ingredient_id}`,
+              quantity: q,
+              price: unit,
+            };
+          });
+        }
+
         return {
           id: order.id,
           orderNumber: `ORD-${String(order.id).padStart(3, "0")}`,
-          placedDate: order.created_at,
+          placedDate: order.created_at || order.createdAt,
           status: order.status,
-          customerName:
-            order.user?.full_name ||
-            order.user?.username ||
-            `Khách hàng #${order.customer_id || order.user?.id || "N/A"}`,
-          customerEmail: order.user?.email || "",
-          customerPhone: order.user?.phone_number || order.user?.phone || "",
-          items:
-            order.order_details?.map((item) => ({
-              name:
-                item.cake?.name ||
-                item.marketplace_post?.title ||
-                `Bánh tùy chỉnh #${item.id || "N/A"}`,
-              quantity: parseInt(item.quantity) || 1,
-              price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-            })) || [],
-          // Store API total but UI will use base_price as requested
+          customerName,
+          customerEmail,
+          customerPhone,
+          items,
           total: parseFloat(order.total_price) || 0,
           base_price: basePrice,
           history: [
             {
-              date: new Date(order.created_at).toLocaleDateString("vi-VN"),
-              time: new Date(order.created_at).toLocaleTimeString("vi-VN"),
+              date: new Date(
+                order.created_at || order.createdAt
+              ).toLocaleDateString("vi-VN"),
+              time: new Date(
+                order.created_at || order.createdAt
+              ).toLocaleTimeString("vi-VN"),
               status: order.status,
               note: "Đơn hàng được tạo",
             },
@@ -280,65 +304,74 @@ export default function OrderTrackingList({
       const orderDetail = await fetchOrderById(orderId);
       console.log("Order detail fetched:", orderDetail);
 
-      // Transform data để match với UI format
-      const transformedOrder = {
-        id: orderDetail.id,
-        orderNumber: `ORD-${String(orderDetail.id).padStart(3, "0")}`,
-        placedDate: orderDetail.created_at,
-        status: orderDetail.status,
-        customerName:
-          orderDetail.user?.full_name ||
-          orderDetail.user?.username ||
-          `Khách hàng #${
-            orderDetail.customer_id || orderDetail.user?.id || "N/A"
-          }`,
-        customerEmail: orderDetail.user?.email || "",
-        customerPhone:
-          orderDetail.user?.phone_number || orderDetail.user?.phone || "",
-        items:
-          orderDetail.order_details?.map((item) => ({
-            name:
-              item.cake?.name ||
-              item.marketplace_post?.title ||
-              `Bánh tùy chỉnh #${item.id || "N/A"}`,
-            quantity: parseInt(item.quantity) || 1,
-            price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-            cakeDetails: item.cake
-              ? {
-                  description: item.cake.description,
-                  category: item.cake.category,
-                  ingredients: item.cake.ingredients,
-                  allergens: item.cake.allergens,
-                  image_url: item.cake.image_url,
-                }
-              : null,
-            marketplaceDetails: item.marketplace_post
-              ? {
-                  title: item.marketplace_post.title,
-                  description: item.marketplace_post.description,
-                  image_url: item.marketplace_post.image_url,
-                  shop_id: item.marketplace_post.shop_id,
-                }
-              : null,
+      const data = orderDetail?.order || orderDetail?.data || orderDetail;
+      const userObj = data.User || data.user || {};
+      const customerName =
+        userObj.full_name ||
+        userObj.username ||
+        `Khách hàng #${data.customer_id || userObj.id || "N/A"}`;
+      const customerEmail = userObj.email || userObj.username || "";
+      const customerPhone = userObj.phone_number || userObj.phone || "";
+
+      // Build items
+      let items = [];
+      if (Array.isArray(data.order_details)) {
+        items = data.order_details.map((item) => ({
+          name:
+            item.cake?.name ||
+            item.marketplace_post?.title ||
+            `Bánh tùy chỉnh #${item.id || "N/A"}`,
+          quantity: parseInt(item.quantity) || 1,
+          price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
+          customization: {
+            size: item.size || data.size || "N/A",
+            special_instructions:
+              item.special_instructions || data.special_instructions || "",
+            toppings: [],
+          },
+        }));
+      } else if (Array.isArray(data.orderDetails)) {
+        items = data.orderDetails.map((od) => {
+          const q = Number(od.quantity) || 1;
+          const total = parseFloat(od.total_price) || 0;
+          const unit = q > 0 ? total / q : total;
+          return {
+            name: `Nguyên liệu #${od.ingredient_id}`,
+            quantity: q,
+            price: unit,
             customization: {
-              size: item.size || "N/A",
-              special_instructions: item.special_instructions || "",
+              size: data.size || "N/A",
+              special_instructions: data.special_instructions || "",
               toppings: [],
             },
-          })) || [],
-        total: parseFloat(orderDetail.total_price) || 0,
+          };
+        });
+      }
+
+      const transformedOrder = {
+        id: data.id,
+        orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
+        placedDate: data.created_at || data.createdAt,
+        status: data.status,
+        customerName,
+        customerEmail,
+        customerPhone,
+        items,
+        total: parseFloat(data.total_price) || 0,
         base_price:
-          parseFloat(orderDetail.base_price) ||
-          parseFloat(orderDetail.total_price) ||
-          0,
+          parseFloat(data.base_price) || parseFloat(data.total_price) || 0,
         shippingAddress: {
-          address: orderDetail.shipped_at || "",
+          address: data.shipped_at || "",
         },
         history: [
           {
-            date: new Date(orderDetail.created_at).toLocaleDateString("vi-VN"),
-            time: new Date(orderDetail.created_at).toLocaleTimeString("vi-VN"),
-            status: orderDetail.status,
+            date: new Date(
+              data.created_at || data.createdAt
+            ).toLocaleDateString("vi-VN"),
+            time: new Date(
+              data.created_at || data.createdAt
+            ).toLocaleTimeString("vi-VN"),
+            status: data.status,
             note: "Đơn hàng được tạo",
           },
         ],
@@ -379,54 +412,74 @@ export default function OrderTrackingList({
       if (selectedOrder && selectedOrder.id === orderId) {
         // Fetch lại order detail để có trạng thái mới
         const updatedOrderDetail = await fetchOrderById(orderId);
+        const data =
+          updatedOrderDetail?.order ||
+          updatedOrderDetail?.data ||
+          updatedOrderDetail;
+        const userObj = data.User || data.user || {};
+        const customerName =
+          userObj.full_name ||
+          userObj.username ||
+          `Khách hàng #${data.customer_id || userObj.id || "N/A"}`;
+        const customerEmail = userObj.email || userObj.username || "";
+        const customerPhone = userObj.phone_number || userObj.phone || "";
 
         // Transform data giống như trong handleSelectOrder
         const transformedOrder = {
-          id: updatedOrderDetail.id,
-          orderNumber: `ORD-${String(updatedOrderDetail.id).padStart(3, "0")}`,
-          placedDate: updatedOrderDetail.created_at,
-          status: updatedOrderDetail.status,
-          customerName:
-            updatedOrderDetail.user?.full_name ||
-            updatedOrderDetail.user?.username ||
-            `Khách hàng #${
-              updatedOrderDetail.customer_id ||
-              updatedOrderDetail.user?.id ||
-              "N/A"
-            }`,
-          customerEmail: updatedOrderDetail.user?.email || "",
-          customerPhone:
-            updatedOrderDetail.user?.phone_number ||
-            updatedOrderDetail.user?.phone ||
-            "",
-          items:
-            updatedOrderDetail.order_details?.map((item) => ({
-              name:
-                item.cake?.name ||
-                item.marketplace_post?.title ||
-                `Bánh tùy chỉnh #${item.id || "N/A"}`,
-              quantity: parseInt(item.quantity) || 1,
-              price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-              customization: {
-                size: item.size || "N/A",
-                special_instructions: item.special_instructions || "",
-                toppings: [],
-              },
-            })) || [],
-          total: parseFloat(updatedOrderDetail.total_price) || 0,
+          id: data.id,
+          orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
+          placedDate: data.created_at || data.createdAt,
+          status: data.status,
+          customerName,
+          customerEmail,
+          customerPhone,
+          items: Array.isArray(data.order_details)
+            ? data.order_details.map((item) => ({
+                name:
+                  item.cake?.name ||
+                  item.marketplace_post?.title ||
+                  `Bánh tùy chỉnh #${item.id || "N/A"}`,
+                quantity: parseInt(item.quantity) || 1,
+                price:
+                  parseFloat(item.price) || parseFloat(item.base_price) || 0,
+                customization: {
+                  size: item.size || data.size || "N/A",
+                  special_instructions:
+                    item.special_instructions ||
+                    data.special_instructions ||
+                    "",
+                  toppings: [],
+                },
+              }))
+            : Array.isArray(data.orderDetails)
+            ? data.orderDetails.map((od) => {
+                const q = Number(od.quantity) || 1;
+                const total = parseFloat(od.total_price) || 0;
+                const unit = q > 0 ? total / q : total;
+                return {
+                  name: `Nguyên liệu #${od.ingredient_id}`,
+                  quantity: q,
+                  price: unit,
+                  customization: {
+                    size: data.size || "N/A",
+                    special_instructions: data.special_instructions || "",
+                    toppings: [],
+                  },
+                };
+              })
+            : [],
+          total: parseFloat(data.total_price) || 0,
           base_price:
-            parseFloat(updatedOrderDetail.base_price) ||
-            parseFloat(updatedOrderDetail.total_price) ||
-            0,
+            parseFloat(data.base_price) || parseFloat(data.total_price) || 0,
           history: [
             {
-              date: new Date(updatedOrderDetail.created_at).toLocaleDateString(
-                "vi-VN"
-              ),
-              time: new Date(updatedOrderDetail.created_at).toLocaleTimeString(
-                "vi-VN"
-              ),
-              status: updatedOrderDetail.status,
+              date: new Date(
+                data.created_at || data.createdAt
+              ).toLocaleDateString("vi-VN"),
+              time: new Date(
+                data.created_at || data.createdAt
+              ).toLocaleTimeString("vi-VN"),
+              status: data.status,
               note: "Đơn hàng được tạo",
             },
             {
