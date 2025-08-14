@@ -291,7 +291,7 @@ export default function ChallengeMain() {
                 Wedding Cake Challenge
               </h2>
               <button className="bg-white/20 border border-white/30 text-white hover:bg-white/30 px-4 py-2 rounded">
-                View Details
+                Xem Chi Tiết
               </button>
             </div>
 

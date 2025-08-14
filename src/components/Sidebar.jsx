@@ -79,8 +79,8 @@ const Sidebar = () => {
 
   // Menu công khai (giữ mục track orders chung cho shop owners nếu có shop)
   const publicMenu = [
-    { icon: Home, label: "Home", path: "/home" },
-    { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
+    { icon: Home, label: "Trang Chủ", path: "/home" },
+    { icon: ShoppingBag, label: "Khu Mua Sắm", path: "/marketplace" },
     { icon: Cake, label: "Thiết kế bánh", path: "/cake-design" },
     { icon: Trophy, label: "Thử thách", path: "/challenge" },
     // Shop order tracking (dùng component lấy theo shop của user hiện tại)

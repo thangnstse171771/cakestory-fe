@@ -1162,6 +1162,22 @@ Trang trí: ${
                   e.target.style.scrollBehavior = "smooth";
                 }}
               >
+                <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-purple-600" />
+                      <span className="font-medium text-purple-800">
+                        Chi phí mỗi lần tạo ảnh AI:
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold text-purple-600">
+                      {AI_GENERATION_COST.toLocaleString()} VND
+                    </span>
+                  </div>
+                  <div className="mt-2 text-sm text-purple-700">
+                    Số dư: {balance.toLocaleString()} VND
+                  </div>
+                </div>
                 {/* Description Input */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
                   <h3 className="font-semibold text-gray-800 mb-3 flex items-center text-sm">

@@ -144,7 +144,7 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
                 d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8-1.44 0-2.794-.308-4-.855L3 21l1.405-4.215A7.963 7.963 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
               />
             </svg>
-            {loadingChat ? "Opening..." : "Chat"}
+            {loadingChat ? "Opening..." : "Nhắn tin"}
           </button>
         )}
 
@@ -260,7 +260,7 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                     />
                   </svg>
-                  <span className="font-semibold">Edit Shop</span>
+                  <span className="font-semibold">Chỉnh Sửa Shop</span>
                 </div>
               </button>
               <button
@@ -282,7 +282,7 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-                  <span className="font-semibold">Create Post</span>
+                  <span className="font-semibold">Tạo Sản Phẩm</span>
                 </div>
               </button>
             </div>
@@ -291,13 +291,13 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
         <div className="flex flex-col md:flex-row gap-4 mt-4">
           <div className="bg-pink-200/90 backdrop-blur-sm rounded-lg shadow p-4 flex-1 min-w-[220px] border border-pink-300 hover:shadow-md transition-all duration-300">
             <div className="text-sm font-semibold mb-1 text-pink-700">
-              Address
+              Địa Chỉ
             </div>
             <div className="text-gray-800 text-sm">{shop.business_address}</div>
           </div>
           <div className="bg-pink-200/90 backdrop-blur-sm rounded-xl shadow p-4 flex-1 min-w-[220px] border border-pink-300 hover:shadow-md transition-all duration-300">
             <div className="text-sm font-semibold mb-1 text-pink-600">
-              Location (Lat, Lng)
+              Vị Trí
             </div>
             <div className="text-gray-800 text-sm">
               {shop.latitude}, {shop.longitude}

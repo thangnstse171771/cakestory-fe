@@ -53,7 +53,7 @@ const ShopsList = () => {
   }, []); // Only run once on mount
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Đang tải...</div>;
   }
 
   return (
@@ -98,17 +98,18 @@ const ShopsList = () => {
             </div>
             <div className="flex flex-col gap-1 text-xs text-gray-600 mb-2">
               <div>
-                <span className="font-semibold">Address:</span> {shop.location}
+                <span className="font-semibold">Địa chỉ:</span> {shop.location}
               </div>
               <div>
-                <span className="font-semibold">Phone:</span> {shop.phone_number}
+                <span className="font-semibold">Điện thoại:</span>{" "}
+                {shop.phone_number}
               </div>
               <div>
-                <span className="font-semibold">Business Hours:</span>{" "}
+                <span className="font-semibold">Giờ làm việc:</span>{" "}
                 {shop.business_hours}
               </div>
               <div>
-                <span className="font-semibold">Delivery Area:</span>{" "}
+                <span className="font-semibold">Khu vực giao hàng:</span>{" "}
                 {shop.delivery_area}
               </div>
             </div>
@@ -123,7 +124,7 @@ const ShopsList = () => {
               className="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition-colors mt-auto font-semibold shadow"
               onClick={() => navigate(`/marketplace/shop/${shop.user_id}`)}
             >
-              View Shop
+              Xem Cửa Hàng
             </button>
           </div>
         </div>

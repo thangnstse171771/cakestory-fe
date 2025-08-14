@@ -54,16 +54,18 @@ const ShopServices = ({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-bold text-2xl text-gray-800">Our Services</h3>
+          <h3 className="font-bold text-2xl text-gray-800">
+            Sản phẩm của chúng tôi
+          </h3>
           <p className="text-gray-600 text-sm mt-1">
-            Discover our amazing cake collection
+            Khám phá bộ sưu tập bánh tuyệt vời của chúng tôi
           </p>
         </div>
         <button
           onClick={handleViewAll}
           className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white text-sm font-medium px-5 py-2 rounded-lg shadow-sm transition-all duration-200"
         >
-          View All
+          Xem Tất Cả
         </button>
       </div>
       {visibleServices && visibleServices.length > 0 ? (
@@ -117,7 +119,7 @@ const ShopServices = ({
                     <div className="absolute top-3 left-3">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm">
                         {product.tier || 1}{" "}
-                        {(product.tier || 1) === 1 ? "Tier" : "Tiers"}
+                        {(product.tier || 1) === 1 ? "Tầng" : "Tầng"}
                       </span>
                     </div>
 
@@ -134,7 +136,9 @@ const ShopServices = ({
                               : "bg-gradient-to-r from-gray-500 to-gray-600 text-white"
                           }`}
                         >
-                          {postObj.is_public !== false ? "Public" : "Private"}
+                          {postObj.is_public !== false
+                            ? "Công khai"
+                            : "Riêng tư"}
                         </span>
                       </div>
                     )}
@@ -143,11 +147,11 @@ const ShopServices = ({
                     <div className="absolute top-3 right-3">
                       {available ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm">
-                          Available
+                          Có Sẵn
                         </span>
                       ) : (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm">
-                          Expired
+                          Hết Hạn
                         </span>
                       )}
                     </div>
@@ -247,7 +251,7 @@ const ShopServices = ({
                     {cakeSizes.length > 0 && (
                       <div className="mb-4">
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Choose size:
+                          Chọn kích cỡ bánh:
                         </label>
                         <div className="relative">
                           <select
@@ -292,12 +296,12 @@ const ShopServices = ({
                         </span>
                         {sizeText && (
                           <span className="text-sm text-blue-600 font-medium">
-                            {sizeText.replace("(", "").replace(")", "")} size
+                            kích cỡ {sizeText.replace("(", "").replace(")", "")}
                           </span>
                         )}
                         {cakeSizes.length > 1 && (
                           <span className="text-xs text-gray-500 mt-1">
-                            {cakeSizes.length} sizes available
+                            {cakeSizes.length} kích cỡ có sẵn
                           </span>
                         )}
                       </div>
@@ -312,7 +316,7 @@ const ShopServices = ({
                               );
                             }}
                           >
-                            View Details
+                            Xem Chi Tiết
                           </button>
                           <button
                             onClick={(e) => {
@@ -347,7 +351,7 @@ const ShopServices = ({
                                   d="M3 3h2l.4 2M7 13h10l4-8H5.4m-2.4-2L3 3m4 10v6a1 1 0 001 1h12a1 1 0 001-1v-6M7 13l-1.35-6.5M17 21v-2a4 4 0 00-8 0v2"
                                 />
                               </svg>
-                              Order Now
+                              Đặt Ngay
                             </span>
                           </button>
                         </div>
@@ -377,11 +381,12 @@ const ShopServices = ({
             </svg>
           </div>
           <h3 className="text-xl font-semibold text-gray-700 mb-2">
-            No Products Yet
+            Chưa có sản phẩm nào
           </h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
-            Start building your cake collection by creating your first
-            marketplace post. Share your delicious creations with customers!
+            Bắt đầu xây dựng bộ sưu tập bánh của bạn bằng cách tạo bài đăng đầu
+            tiên trên thị trường. Chia sẻ những sáng tạo ngon miệng của bạn với
+            khách hàng!
           </p>
           {isOwner && (
             <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
