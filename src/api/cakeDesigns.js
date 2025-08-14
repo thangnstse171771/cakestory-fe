@@ -51,3 +51,16 @@ export const getCakeDesigns = async (page = 1, limit = 10) => {
   );
   return response.data;
 };
+
+// Get cake designs by user ID with pagination
+export const getCakeDesignsByUserId = async (
+  userId,
+  page = 1,
+  limit = 10,
+  includePrivate = false
+) => {
+  const response = await axiosInstance.get(
+    `/cake-designs/user/${userId}?page=${page}&limit=${limit}&include_private=${includePrivate}`
+  );
+  return response.data;
+};
