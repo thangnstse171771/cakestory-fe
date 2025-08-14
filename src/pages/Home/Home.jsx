@@ -580,9 +580,7 @@ const Home = () => {
                                   </div>
                                 </div>
                               </div>
-                              <button className="text-gray-400 hover:text-gray-600">
-                                <MoreHorizontal className="w-5 h-5" />
-                              </button>
+                              
                             </div>
 
                             <div className="relative rounded-lg overflow-hidden">
@@ -619,9 +617,16 @@ const Home = () => {
                                             }
                                             src={item.video_url}
                                             autoPlay
-                                            controls
                                             muted
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover cursor-pointer"
+                                            onClick={(e) => {
+                                              const vid = e.currentTarget;
+                                              if (vid.paused) {
+                                                vid.play();
+                                              } else {
+                                                vid.pause();
+                                              }
+                                            }}
                                           />
                                         ) : (
                                           <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">

@@ -671,7 +671,15 @@ export default function ChallengeGroup() {
                                   src={item.video_url}
                                   autoPlay
                                   muted
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover cursor-pointer"
+                                  onClick={(e) => {
+                                    const vid = e.currentTarget;
+                                    if (vid.paused) {
+                                      vid.play();
+                                    } else {
+                                      vid.pause();
+                                    }
+                                  }}
                                 />
                               ) : (
                                 <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
