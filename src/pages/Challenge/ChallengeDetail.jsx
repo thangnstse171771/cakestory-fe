@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { getChallengeById, joinChallenge } from "../../api/challenge";
 import axiosInstance from "../../api/axios";
+import ChallengeLeaderboard from "./ChallengePost/ChallengeLeaderboard";
 // import axiosInstance from "../../api/axios";
 
 const countParticipants = (entries, challengeId) => {
@@ -605,11 +606,12 @@ export default function ChallengeDetailsPage() {
                   </ul>
                 ) : (
                   <p className="text-gray-500 text-center py-4">
-                    Chưa có quy tắc nào được thiết lập
+                    Chưa có quy tắc nào
                   </p>
                 )}
               </div>
             </div>
+            <ChallengeLeaderboard challengeId={id} />
           </div>
 
           {/* Sidebar */}

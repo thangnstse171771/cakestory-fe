@@ -219,12 +219,21 @@ export const authAPI = {
   },
 
   getChallengePostsByChallengeId: async (challengeId) => {
-    const response = await axiosInstance.get(`challenge-posts/challenge/${challengeId}`)
-    return response.data; 
+    const response = await axiosInstance.get(
+      `challenge-posts/challenge/${challengeId}`
+    );
+    return response.data;
   },
 
   getChallengePostById: async (postId) => {
     const response = await axiosInstance.get(`/challenge-posts/${postId}`);
+    return response.data;
+  },
+
+  getChallengeLeaderboardById: async (challengeId) => {
+    const response = await axiosInstance.get(`challenge-posts/leaderboard`, {
+      params: { challenge_id: challengeId },
+    });
     return response.data;
   },
 };
