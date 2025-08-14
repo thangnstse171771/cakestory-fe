@@ -4,9 +4,9 @@ const ShopGallery = ({ gallery }) => {
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="font-bold text-xl text-pink-500">Our Cake Gallery</h3>
+        <h3 className="font-bold text-xl text-pink-500">Phòng trưng bày</h3>
         <button className="bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium px-6 h-8 rounded-lg shadow transition">
-          Show all
+          Xem Tất Cả
         </button>
       </div>
       {gallery && gallery.length > 0 ? (
@@ -51,7 +51,7 @@ const ShopGallery = ({ gallery }) => {
               />
             </svg>
             <p className="text-gray-500 text-lg">
-              No cake images yet. Add some beautiful cakes to your gallery!
+              Chưa có hình ảnh nào. Quay lại sau nhé!
             </p>
           </div>
         </div>

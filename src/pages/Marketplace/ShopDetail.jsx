@@ -105,7 +105,7 @@ const ShopDetail = ({ id: propId }) => {
     }
   };
 
-  if (loading || !shop) return <div>Loading...</div>;
+  if (loading || !shop) return <div>Đang tải...</div>;
 
   const isOwner = user && String(user.id) === String(shop.user?.id);
 

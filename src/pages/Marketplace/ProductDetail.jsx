@@ -106,13 +106,13 @@ const ProductDetail = () => {
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Product not found
+            Không tìm thấy sản phẩm
           </h2>
           <button
             onClick={() => navigate("/marketplace")}
             className="bg-pink-500 text-white px-6 py-3 rounded-lg hover:bg-pink-600 transition-colors"
           >
-            Back to Marketplace
+            Quay lại Khu Mua Sắm
           </button>
         </div>
       </div>
@@ -221,20 +221,8 @@ const ProductDetail = () => {
                 >
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4" />
-                    {product.available ? "Available" : "Out of Stock"}
+                    {product.available ? "Còn hàng" : "Hết hàng"}
                   </div>
-                </div>
-              </div>
-
-              {/* Interactive Stats */}
-              <div className="absolute bottom-6 right-6 flex gap-2">
-                <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Eye className="w-4 h-4" />
-                  <span>124</span>
-                </div>
-                <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-2 text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>89</span>
                 </div>
               </div>
             </div>
@@ -258,13 +246,12 @@ const ProductDetail = () => {
               </div>
               {selectedSize && (
                 <div className="text-pink-600 font-medium">
-                  Price for {selectedSize} size
+                  Giá cho kích cỡ {selectedSize}
                 </div>
               )}
               {sortedCakeSizes.length > 1 && (
                 <div className="text-sm text-gray-500 mt-1">
-                  Starting from {getMinPrice(sortedCakeSizes).toLocaleString()}{" "}
-                  VND
+                  Bắt Đầu từ {getMinPrice(sortedCakeSizes).toLocaleString()} VND
                 </div>
               )}
             </div>
@@ -273,7 +260,7 @@ const ProductDetail = () => {
             {sortedCakeSizes.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Choose Size
+                  Chọn Kích Cỡ
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {sortedCakeSizes.map((size) => (
@@ -302,11 +289,11 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-gray-500" />
                   <div>
-                    <div className="text-sm text-gray-600">Expiry Date</div>
+                    <div className="text-sm text-gray-600">Ngày hết hạn</div>
                     <div className="font-medium">
                       {product.expiry_date
                         ? new Date(product.expiry_date).toLocaleDateString()
-                        : "Not specified"}
+                        : "Không xác định"}
                     </div>
                   </div>
                 </div>
@@ -316,11 +303,11 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-gray-500" />
                   <div>
-                    <div className="text-sm text-gray-600">Created</div>
+                    <div className="text-sm text-gray-600">Ngày tạo</div>
                     <div className="font-medium">
                       {product.created_at
                         ? new Date(product.created_at).toLocaleDateString()
-                        : "Not specified"}
+                        : "Không xác định"}
                     </div>
                   </div>
                 </div>
@@ -340,7 +327,7 @@ const ProductDetail = () => {
               >
                 <div className="flex items-center justify-center gap-2">
                   <ShoppingCart className="w-5 h-5" />
-                  Add to Cart
+                  Đặt Ngay
                 </div>
               </button>
 
@@ -349,7 +336,7 @@ const ProductDetail = () => {
                 className="px-6 py-4 rounded-xl border-2 border-pink-500 text-pink-500 font-semibold hover:bg-pink-50 transition-all duration-300 flex items-center gap-2"
               >
                 <MessageCircle className="w-5 h-5" />
-                Chat
+                Trò chuyện
               </button>
             </div>
           </div>
@@ -358,7 +345,7 @@ const ProductDetail = () => {
         {/* Reviews Section */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 mb-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Customer Reviews
+            Đánh giá của khách hàng
           </h2>
 
           {/* Rating Summary */}
@@ -375,7 +362,7 @@ const ProductDetail = () => {
                   />
                 ))}
               </div>
-              <div className="text-sm text-gray-600 mt-1">124 reviews</div>
+              <div className="text-sm text-gray-600 mt-1">124 đánh giá</div>
             </div>
 
             <div className="flex-1">
@@ -489,7 +476,7 @@ const ProductDetail = () => {
         {/* Shop Information */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 mb-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Shop Information
+            Thông tin cửa hàng
           </h2>
 
           <div className="flex flex-col md:flex-row gap-8">
@@ -556,7 +543,7 @@ const ProductDetail = () => {
                       <Phone className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <div className="text-sm text-gray-600">Phone</div>
+                      <div className="text-sm text-gray-600">Điện thoại</div>
                       <div className="font-medium">{shop.phone_number}</div>
                     </div>
                   </div>
@@ -568,9 +555,7 @@ const ProductDetail = () => {
                       <Clock className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <div className="text-sm text-gray-600">
-                        Business Hours
-                      </div>
+                      <div className="text-sm text-gray-600">Giờ làm việc</div>
                       <div className="font-medium">{shop.business_hours}</div>
                     </div>
                   </div>
@@ -580,7 +565,7 @@ const ProductDetail = () => {
                       <Star className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
-                      <div className="text-sm text-gray-600">Specialty</div>
+                      <div className="text-sm text-gray-600">Chuyên môn</div>
                       <div className="font-medium">{shop.specialty}</div>
                     </div>
                   </div>
@@ -593,11 +578,14 @@ const ProductDetail = () => {
                   className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2"
                 >
                   <Eye className="w-5 h-5" />
-                  Visit Shop
+                  Xem Cửa Hàng
                 </button>
-                <button className="bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-300 transform hover:scale-105 flex items-center gap-2">
+                <button
+                  onClick={handleShopVisit}
+                  className="px-6 py-4 rounded-xl border-2 border-pink-500 text-pink-500 font-semibold hover:bg-pink-50 transition-all duration-300 flex items-center gap-2"
+                >
                   <MessageCircle className="w-5 h-5" />
-                  Chat Now
+                  Trò chuyện
                 </button>
               </div>
             </div>
@@ -651,7 +639,7 @@ const ProductDetail = () => {
                               : "bg-gray-500/90 text-white"
                           }`}
                         >
-                          {item.available ? "Available" : "Out of stock"}
+                          {item.available ? "Còn hàng" : "Hết hàng"}
                         </div>
                       </div>
 
@@ -664,7 +652,7 @@ const ProductDetail = () => {
                         </div>
                         {itemSizes.length > 1 && (
                           <div className="text-xs text-gray-500 mt-1">
-                            {itemSizes.length} sizes available
+                            {itemSizes.length} kích cỡ có sẵn
                           </div>
                         )}
                       </div>

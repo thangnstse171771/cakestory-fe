@@ -10,21 +10,21 @@ import { storage } from "../../firebase";
 
 const CreateMarketplacePostSchema = Yup.object().shape({
   title: Yup.string()
-    .min(3, "Title must be at least 3 characters")
-    .max(100, "Title cannot exceed 100 characters")
-    .required("Title is required"),
+    .min(3, "Tiêu đề phải có ít nhất 3 ký tự")
+    .max(100, "Tiêu đề không được vượt quá 100 ký tự")
+    .required("Tiêu đề là bắt buộc"),
   description: Yup.string()
-    .min(10, "Description must be at least 10 characters")
-    .max(1000, "Description cannot exceed 1000 characters")
-    .required("Description is required"),
+    .min(10, "Mô tả phải có ít nhất 10 ký tự")
+    .max(1000, "Mô tả không được vượt quá 1000 ký tự")
+    .required("Mô tả là bắt buộc"),
   tier: Yup.number()
-    .min(1, "Cake must have at least 1 tier")
-    .max(8, "Cake cannot exceed 8 tiers")
-    .required("Number of tiers is required"),
+    .min(1, "Bánh phải có ít nhất 1 tầng")
+    .max(8, "Bánh không được vượt quá 8 tầng")
+    .required("Số tầng là bắt buộc"),
   available: Yup.boolean().required(),
   expiry_date: Yup.string()
-    .required("Expiry date is required")
-    .test("future-date", "Expiry date must be in the future", function (value) {
+    .required("Ngày hết hạn là bắt buộc")
+    .test("future-date", "Ngày hết hạn phải trong tương lai", function (value) {
       if (!value) return false;
       const selectedDate = new Date(value);
       const today = new Date();
@@ -32,7 +32,7 @@ const CreateMarketplacePostSchema = Yup.object().shape({
       return selectedDate >= today;
     }),
   is_public: Yup.boolean().required(),
-  media: Yup.array().min(1, "Please add at least one media file"),
+  media: Yup.array().min(1, "Vui lòng thêm ít nhất một tệp media"),
 });
 
 const CreateMarketplacePost = ({
@@ -70,11 +70,11 @@ const CreateMarketplacePost = ({
       if (size.size.trim() && size.price) {
         hasValidSize = true;
         if (parseFloat(size.price) <= 0) {
-          error.price = "Price must be greater than 0";
+          error.price = "Giá phải lớn hơn 0";
         }
       } else if (size.size.trim() || size.price) {
-        if (!size.size.trim()) error.size = "Size name is required";
-        if (!size.price) error.price = "Price is required";
+        if (!size.size.trim()) error.size = "Tên kích cỡ là bắt buộc";
+        if (!size.price) error.price = "Giá là bắt buộc";
       }
       errors[idx] = error;
     });
@@ -82,7 +82,7 @@ const CreateMarketplacePost = ({
     setCakeSizeErrors(errors);
 
     if (!hasValidSize) {
-      return "At least one complete size with price is required";
+      return "Ít nhất một kích cỡ hoàn chỉnh với giá là bắt buộc";
     }
 
     // Check for duplicate sizes
@@ -93,7 +93,7 @@ const CreateMarketplacePost = ({
       (size, index) => sizes.indexOf(size) !== index
     );
     if (duplicates.length > 0) {
-      return "Duplicate size names are not allowed";
+      return "Không được phép có tên kích cỡ trùng lặp";
     }
 
     return null;
@@ -151,12 +151,12 @@ const CreateMarketplacePost = ({
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-white">
-                {isEdit ? "Edit Product" : "Create New Product"}
+                {isEdit ? "Chỉnh Sửa Sản Phẩm" : "Tạo Sản Phẩm Mới"}
               </h2>
               <p className="text-pink-100 text-sm mt-1">
                 {isEdit
-                  ? "Update your product details"
-                  : "Add a new product to your marketplace"}
+                  ? "Cập nhật thông tin sản phẩm của bạn"
+                  : "Thêm một sản phẩm mới vào cửa hàng của bạn"}
               </p>
             </div>
             <button
@@ -221,18 +221,18 @@ const CreateMarketplacePost = ({
                   await updateMarketplacePost(initialData.post_id, payload);
                   if (onCreate) await onCreate();
                   onClose();
-                  alert("Product updated successfully!");
+                  alert("Sản phẩm đã được cập nhật thành công!");
                 } else {
                   await createMarketplacePost(payload);
                   if (onCreate) await onCreate();
                   resetForm();
                   setCakeSizes([{ size: "", price: "" }]);
                   onClose();
-                  alert("Product created successfully!");
+                  alert("Sản phẩm đã được tạo thành công!");
                 }
               } catch (err) {
                 console.error(err);
-                setFieldError("general", "Failed to submit. Please try again.");
+                setFieldError("general", "Không thể gửi. Vui lòng thử lại.");
               } finally {
                 setLoading(false);
                 setSubmitting(false);
@@ -244,7 +244,7 @@ const CreateMarketplacePost = ({
                 {/* Media Upload */}
                 <div className="space-y-4">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Product Media
+                    Media Sản phẩm
                   </label>
                   <div
                     className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
@@ -272,10 +272,10 @@ const CreateMarketplacePost = ({
                         <Upload className="w-8 h-8 text-pink-500" />
                       </div>
                       <p className="text-gray-700 mb-2 font-medium">
-                        Drag and drop your media here
+                        Kéo và thả ảnh của bạn vào đây
                       </p>
                       <p className="text-gray-500 text-sm mb-4">
-                        or click to browse files
+                        hoặc nhấp để duyệt tệp
                       </p>
                       <label className="cursor-pointer">
                         <input
@@ -292,7 +292,7 @@ const CreateMarketplacePost = ({
                           }}
                         />
                         <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-8 py-3 rounded-full font-medium hover:from-pink-600 hover:to-rose-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-                          Choose Files
+                          Chọn Tệp
                         </span>
                       </label>
                     </div>
@@ -335,7 +335,7 @@ const CreateMarketplacePost = ({
                                 )
                               }
                               className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
-                              title="Remove media"
+                              title="Xóa media"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -349,12 +349,12 @@ const CreateMarketplacePost = ({
                 {/* Title */}
                 <div className="space-y-2">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Product Title
+                    Tiêu đề sản phẩm
                   </label>
                   <Field
                     name="title"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
-                    placeholder="Enter an attractive product title"
+                    placeholder="Nhập tiêu đề sản phẩm hấp dẫn"
                   />
                   <ErrorMessage
                     name="title"
@@ -366,13 +366,13 @@ const CreateMarketplacePost = ({
                 {/* Description */}
                 <div className="space-y-2">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Description
+                    Mô tả
                   </label>
                   <Field
                     as="textarea"
                     name="description"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 min-h-[120px] resize-none"
-                    placeholder="Describe your product in detail..."
+                    placeholder="Mô tả chi tiết sản phẩm của bạn..."
                   />
                   <ErrorMessage
                     name="description"
@@ -384,21 +384,21 @@ const CreateMarketplacePost = ({
                 {/* Cake Tiers */}
                 <div className="space-y-2">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Number of Cake Tiers
+                    Số tầng bánh
                   </label>
                   <Field
                     as="select"
                     name="tier"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
                   >
-                    <option value={1}>1 Tier - Single Layer</option>
-                    <option value={2}>2 Tiers - Double Layer</option>
-                    <option value={3}>3 Tiers - Triple Layer</option>
-                    <option value={4}>4 Tiers - Four Layer</option>
-                    <option value={5}>5 Tiers - Five Layer</option>
-                    <option value={6}>6 Tiers - Six Layer</option>
-                    <option value={7}>7 Tiers - Seven Layer</option>
-                    <option value={8}>8 Tiers - Eight Layer</option>
+                    <option value={1}>1 Tầng - Một lớp</option>
+                    <option value={2}>2 Tầng - Hai lớp</option>
+                    <option value={3}>3 Tầng - Ba lớp</option>
+                    <option value={4}>4 Tầng - Bốn lớp</option>
+                    <option value={5}>5 Tầng - Năm lớp</option>
+                    <option value={6}>6 Tầng - Sáu lớp</option>
+                    <option value={7}>7 Tầng - Bảy lớp</option>
+                    <option value={8}>8 Tầng - Tám lớp</option>
                   </Field>
                   <ErrorMessage
                     name="tier"
@@ -406,7 +406,7 @@ const CreateMarketplacePost = ({
                     className="text-red-500 text-sm font-medium"
                   />
                   <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    🎂 Choose the number of layers/tiers for your cake design
+                    🎂 Chọn số lớp/tầng cho thiết kế bánh của bạn
                   </p>
                 </div>
 
@@ -414,7 +414,7 @@ const CreateMarketplacePost = ({
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <label className="block text-lg font-semibold text-gray-800">
-                      Cake Sizes & Prices
+                      Kích cỡ & Giá bánh
                     </label>
                     <button
                       type="button"
@@ -422,7 +422,7 @@ const CreateMarketplacePost = ({
                       className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <Plus className="w-4 h-4" />
-                      Add Size
+                      Thêm kích cỡ
                     </button>
                   </div>
 
@@ -436,7 +436,7 @@ const CreateMarketplacePost = ({
                           <div className="flex-1">
                             <input
                               type="text"
-                              placeholder="Size (e.g. Small, Medium, Large)"
+                              placeholder="Kích cỡ (vd: Nhỏ, Vừa, Lớn)"
                               value={row.size}
                               onChange={(e) =>
                                 handleChangeSize(idx, "size", e.target.value)
@@ -480,8 +480,8 @@ const CreateMarketplacePost = ({
                   </div>
 
                   <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    💡 Customers will be able to choose from different sizes
-                    with their respective prices
+                    💡 Khách hàng sẽ có thể chọn từ các kích thước khác nhau với
+                    giá tương ứng của họ
                   </p>
                 </div>
 
@@ -497,7 +497,7 @@ const CreateMarketplacePost = ({
                     htmlFor="available"
                     className="text-lg font-semibold text-gray-800"
                   >
-                    Product Available for Sale
+                    Sản phẩm có sẵn để bán
                   </label>
                 </div>
 
@@ -513,17 +513,17 @@ const CreateMarketplacePost = ({
                     htmlFor="is_public"
                     className="text-lg font-semibold text-gray-800"
                   >
-                    Make Product Public
+                    Sản phẩm công khai
                   </label>
                   <p className="text-sm text-gray-600 ml-2">
-                    (Public products are visible to all users)
+                    (Sản phẩm công khai sẽ hiển thị cho tất cả người dùng)
                   </p>
                 </div>
 
                 {/* Expiry Date */}
                 <div className="space-y-2">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Product Expiry Date
+                    Ngày hết hạn sản phẩm
                   </label>
                   <div className="relative">
                     <Field
@@ -568,8 +568,8 @@ const CreateMarketplacePost = ({
                       />
                     </svg>
                     <span>
-                      Choose when this product listing should expire. Past dates
-                      are not allowed.
+                      Chọn thời điểm danh sách sản phẩm này sẽ hết hạn. Không
+                      được phép chọn ngày trong quá khứ.
                     </span>
                   </div>
                 </div>
@@ -591,12 +591,12 @@ const CreateMarketplacePost = ({
                     {loading ? (
                       <div className="flex items-center justify-center gap-3">
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        {isEdit ? "Saving..." : "Creating..."}
+                        {isEdit ? "Đang lưu..." : "Đang tạo..."}
                       </div>
                     ) : isEdit ? (
-                      "Save Changes"
+                      "Lưu thay đổi"
                     ) : (
-                      "Create Product"
+                      "Tạo sản phẩm"
                     )}
                   </button>
                 </div>

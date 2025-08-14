@@ -179,7 +179,7 @@ const MyAlbum = () => {
                     to={`/album/${album.id}`}
                     className="opacity-0 group-hover:opacity-100 bg-pink-500 text-white px-4 py-2 rounded-lg transition-opacity"
                   >
-                    View Details
+                    Xem Chi Tiết
                   </Link>
                 </div>
               </div>

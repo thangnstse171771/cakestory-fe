@@ -3,9 +3,9 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 const FILTERS = [
-  { id: "all", label: "All" },
-  { id: "available", label: "Available" },
-  { id: "expired", label: "Expired" },
+  { id: "all", label: "Tất cả" },
+  { id: "available", label: "Còn hàng" },
+  { id: "expired", label: "Hết hạn" },
 ];
 
 const ProductsList = ({ products = [], isOwnShop = false }) => {
@@ -50,7 +50,9 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
 
   if (!products.length) {
     return (
-      <div className="text-center text-gray-400 py-12">No products found.</div>
+      <div className="text-center text-gray-400 py-12">
+        Không tìm thấy sản phẩm nào.
+      </div>
     );
   }
 
@@ -66,7 +68,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                 <Search className="w-5 h-5 text-gray-400 mr-3" />
                 <input
                   type="text"
-                  placeholder="Search products, shop..."
+                  placeholder="Tìm kiếm sản phẩm, cửa hàng..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="flex-1 outline-none bg-transparent text-gray-700 placeholder-gray-400"
@@ -135,7 +137,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                 {/* Cake Tiers Badge */}
                 <div className="absolute top-3 left-3 z-20">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-sm">
-                    {item.tier || 1} {(item.tier || 1) === 1 ? "Tier" : "Tiers"}
+                    {item.tier || 1} {(item.tier || 1) === 1 ? "Tầng" : "Tầng"}
                   </span>
                 </div>
 
@@ -152,7 +154,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                           : "bg-gradient-to-r from-gray-500 to-gray-600 text-white"
                       }`}
                     >
-                      {post.is_public !== false ? "Public" : "Private"}
+                      {post.is_public !== false ? "Công khai" : "Riêng tư"}
                     </span>
                   </div>
                 )}
@@ -160,11 +162,11 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                 {/* Available/Expired Badge */}
                 {available ? (
                   <div className="absolute top-3 right-3 px-3 py-1 bg-green-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                    Available
+                    Còn hàng
                   </div>
                 ) : (
                   <div className="absolute top-3 right-3 px-3 py-1 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                    Expired
+                    Hết hạn
                   </div>
                 )}
               </div>
@@ -186,7 +188,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                     </svg>
                   </div>
                   <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors">
-                    {shop.business_name || "Unknown Shop"}
+                    {shop.business_name || "Cửa hàng không xác định"}
                   </p>
                 </div>
                 <h3 className="font-semibold text-lg text-gray-800 group-hover:text-gray-900 transition-colors mb-2 line-clamp-2">
@@ -199,17 +201,17 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                     </span>
                     {hasMultipleSizes && (
                       <span className="text-xs text-gray-500 mt-1">
-                        Starting from ({cakeSizes.length} sizes available)
+                        Bắt đầu từ ({cakeSizes.length} kích cỡ có sẵn)
                       </span>
                     )}
                     {!hasMultipleSizes && cakeSizes.length === 1 && (
                       <span className="text-xs text-gray-500 mt-1">
-                        {cakeSizes[0].size} size
+                        Kích cỡ {cakeSizes[0].size}
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-gray-500">
-                    Exp:{" "}
+                    Hạn sử dụng:{" "}
                     {item.expiry_date
                       ? new Date(item.expiry_date).toLocaleDateString()
                       : "-"}
@@ -223,7 +225,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                       navigate(`/marketplace/product/${item.post_id}`);
                     }}
                   >
-                    View Details
+                    Xem Chi Tiết
                   </button>
                   <button
                     className="relative overflow-hidden px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
@@ -247,7 +249,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                     }}
                   >
                     <span className="relative z-10 flex items-center gap-2">
-                      Add to Cart
+                      Đặt Ngay
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-pink-200 to-purple-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </button>

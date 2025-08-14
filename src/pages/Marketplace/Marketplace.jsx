@@ -43,10 +43,10 @@ const Marketplace = () => {
       <div className="flex items-start justify-between mb-6 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
-            Marketplace
+            Khu Mua Sắm
           </h1>
           <p className="text-gray-600">
-            Discover amazing cakes from local bakers
+            Khám phá những chiếc bánh tuyệt vời từ các thợ làm bánh địa phương
           </p>
         </div>
         <div className="flex items-center space-x-4"></div>
@@ -62,7 +62,7 @@ const Marketplace = () => {
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            Products
+            Sản phẩm
           </button>
           <button
             onClick={() => setView("shops")}
@@ -72,7 +72,7 @@ const Marketplace = () => {
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            Shops
+            Cửa hàng
           </button>
           {user && hasShop && (
             <button
@@ -83,7 +83,7 @@ const Marketplace = () => {
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              My Shop
+              Cửa Hàng Của Tôi
             </button>
           )}
           {view === "shops" && !hasShop && (
@@ -92,7 +92,7 @@ const Marketplace = () => {
               className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
             >
               <Plus className="w-5 h-5" />
-              Create Shop
+              Tạo Cửa Hàng
             </button>
           )}
         </div>
@@ -101,7 +101,7 @@ const Marketplace = () => {
 
       {view === "products" ? (
         loadingProducts ? (
-          <div className="text-center py-12">Loading...</div>
+          <div className="text-center py-12">Đang tải...</div>
         ) : errorProducts ? (
           <div className="text-center text-red-500 py-12">{errorProducts}</div>
         ) : (
