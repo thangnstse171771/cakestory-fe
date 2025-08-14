@@ -105,7 +105,7 @@ const CommentsSection = ({ postId }) => {
 
                 <div className="ml-1">
                   <span className="font-bold text-gray-800 block">
-                    {comment.User?.full_name || "Anonymous"}
+                    {comment.User?.username || "Anonymous"}
                   </span>
 
                   {editingCommentId === comment.id ? (
