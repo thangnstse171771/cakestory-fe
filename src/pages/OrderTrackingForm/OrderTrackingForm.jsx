@@ -760,14 +760,7 @@ export default function OrderTrackingForm({
                   </button>
                 )}
 
-              {canShopControl && orderDetail.status === "pending" && (
-                <button
-                  onClick={() => handleUpdateStatus(orderDetail.id, "ordered")}
-                  className="px-4 py-2 rounded-lg font-semibold border bg-cyan-500 text-white border-cyan-500 hover:bg-cyan-600 transition-colors duration-200"
-                >
-                  Tiếp nhận đơn hàng
-                </button>
-              )}
+              {/* Bỏ nút Tiếp nhận đơn hàng: backend tự chuyển pending -> ordered */}
 
               {canShopControl && orderDetail.status === "ordered" && (
                 <button
