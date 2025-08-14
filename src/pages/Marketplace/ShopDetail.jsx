@@ -150,6 +150,7 @@ const ShopDetail = ({ id: propId }) => {
         onDelete={setDeleteProduct}
         showMenu={showMenu}
         setShowMenu={setShowMenu}
+        shopUserId={id}
       />
       <UpdateShopModal
         open={showUpdate}
