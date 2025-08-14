@@ -129,7 +129,7 @@ const ChallengeLeaderboard = ({ challengeId }) => {
             </div>
           ) : leaderboard.length === 0 ? (
             <p className="text-center text-slate-500">
-              Challenge chưa bắt đầu, quay lại sau nhé!
+              Chưa có bảng xếp hạng, quay lại sau nhé!
             </p>
           ) : (
             leaderboard.map((competitor) => (
