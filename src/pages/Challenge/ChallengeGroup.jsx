@@ -13,6 +13,7 @@ import { authAPI } from "../../api/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import ChallengePostDetail from "./ChallengePost/ChallengePostDetail";
 dayjs.extend(relativeTime);
 
 const IMAGE_URL =
@@ -46,6 +47,8 @@ export default function ChallengeGroup() {
   const [error, setError] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
   const [isLoadingCount, setIsLoadingCount] = useState(true);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
 
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
@@ -177,9 +180,16 @@ export default function ChallengeGroup() {
 
       console.log("All challenge posts:", allChallPosts);
       setPosts(allChallPosts);
+
+      // Check if current user already has a post
+      const alreadyPosted = allChallPosts.some(
+        (post) => post.user_id === currentUserId
+      );
+      setShowCreatePost(!alreadyPosted); // true if they haven't posted yet
     } catch (error) {
       console.error("Error fetching challenge posts:", error);
       setPosts([]);
+      setShowCreatePost(true); // allow button if error
     } finally {
       setPostsLoading(false);
     }
@@ -256,74 +266,74 @@ export default function ChallengeGroup() {
   };
 
   // Create new post
-  const handleCreatePost = async () => {
-    // Check if posting is allowed
-    const currentStatus = calculateChallengeStatus();
-    if (!currentStatus.canPost) {
-      toast.error(
-        currentStatus.status === "notStarted"
-          ? "Challenge chưa bắt đầu, không thể đăng bài"
-          : currentStatus.status === "ended"
-          ? "Challenge đã kết thúc, không thể đăng bài"
-          : "Không thể đăng bài lúc này"
-      );
-      return;
-    }
+  // const handleCreatePost = async () => {
+  //   // Check if posting is allowed
+  //   const currentStatus = calculateChallengeStatus();
+  //   if (!currentStatus.canPost) {
+  //     toast.error(
+  //       currentStatus.status === "notStarted"
+  //         ? "Challenge chưa bắt đầu, không thể đăng bài"
+  //         : currentStatus.status === "ended"
+  //         ? "Challenge đã kết thúc, không thể đăng bài"
+  //         : "Không thể đăng bài lúc này"
+  //     );
+  //     return;
+  //   }
 
-    if (!newPost.content.trim()) {
-      toast.error("Vui lòng nhập nội dung bài đăng");
-      return;
-    }
+  //   if (!newPost.content.trim()) {
+  //     toast.error("Vui lòng nhập nội dung bài đăng");
+  //     return;
+  //   }
 
-    try {
-      // Get current user
-      const user = JSON.parse(localStorage.getItem("user"));
-      if (!user?.id) {
-        toast.error("Vui lòng đăng nhập để đăng bài");
-        navigate("/login");
-        return;
-      }
+  //   try {
+  //     // Get current user
+  //     const user = JSON.parse(localStorage.getItem("user"));
+  //     if (!user?.id) {
+  //       toast.error("Vui lòng đăng nhập để đăng bài");
+  //       navigate("/login");
+  //       return;
+  //     }
 
-      // Create post data
-      const postData = {
-        content: newPost.content,
-        challenge_id: parseInt(id),
-        image: newPost.image || null,
-      };
+  //     // Create post data
+  //     const postData = {
+  //       content: newPost.content,
+  //       challenge_id: parseInt(id),
+  //       image: newPost.image || null,
+  //     };
 
-      // Call API to create post
-      const response = await axiosInstance.post("/challenge-posts", postData);
+  //     // Call API to create post
+  //     const response = await axiosInstance.post("/challenge-posts", postData);
 
-      const createdPost = response.data.post || response.data;
+  //     const createdPost = response.data.post || response.data;
 
-      // Transform and add to posts list
-      const transformedPost = {
-        id: createdPost.id || Date.now().toString(),
-        user: {
-          name: user.name || "Bạn",
-          avatar: user.avatar || IMAGE_URL,
-          level: user.level || "Bánh sư cấp 1",
-        },
-        content: newPost.content,
-        image: newPost.image || null,
-        likes: 0,
-        comments: 0,
-        timeAgo: "Vừa xong",
-        isLiked: false,
-        challenge_id: parseInt(id),
-      };
+  //     // Transform and add to posts list
+  //     const transformedPost = {
+  //       id: createdPost.id || Date.now().toString(),
+  //       user: {
+  //         name: user.name || "Bạn",
+  //         avatar: user.avatar || IMAGE_URL,
+  //         level: user.level || "Bánh sư cấp 1",
+  //       },
+  //       content: newPost.content,
+  //       image: newPost.image || null,
+  //       likes: 0,
+  //       comments: 0,
+  //       timeAgo: "Vừa xong",
+  //       isLiked: false,
+  //       challenge_id: parseInt(id),
+  //     };
 
-      setPosts([transformedPost, ...posts]);
-      setNewPost({ content: "", image: "" });
-      setShowCreatePost(false);
-      toast.success("Đăng bài thành công!");
-    } catch (error) {
-      console.error("Error creating post:", error);
-      toast.error(
-        error.response?.data?.message || "Không thể đăng bài. Vui lòng thử lại!"
-      );
-    }
-  };
+  //     setPosts([transformedPost, ...posts]);
+  //     setNewPost({ content: "", image: "" });
+  //     setShowCreatePost(false);
+  //     toast.success("Đăng bài thành công!");
+  //   } catch (error) {
+  //     console.error("Error creating post:", error);
+  //     toast.error(
+  //       error.response?.data?.message || "Không thể đăng bài. Vui lòng thử lại!"
+  //     );
+  //   }
+  // };
 
   // Handle like post
   // const handleLike = async (postId) => {
@@ -538,7 +548,7 @@ export default function ChallengeGroup() {
                     : "Vui lòng thử lại sau"}
                 </p>
               </div>
-            ) : !showCreatePost ? (
+            ) : showCreatePost ? (
               <button
                 onClick={() => setOpenCreatePost(true)}
                 className="w-full border border-gray-300 text-gray-700 hover:bg-pink-50 px-4 py-2 rounded flex items-center justify-center"
@@ -560,47 +570,7 @@ export default function ChallengeGroup() {
               </button>
             ) : (
               <div className="space-y-4">
-                <textarea
-                  placeholder="Chia sẻ về tiến trình làm bánh của bạn..."
-                  value={newPost.content}
-                  onChange={(e) =>
-                    setNewPost({ ...newPost, content: e.target.value })
-                  }
-                  className="w-full border border-gray-200 rounded px-3 py-2 focus:border-pink-300 focus:outline-none"
-                  rows="3"
-                />
-                <div className="flex items-center justify-between">
-                  <button className="border border-gray-300 text-gray-700 px-3 py-1 rounded flex items-center">
-                    <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Thêm ảnh
-                  </button>
-                  <div className="space-x-2">
-                    <button
-                      className="border border-gray-300 px-3 py-1 rounded text-gray-700"
-                      onClick={() => setShowCreatePost(false)}
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      className="bg-pink-400 hover:bg-pink-500 text-white px-3 py-1 rounded"
-                      onClick={handleCreatePost}
-                    >
-                      Đăng bài
-                    </button>
-                  </div>
-                </div>
+                <span>Hãy lượn 1 vòng xem bài viết nào!</span>
               </div>
             )}
           </div>
@@ -668,7 +638,7 @@ export default function ChallengeGroup() {
                     {challPost.post.description}
                   </p>
 
-                  <div className="relative rounded-lg overflow-hidden max-h-[770px]">
+                  <div className="relative rounded-lg overflow-hidden">
                     <Swiper
                       modules={[Pagination, Navigation]}
                       spaceBetween={10}
@@ -700,7 +670,6 @@ export default function ChallengeGroup() {
                                   ref={(el) => (videoRefs.current[index] = el)}
                                   src={item.video_url}
                                   autoPlay
-                                  controls
                                   muted
                                   className="w-full h-full object-cover"
                                 />
@@ -743,32 +712,33 @@ export default function ChallengeGroup() {
 
                   {/* Post Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center w-full">
                       <button
                         onClick={() => handleLike(challPost.post_id)}
-                        className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                        className="flex-1 flex items-center justify-center space-x-2 text-gray-600 hover:text-pink-500"
                       >
                         <Heart
-                          className={`w-5 h-5 ${
+                          className={`w-6 h-6 ${
                             likesData[challPost.post_id]?.liked
                               ? "fill-pink-500 text-pink-500"
                               : ""
                           }`}
                         />
-                        <span className="text-sm">
+                        <span className="text-lg">
                           {likesData[challPost.post_id]?.count ??
                             challPost.post.total_likes}
                         </span>
                       </button>
+
                       <button
-                        // onClick={() => {
-                        //   setSelectedPost(post);
-                        //   setIsPostDetailOpen(true);
-                        // }}
-                        className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                        onClick={() => {
+                          setSelectedPost(challPost);
+                          setIsPostDetailOpen(true);
+                        }}
+                        className="flex-1 flex items-center justify-center space-x-2 text-gray-600 hover:text-pink-500"
                       >
-                        <MessageCircle className="w-5 h-5" />
-                        <span className="text-sm">
+                        <MessageCircle className="w-6 h-6" />
+                        <span className="text-lg">
                           {challPost.post.total_comments}
                         </span>
                       </button>
@@ -804,6 +774,13 @@ export default function ChallengeGroup() {
         onClose={() => setOpenCreatePost(false)}
         onCreate={fetchChallengePosts}
         challengeId={id}
+      />
+      <ChallengePostDetail
+        isOpen={isPostDetailOpen}
+        challPost={selectedPost}
+        likesData={likesData}
+        handleLike={handleLike}
+        onClose={() => setIsPostDetailOpen(false)}
       />
     </div>
   );

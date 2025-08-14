@@ -221,5 +221,10 @@ export const authAPI = {
   getChallengePostsByChallengeId: async (challengeId) => {
     const response = await axiosInstance.get(`challenge-posts/challenge/${challengeId}`)
     return response.data; 
-  }
+  },
+
+  getChallengePostById: async (postId) => {
+    const response = await axiosInstance.get(`/challenge-posts/${postId}`);
+    return response.data;
+  },
 };
