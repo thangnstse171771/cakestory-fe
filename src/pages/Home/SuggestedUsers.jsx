@@ -65,14 +65,12 @@ const SuggestedUsers = () => {
     <div className="flex justify-center p-4">
       <div className="w-full max-w-lg">
         <h3 className="font-semibold text-lg text-gray-800 mb-1">
-          Suggested Users
+          Người dùng khác
         </h3>
         <hr className="border-t border-pink-400/80 shadow-sm mb-4" />
 
         {loading ? (
-          <div className="text-gray-500 text-sm mt-2">
-            Loading suggested users...
-          </div>
+          <div className="text-gray-500 text-sm mt-2">Đang tải...</div>
         ) : (
           <div className="space-y-4">
             {suggestedUsers.map((u) => (
@@ -121,11 +119,11 @@ const SuggestedUsers = () => {
                 >
                   {following[u.id]
                     ? u.followedByCurrentUser
-                      ? "Unfollow"
-                      : "Follow"
+                      ? "Bỏ theo dõi"
+                      : "Theo dõi"
                     : u.followedByCurrentUser
-                    ? "Unfollow"
-                    : "Follow"}
+                    ? "Bỏ theo dõi"
+                    : "Theo dõi"}
                 </button>
               </div>
             ))}
