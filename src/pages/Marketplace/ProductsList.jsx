@@ -1,7 +1,6 @@
 import { Star, Search } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import CustomizeModal from "../Cart/CustomizedOrderForm";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -258,28 +257,6 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
           );
         })}
       </div>
-      {/* Customize Modal - render at root to avoid multiple modals */}
-      <CustomizeModal
-        isOpen={showCustomize}
-        product={
-          customizeProduct && {
-            ...customizeProduct,
-            basePrice: customizeProduct.price || 200000,
-            image:
-              (customizeProduct.Post &&
-                customizeProduct.Post.media &&
-                customizeProduct.Post.media[0]?.image_url) ||
-              customizeProduct.image ||
-              "/placeholder.svg",
-            name:
-              (customizeProduct.Post && customizeProduct.Post.title) ||
-              customizeProduct.name ||
-              "Bánh kem",
-          }
-        }
-        onClose={() => setShowCustomize(false)}
-        onConfirm={() => setShowCustomize(false)}
-      />
     </div>
   );
 };

@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, RotateCcw, Sparkles } from "lucide-react";
+import {
+  Download,
+  RotateCcw,
+  Sparkles,
+  AlertCircle,
+  X,
+  DollarSign,
+  Wallet,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import html2canvas from "html2canvas";
@@ -7,7 +15,12 @@ import {
   createMagicDesign,
   generateAIImage,
   getCakeDesigns,
+  getCakeDesignsByUserId,
 } from "../api/cakeDesigns";
+import { useAuth } from "../contexts/AuthContext";
+import { fetchWalletBalance } from "../api/axios";
+
+const AI_GENERATION_COST = 1000; // 1000 VND mỗi lần gen (cho thiết kế cake)
 
 // Import cake design assets
 const CakeDesign = () => {
@@ -49,7 +62,12 @@ const CakeDesign = () => {
   const [showImageModal, setShowImageModal] = useState(false); // New state for image modal
   const [currentPage, setCurrentPage] = useState(1); // Pagination state
   const [imagesPerPage] = useState(6); // Number of images per page
+
+  // Wallet states
+  const [balance, setBalance] = useState(0);
+  const [showBalanceWarning, setShowBalanceWarning] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get current user
 
   // Available design options
   const shapes = ["Round", "Square", "Heart"]; // Removed Rect as it's not in the image assets
@@ -181,10 +199,15 @@ const CakeDesign = () => {
     );
   };
 
-  // Load AI generated images
+  // Load AI generated images for current user
   const loadAIImages = async () => {
     try {
-      const response = await getCakeDesigns(1, 10);
+      if (!user?.id) {
+        console.log("No user logged in");
+        return;
+      }
+
+      const response = await getCakeDesignsByUserId(user.id, 1, 50, false); // Get more items to ensure we get all AI designs
       if (response.success) {
         const imagesWithAI = response.data.cakeDesigns.filter(
           (design) => design.ai_generated
@@ -196,10 +219,43 @@ const CakeDesign = () => {
     }
   };
 
-  // Load AI images on component mount
+  // Fetch user wallet balance
+  const fetchUserBalance = async () => {
+    try {
+      const res = await fetchWalletBalance();
+      let balanceValue = 0;
+
+      if (res?.wallet?.balance !== undefined) {
+        balanceValue =
+          typeof res.wallet.balance === "string"
+            ? parseFloat(res.wallet.balance)
+            : res.wallet.balance;
+      } else if (res?.balance !== undefined) {
+        balanceValue =
+          typeof res.balance === "string"
+            ? parseFloat(res.balance)
+            : res.balance;
+      }
+
+      setBalance(balanceValue);
+
+      // Show warning if balance is low
+      if (balanceValue < AI_GENERATION_COST) {
+        setShowBalanceWarning(true);
+      }
+    } catch (error) {
+      console.error("Error fetching balance:", error);
+      setBalance(0);
+    }
+  };
+
+  // Load AI images and wallet balance on component mount and when user changes
   useEffect(() => {
-    loadAIImages();
-  }, []);
+    if (user?.id) {
+      loadAIImages();
+      fetchUserBalance();
+    }
+  }, [user?.id]);
 
   // Handle pagination when images change
   useEffect(() => {
@@ -588,6 +644,13 @@ Trang trí: ${
   const handleGenerateAI = async () => {
     if (!lastSavedDesignId || isGeneratingAI) return;
 
+    // Check balance before generating
+    if (balance < AI_GENERATION_COST) {
+      setShowBalanceWarning(true);
+      toast.error("Số dư không đủ để tạo ảnh AI!");
+      return;
+    }
+
     setIsGeneratingAI(true);
     setShowAIModal(false);
 
@@ -606,9 +669,10 @@ Trang trí: ${
       await generateAIImage(lastSavedDesignId);
       toast.success("Đang tạo ảnh AI cho thiết kế của bạn...");
 
-      // Refresh AI images after a short delay to show the new one
+      // Refresh AI images and balance after a short delay to show the new one
       setTimeout(async () => {
         await loadAIImages();
+        await fetchUserBalance(); // Update balance after generation
         toast.success("Ảnh AI đã được tạo thành công!");
         setIsGeneratingAI(false);
         setPendingAIGeneration(null); // Remove loading placeholder
@@ -808,6 +872,42 @@ Trang trí: ${
             </div>
           </div>
         </header>
+
+        {/* Balance Warning */}
+        {showBalanceWarning && (
+          <div className="max-w-[1400px] mx-auto px-6 mt-4">
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <AlertCircle className="w-5 h-5 text-yellow-400 mr-3" />
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800">
+                      Số dư không đủ để tạo ảnh AI
+                    </p>
+                    <p className="text-sm text-yellow-700">
+                      Số dư hiện tại: {balance.toLocaleString()} VND. Cần:{" "}
+                      {AI_GENERATION_COST.toLocaleString()} VND
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => (window.location.href = "/wallet")}
+                    className="px-4 py-2 bg-yellow-400 text-yellow-900 text-sm font-medium rounded-lg hover:bg-yellow-500 transition-colors"
+                  >
+                    Nạp tiền
+                  </button>
+                  <button
+                    onClick={() => setShowBalanceWarning(false)}
+                    className="text-yellow-400 hover:text-yellow-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="p-3 max-w-[1400px] mx-auto">
           <div className="flex flex-col lg:flex-row gap-10">
@@ -2176,7 +2276,7 @@ Trang trí: ${
                 </div>
 
                 {/* AI Prompt Preview */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-4">
                   <h4 className="text-sm font-semibold text-purple-700 mb-2 flex items-center">
                     <span className="w-2 h-4 bg-purple-500 rounded-full mr-2"></span>
                     Mô tả AI sẽ được gửi:
@@ -2186,6 +2286,41 @@ Trang trí: ${
                   </p>
                 </div>
 
+                {/* Cost Display */}
+                <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      <span className="font-medium text-green-800">
+                        Chi phí tạo ảnh AI:
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold text-green-600">
+                      {AI_GENERATION_COST.toLocaleString()} VND
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4 text-blue-600" />
+                      <span className="text-blue-700">Số dư hiện tại:</span>
+                    </div>
+                    <span
+                      className={`font-medium ${
+                        balance >= AI_GENERATION_COST
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {balance.toLocaleString()} VND
+                    </span>
+                  </div>
+                  {balance < AI_GENERATION_COST && (
+                    <div className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded">
+                      ⚠️ Số dư không đủ để tạo ảnh AI. Vui lòng nạp thêm tiền.
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowAIModal(false)}
@@ -2193,11 +2328,20 @@ Trang trí: ${
                   >
                     Bỏ qua
                   </button>
+                  {balance < AI_GENERATION_COST && (
+                    <button
+                      onClick={() => (window.location.href = "/wallet")}
+                      className="flex-1 px-4 py-3 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors"
+                    >
+                      <Wallet className="w-4 h-4 mr-2 inline" />
+                      Nạp tiền
+                    </button>
+                  )}
                   <button
                     onClick={handleGenerateAI}
-                    disabled={isGeneratingAI}
+                    disabled={isGeneratingAI || balance < AI_GENERATION_COST}
                     className={`flex-1 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 ${
-                      isGeneratingAI
+                      isGeneratingAI || balance < AI_GENERATION_COST
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-xl"
                     }`}
@@ -2207,10 +2351,16 @@ Trang trí: ${
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                         Đang tạo...
                       </div>
+                    ) : balance < AI_GENERATION_COST ? (
+                      <>
+                        <Wallet className="w-4 h-4 mr-2 inline" />
+                        Không đủ tiền ({AI_GENERATION_COST.toLocaleString()}{" "}
+                        VND)
+                      </>
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2 inline" />
-                        Tạo ảnh AI
+                        Tạo ảnh AI ({AI_GENERATION_COST.toLocaleString()} VND)
                       </>
                     )}
                   </button>

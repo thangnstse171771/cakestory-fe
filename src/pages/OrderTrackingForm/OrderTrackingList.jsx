@@ -28,7 +28,7 @@ const statusMap = {
 };
 
 export default function OrderTrackingList({
-  orders,
+  orders = [],
   onSelectOrder,
   showOrderDetails = false,
 }) {
@@ -64,7 +64,7 @@ export default function OrderTrackingList({
 
       // Fetch tất cả shops để tìm shop của user hiện tại
       const shopsData = await fetchAllShops();
-      console.log("All shops data:", shopsData);
+      // console.log("All shops data:", shopsData);
 
       const userShop = (shopsData.shops || []).find(
         (shop) => shop.user_id === user.id
@@ -74,12 +74,12 @@ export default function OrderTrackingList({
         throw new Error("User chưa có shop");
       }
 
-      console.log("Found user shop:", userShop);
-      console.log("Shop ID field check:", {
-        id: userShop.id,
-        shop_id: userShop.shop_id,
-        _id: userShop._id,
-      });
+      // console.log("Found user shop:", userShop);
+      // console.log("Shop ID field check:", {
+      //   id: userShop.id,
+      //   shop_id: userShop.shop_id,
+      //   _id: userShop._id,
+      // });
 
       // Thử các field khác nhau cho shop ID, ưu tiên shop_id
       const shopId = userShop.shop_id || userShop.id || userShop._id;
@@ -105,10 +105,10 @@ export default function OrderTrackingList({
       console.log("Using shop ID:", shopId);
 
       const response = await fetchShopOrders(shopId);
-      console.log("Orders response:", response);
-      console.log("Response orders array:", response.orders);
-      console.log("Response type:", typeof response);
-      console.log("Is response.orders array?", Array.isArray(response.orders));
+      // console.log("Orders response:", response);
+      // console.log("Response orders array:", response.orders);
+      // console.log("Response type:", typeof response);
+      // console.log("Is response.orders array?", Array.isArray(response.orders));
 
       // Kiểm tra cấu trúc response và lấy orders
       let ordersArray = [];
@@ -120,11 +120,11 @@ export default function OrderTrackingList({
         ordersArray = response.data;
       }
 
-      console.log("Orders array to transform:", ordersArray);
+      // console.log("Orders array to transform:", ordersArray);
 
       // Transform data từ API response để match với UI
       const transformedOrders = ordersArray.map((order) => {
-        console.log("Transforming order:", order);
+        // Extract userObj from order
         const userObj = order.User || order.user || {};
         const customerName =
           userObj.full_name ||
@@ -162,7 +162,12 @@ export default function OrderTrackingList({
         return {
           id: order.id,
           orderNumber: `ORD-${String(order.id).padStart(3, "0")}`,
-          placedDate: order.created_at || order.createdAt,
+          placedDate: order.created_at || order.createdAt || null,
+          placedDateFull: order.created_at
+            ? new Date(order.created_at).toLocaleString("vi-VN")
+            : order.createdAt
+            ? new Date(order.createdAt).toLocaleString("vi-VN")
+            : "-",
           status: order.status,
           customerName,
           customerEmail,
@@ -178,6 +183,9 @@ export default function OrderTrackingList({
               time: new Date(
                 order.created_at || order.createdAt
               ).toLocaleTimeString("vi-VN"),
+              datetime: new Date(
+                order.created_at || order.createdAt
+              ).toLocaleString("vi-VN"),
               status: order.status,
               note: "Đơn hàng được tạo",
             },
@@ -185,7 +193,7 @@ export default function OrderTrackingList({
         };
       });
 
-      console.log("Transformed orders:", transformedOrders);
+      // console.log("Transformed orders:", transformedOrders);
 
       setRealOrders(transformedOrders);
     } catch (error) {
@@ -211,71 +219,68 @@ export default function OrderTrackingList({
     fetchOrders();
   }, []);
   // Fake data nếu không có orders truyền vào
-  const fakeOrders = [
-    {
-      id: 1,
-      orderNumber: "ORD-2024-001",
-      placedDate: "2024-01-20T10:00:00Z",
-      status: "awaiting_shipment",
-      customerName: "Nguyễn Văn A",
-      customerEmail: "vana@example.com",
-      customerPhone: "0901234567",
-      items: [
-        { name: "Bánh kem dâu", quantity: 1, price: 250000 },
-        { name: "Bánh su kem", quantity: 1, price: 180000 },
-      ],
-      total: 430000,
-      history: [
-        {
-          date: "2024-01-20",
-          time: "10:00",
-          status: "pending",
-          note: "Đơn hàng được tạo",
-        },
-        {
-          date: "2024-01-20",
-          time: "12:00",
-          status: "awaiting_shipment",
-          note: "Đợi vận chuyển",
-        },
-      ],
-    },
-    {
-      id: 2,
-      orderNumber: "ORD-2024-002",
-      placedDate: "2024-01-22T14:30:00Z",
-      status: "processing",
-      customerName: "Trần Thị B",
-      customerEmail: "thib@example.com",
-      customerPhone: "0912345678",
-      items: [{ name: "Bánh cupcake", quantity: 2, price: 50000 }],
-      total: 100000,
-      history: [
-        {
-          date: "2024-01-22",
-          time: "14:30",
-          status: "pending",
-          note: "Đơn hàng được tạo",
-        },
-        {
-          date: "2024-01-22",
-          time: "15:00",
-          status: "processing",
-          note: "Đang chuẩn bị",
-        },
-      ],
-    },
-  ];
+  // const fakeOrders = [
+  //   {
+  //     id: 1,
+  //     orderNumber: "ORD-2024-001",
+  //     placedDate: "2024-01-20T10:00:00Z",
+  //     status: "awaiting_shipment",
+  //     customerName: "Nguyễn Văn A",
+  //     customerEmail: "vana@example.com",
+  //     customerPhone: "0901234567",
+  //     items: [
+  //       { name: "Bánh kem dâu", quantity: 1, price: 250000 },
+  //       { name: "Bánh su kem", quantity: 1, price: 180000 },
+  //     ],
+  //     total: 430000,
+  //     history: [
+  //       {
+  //         date: "2024-01-20",
+  //         time: "10:00",
+  //         status: "pending",
+  //         note: "Đơn hàng được tạo",
+  //       },
+  //       {
+  //         date: "2024-01-20",
+  //         time: "12:00",
+  //         status: "awaiting_shipment",
+  //         note: "Đợi vận chuyển",
+  //       },
+  //     ],
+  //   },
+  //   {
+  //     id: 2,
+  //     orderNumber: "ORD-2024-002",
+  //     placedDate: "2024-01-22T14:30:00Z",
+  //     status: "processing",
+  //     customerName: "Trần Thị B",
+  //     customerEmail: "thib@example.com",
+  //     customerPhone: "0912345678",
+  //     items: [{ name: "Bánh cupcake", quantity: 2, price: 50000 }],
+  //     total: 100000,
+  //     history: [
+  //       {
+  //         date: "2024-01-22",
+  //         time: "14:30",
+  //         status: "pending",
+  //         note: "Đơn hàng được tạo",
+  //       },
+  //       {
+  //         date: "2024-01-22",
+  //         time: "15:00",
+  //         status: "processing",
+  //         note: "Đang chuẩn bị",
+  //       },
+  //     ],
+  //   },
+  // ];
 
-  // Ưu tiên sử dụng real API data, chỉ dùng fake data khi không có data thật
-  const displayOrders =
-    realOrders?.length > 0
-      ? realOrders
-      : orders?.length > 0
-      ? orders
-      : fakeOrders;
+  // Chỉ sử dụng dữ liệu thực từ API hoặc props
+  const displayOrders = realOrders?.length > 0 ? realOrders : orders;
 
+  // Loại bỏ đơn hàng có trạng thái 'pending' khỏi danh sách shop
   const filteredOrders = displayOrders.filter((o) => {
+    if (o.status === "pending") return false;
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     const s = search.toLowerCase();
     const matchSearch =
@@ -348,10 +353,16 @@ export default function OrderTrackingList({
         });
       }
 
+      const createdRaw =
+        data.created_at ||
+        data.createdAt ||
+        data.placeDate ||
+        new Date().toISOString();
       const transformedOrder = {
         id: data.id,
         orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
-        placedDate: data.created_at || data.createdAt,
+        placeDate: createdRaw,
+        placeDateFull: new Date(createdRaw).toLocaleString("vi-VN"),
         status: data.status,
         customerName,
         customerEmail,
@@ -360,17 +371,21 @@ export default function OrderTrackingList({
         total: parseFloat(data.total_price) || 0,
         base_price:
           parseFloat(data.base_price) || parseFloat(data.total_price) || 0,
+        size: data.size || items[0]?.customization?.size || "-",
+        ingredient_total:
+          data.ingredient_total || data.ingredients_total || "-",
+        note: data.note || data.special_instructions || "-",
+        shop_id: data.shop_id || data.shopId || "-",
+        marketplace_post_id:
+          data.marketplace_post_id || data.marketplacePostId || "-",
         shippingAddress: {
           address: data.shipped_at || "",
         },
         history: [
           {
-            date: new Date(
-              data.created_at || data.createdAt
-            ).toLocaleDateString("vi-VN"),
-            time: new Date(
-              data.created_at || data.createdAt
-            ).toLocaleTimeString("vi-VN"),
+            date: new Date(createdRaw).toLocaleDateString("vi-VN"),
+            time: new Date(createdRaw).toLocaleTimeString("vi-VN"),
+            datetime: new Date(createdRaw).toLocaleString("vi-VN"),
             status: data.status,
             note: "Đơn hàng được tạo",
           },
