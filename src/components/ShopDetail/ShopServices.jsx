@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ShopServices = ({
   services,
@@ -8,8 +9,10 @@ const ShopServices = ({
   onDelete,
   showMenu,
   setShowMenu,
+  shopUserId, // Add shopUserId prop to identify which user's shop this is
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // State chọn size cho từng sản phẩm
   const [selectedSizes, setSelectedSizes] = useState({});
@@ -19,10 +22,15 @@ const ShopServices = ({
   };
 
   const handleViewAll = () => {
-    // Lấy shopId từ URL params hoặc từ services
-    const currentPath = window.location.pathname;
-    const shopId = currentPath.split("/")[3]; // marketplace/shop/:id
-    navigate(`/marketplace/shop/${shopId}/all-cakes`);
+    // If this is the current user's shop (My Shop), use user ID
+    // Otherwise, get shopId from URL params
+    if (isOwner && user) {
+      navigate(`/marketplace/shop/${user.id}/all-cakes`);
+    } else {
+      // For regular shop visits, use the shopUserId or extract from URL
+      const userIdToUse = shopUserId || window.location.pathname.split("/")[3];
+      navigate(`/marketplace/shop/${userIdToUse}/all-cakes`);
+    }
   };
 
   // Helper function to check if product is available based on expiry date
