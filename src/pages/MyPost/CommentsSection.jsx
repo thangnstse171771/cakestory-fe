@@ -85,8 +85,8 @@ const CommentsSection = ({ postId }) => {
   }, [postId]);
 
   return (
-    <div className="flex flex-col h-full mb-4">
-      <div className="text-gray-500 text-sm mb-2">Comments</div>
+    <div className="flex flex-col h-full">
+      <div className="text-gray-500 text-sm mb-2">Bình luận</div>
 
       {/* Scrollable Comments */}
       <div className="space-y-2 flex-1 max-h-[310px] overflow-y-auto pr-2">
@@ -127,28 +127,19 @@ const CommentsSection = ({ postId }) => {
                         }}
                         className="text-sm text-gray-400 hover:underline"
                       >
-                        Cancel
+                        Hủy
                       </button>
                       <button
                         type="submit"
                         className="text-sm text-blue-500 hover:underline"
                       >
-                        Save
+                        Lưu
                       </button>
                     </form>
                   ) : (
                     <p className="text-gray-700 text-sm">{comment.content}</p>
                   )}
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                    <div className="flex items-center gap-1 hover:text-pink-500 cursor-pointer">
-                      <Heart className="w-4 h-4" />
-                      <span>{comment.likes || 0}</span>
-                    </div>
-
-                    <div className="hover:underline cursor-pointer">
-                      {comment.replies || 0}{" "}
-                      {comment.replies === 1 ? "reply" : "replies"}
-                    </div>
                     <span className="text-xs">
                       {dayjs(comment.created_at).fromNow()}
                     </span>
@@ -158,7 +149,7 @@ const CommentsSection = ({ postId }) => {
                           onClick={() => handleEditClick(comment)}
                           className="hover:underline cursor-pointer"
                         >
-                          Edit
+                          Chỉnh sửa
                         </button>
                         <button
                           onClick={() => {
@@ -167,7 +158,7 @@ const CommentsSection = ({ postId }) => {
                           }}
                           className="hover:underline cursor-pointer text-red-500"
                         >
-                          Delete
+                          Xóa
                         </button>
                       </>
                     )}
@@ -188,7 +179,7 @@ const CommentsSection = ({ postId }) => {
           type="text"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
+          placeholder="Hãy viết gì đó..."
           className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
         />
         <button
@@ -196,7 +187,7 @@ const CommentsSection = ({ postId }) => {
           disabled={loading}
           className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
         >
-          {loading ? "Posting..." : "Post"}
+          {loading ? "Đang tải..." : "Đăng"}
         </button>
       </form>
 

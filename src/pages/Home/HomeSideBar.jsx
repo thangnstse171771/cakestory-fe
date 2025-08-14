@@ -67,8 +67,8 @@ const HomeSideBar = () => {
   return (
     <div className="w-45 lg:w-60 xl:w-80 space-y-4">
       {/* Trending Topics */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h3 className="font-bold text-gray-800 mb-4">Trending Topics</h3>
+      {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <h3 className="font-bold text-gray-800 mb-4">Đang Xu Hướng</h3>
         <div className="space-y-2">
           {trendingTopics.map((topic, index) => (
             <div key={index} className="flex justify-between items-center">
@@ -80,13 +80,13 @@ const HomeSideBar = () => {
         <button className="text-pink-500 text-sm mt-2 hover:text-pink-600">
           View all topics
         </button>
-      </div>
+      </div> */}
 
       {/* Suggestion Groups */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-row items-center gap-2 mb-4">
           <Users />
-          <h3 className="font-bold text-gray-800">Other Users</h3>
+          <h3 className="font-bold text-gray-800">Người dùng khác</h3>
         </div>
 
         <div className="space-y-3">
@@ -128,7 +128,7 @@ const HomeSideBar = () => {
             to="/suggested-users"
             className="text-sm text-pink-500 hover:text-pink-600"
           >
-            View all users
+            Xem tất cả người dùng
           </Link>
         </div>
       </div>
@@ -137,7 +137,7 @@ const HomeSideBar = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-row items-center gap-2 mb-4">
           <Trophy />
-          <h3 className="font-bold text-gray-800">Challenges</h3>
+          <h3 className="font-bold text-gray-800">Thử thách</h3>
         </div>
         <div className="space-y-2">
           {challenges.map((chal, index) => (
@@ -161,7 +161,7 @@ const HomeSideBar = () => {
             className="hover:text-pink-600 cursor-pointer"
             to={`/challenge`}
           >
-            View all challenges
+            Xem tất cả thử thách
           </Link>
         </button>
       </div>

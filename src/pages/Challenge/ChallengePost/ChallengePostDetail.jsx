@@ -1,25 +1,25 @@
 import React, { useEffect, useState, useRef } from "react";
 import { X, Heart, MessageCircle, MoreHorizontal } from "lucide-react";
-import { authAPI } from "../../api/auth";
+import { authAPI } from "../../../api/auth";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import { useAuth } from "../../contexts/AuthContext";
-import CommentsSection from "./CommentsSection";
+import { useAuth } from "../../../contexts/AuthContext";
+import CommentsSection from "../../MyPost/CommentsSection";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
-const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
+const ChallengePostDetail = ({ isOpen, challPost, likesData, handleLike, onClose }) => {
   const [postDetail, setPostDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const videoRefs = useRef([]);
   const { user: currentUser } = useAuth();
 
-  const likeInfo = likesData?.[post?.id] || { liked: false, count: 0 };
+  const likeInfo = likesData?.[challPost?.post_id] || { liked: false, count: 0 };
 
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
@@ -34,37 +34,32 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
   }, [activeIndex]);
 
   useEffect(() => {
-    if (isOpen && post?.id) {
+    if (isOpen && challPost?.post_id) {
       setLoading(true);
       authAPI
-        .getMemoryPostById(post.id)
+        .getChallengePostById(challPost.post_id)
         .then((data) => setPostDetail(data.post))
         .catch(() => setPostDetail(null))
         .finally(() => setLoading(false));
     } else {
       setPostDetail(null);
     }
-  }, [isOpen, post?.id]);
+  }, [isOpen, challPost?.post_id]);
 
-  if (!isOpen || !post) return null;
+  if (!isOpen || !challPost) return null;
 
   if (loading || !postDetail) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 py-12">
         <div className="bg-white rounded-md shadow-2xl max-w-[600px] w-full p-8 text-center">
-          <p className="text-gray-500">Đang tải...</p>
+          <p className="text-gray-500">Loading post details...</p>
         </div>
       </div>
     );
   }
 
   // Map fields from API response
-  const { title, description, user, media, MemoryPost } = postDetail;
-
-  const eventDate = MemoryPost?.event_date
-    ? new Date(MemoryPost.event_date).toLocaleDateString("en-GB")
-    : "";
-  const eventType = MemoryPost?.event_type || "";
+  const { post } = postDetail;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 py-12">
@@ -90,8 +85,8 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
             onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
             className="w-full h-80 md:h-full"
           >
-            {Array.isArray(media) && media.length > 0 ? (
-              media.map((item, index) => (
+            {Array.isArray(post.media) && post.media.length > 0 ? (
+              post.media.map((item, index) => (
                 <SwiperSlide key={item.id}>
                   {item.image_url ? (
                     <img
@@ -152,27 +147,27 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <img
-                src={user?.avatar || "https://placehold.co/100x100?text=User"}
-                alt={user?.username}
+                src={post.user?.avatar || "https://placehold.co/100x100?text=User"}
+                alt={post.user?.username}
                 className="w-11 h-11 rounded-full"
               />
               <div className="text-left">
                 <div className="font-semibold text-gray-800">
-                  {user?.full_name || user?.username}
+                  {post.user?.username}
                 </div>
                 <div className="text-gray-500 text-sm">{dayjs(post.created_at).fromNow()}</div>
               </div>
             </div>
-            {/* <button className="text-gray-400 hover:text-gray-600">
+            <button className="text-gray-400 hover:text-gray-600">
               <MoreHorizontal className="w-5 h-5" />
-            </button> */}
+            </button>
           </div>
 
           <h2 className="text-lg md:text-2xl font-bold text-pink-600 mb-2">
-            {title}
+            {post.title}
           </h2>
           <p className="text-gray-600 mb-4 text-sm md:text-base">
-            {description}
+            {post.description}
           </p>
 
           <div className="flex items-center gap-4 mb-4">
@@ -184,20 +179,20 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
                 className={`w-5 h-5 ${likeInfo.liked ? "fill-pink-500" : ""}`}
               />
               <span className="font-semibold">
-                {likeInfo.count || postDetail.total_likes}
+                {likeInfo.count || post.total_likes}
               </span>
             </div>
             <div className="flex items-center gap-1 text-gray-500">
               <MessageCircle className="w-5 h-5" />
-              <span>{postDetail.total_comments || 0}</span>
+              <span>{post.total_comments || 0}</span>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 mb-4">
+          {/* <div className="flex flex-wrap gap-2 mb-4">
             <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-xs font-medium">
               {eventType}
             </span>
-          </div>
+          </div> */}
 
           {/* 🗨 Comments Section */}
           {/* 🗨 Scrollable Comments Section */}
@@ -208,4 +203,4 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
   );
 };
 
-export default PostDetail;
+export default ChallengePostDetail;
