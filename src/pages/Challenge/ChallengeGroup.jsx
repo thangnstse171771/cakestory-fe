@@ -759,13 +759,13 @@ export default function ChallengeGroup() {
         </div>
 
         {/* Load More - Only show if there are posts */}
-        {posts.length > 0 && (
+        {/* {posts.length > 0 && (
           <div className="text-center mt-8">
             <button className="border border-gray-300 text-gray-700 hover:bg-pink-50 px-4 py-2 rounded">
               Xem thêm bài đăng
             </button>
           </div>
-        )}
+        )} */}
 
         {/* Go to Challenge Button */}
         <div className="mt-8">

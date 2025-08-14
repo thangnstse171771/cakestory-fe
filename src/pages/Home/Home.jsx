@@ -196,13 +196,13 @@ const Home = () => {
             <div className="flex-1 flex-col max-w-xl">
               <div className="flex items-center justify-between mb-4 gap-3">
                 <h1 className="text-2xl font-bold text-pink-600">
-                  Community Feed
+                  Bài Viết Cộng Đồng
                 </h1>
                 <div className="flex items-center bg-white rounded-xl border px-3 py-2 focus-within:ring-2 focus-within:ring-pink-500 transition">
                   <Search className="w-5 h-5 text-gray-400 mr-2" />
                   <input
                     type="text"
-                    placeholder="Search"
+                    placeholder="Tìm bài viết..."
                     className="outline-none text-gray-700 placeholder-gray-400 bg-transparent"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -264,7 +264,7 @@ const Home = () => {
                                   className="hover:text-pink-600 cursor-pointer"
                                   to={`/marketplace/shop/${shop.user?.id}`}
                                 >
-                                  View shop
+                                  Xem shop
                                 </Link>
                               </div>
                             </div>
@@ -478,7 +478,7 @@ const Home = () => {
                                     className="flex justify-center items-center w-full bg-gradient-to-r from-pink-600 to-pink-400 hover:from-gray-300 hover:to-white text-white hover:text-pink-500 font-medium py-2 rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl cursor-pointer border border-transparent hover:border-pink-500"
                                     to={`/marketplace/product/${post.post_id}`}
                                   >
-                                    <button>View</button>
+                                    <button>Chi tiết</button>
                                   </Link>
                                 </div>
 
@@ -529,7 +529,7 @@ const Home = () => {
                     hasMore={hasMore}
                     loader={
                       <div className="flex justify-center text-pink-500 text-lg font-medium animate-pulse">
-                        Loading posts...
+                        Đang tải...
                       </div>
                     }
                     endMessage={
@@ -548,7 +548,7 @@ const Home = () => {
                   >
                     {!loading && posts.length === 0 ? (
                       <div className="flex justify-center text-gray-500">
-                        No posts found.
+                        Không có bài viết nào.
                       </div>
                     ) : (
                       posts.map((post) => (
@@ -695,13 +695,13 @@ const Home = () => {
                                     {post.total_comments}
                                   </span>
                                 </button>
-                                <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
+                                {/* <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
                                   <Share className="w-5 h-5" />
-                                </button>
+                                </button> */}
                               </div>
-                              <button className="text-gray-600 hover:text-yellow-500">
+                              {/* <button className="text-gray-600 hover:text-yellow-500">
                                 <Bookmark className="w-5 h-5" />
-                              </button>
+                              </button> */}
                             </div>
 
                             <div className="text-left">
@@ -720,7 +720,7 @@ const Home = () => {
                               className="text-gray-500 text-sm text-left"
                             >
                               <span className="cursor-pointer">
-                                View comments
+                                Xem bình luận
                               </span>
                             </div>
                           </div>
@@ -730,7 +730,7 @@ const Home = () => {
                   </InfiniteScroll>
                 ) : (
                   <div className="flex justify-center text-pink-500 text-lg font-medium animate-pulse">
-                    Loading posts...
+                    Đang tải...
                   </div>
                 )}
               </div>

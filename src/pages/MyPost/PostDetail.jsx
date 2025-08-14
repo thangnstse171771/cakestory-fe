@@ -52,7 +52,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 py-12">
         <div className="bg-white rounded-md shadow-2xl max-w-[600px] w-full p-8 text-center">
-          <p className="text-gray-500">Loading post details...</p>
+          <p className="text-gray-500">Đang tải...</p>
         </div>
       </div>
     );
@@ -163,9 +163,9 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
                 <div className="text-gray-500 text-sm">{dayjs(post.created_at).fromNow()}</div>
               </div>
             </div>
-            <button className="text-gray-400 hover:text-gray-600">
+            {/* <button className="text-gray-400 hover:text-gray-600">
               <MoreHorizontal className="w-5 h-5" />
-            </button>
+            </button> */}
           </div>
 
           <h2 className="text-lg md:text-2xl font-bold text-pink-600 mb-2">
