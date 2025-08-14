@@ -769,7 +769,7 @@ export default function CakeShop() {
               </div>
               {selectedToppings.length > 0 && (
                 <div className="text-sm text-gray-800 mb-1">
-                  Topping:
+                  Topping trên mỗi bánh:
                   <ul className="ml-4 list-disc">
                     {selectedToppings.map((t) => (
                       <li key={t.id}>
