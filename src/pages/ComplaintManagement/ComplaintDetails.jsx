@@ -34,11 +34,30 @@ const formatVND = (v) => {
   }).format(num);
 };
 
-// Map order status to localized label
+// Map order status to localized (vi) label
 const getOrderStatusLabel = (s) => {
   const v = (s || "").toString().trim().toLowerCase();
   if (!v) return "-";
-  if (["cancelled", "canceled", "cancel"].includes(v)) return "hủy đơn hàng";
+  if (["pending", "new"].includes(v)) return "Đang chờ xử lý";
+  if (["ordered", "accepted", "confirmed", "received"].includes(v))
+    return "Đã tiếp nhận";
+  if (
+    [
+      "preparedfordelivery",
+      "prepared_for_delivery",
+      "ready",
+      "preparing",
+      "ready_to_ship",
+    ].includes(v)
+  )
+    return "Sẵn sàng giao hàng";
+  if (["shipping", "delivering", "in_transit", "shipped"].includes(v))
+    return "Đang vận chuyển";
+  if (["complaint", "complaining", "complaning", "disputed"].includes(v))
+    return "Đang khiếu nại";
+  if (["completed", "complete", "done", "delivered"].includes(v))
+    return "Hoàn tất";
+  if (["cancelled", "canceled", "cancel"].includes(v)) return "Đã hủy";
   return s || "-";
 };
 
@@ -643,9 +662,21 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 <p className="text-xs uppercase tracking-wide text-orange-600 font-semibold mb-1">
                   Trạng thái đơn
                 </p>
-                <p className="text-sm font-bold text-orange-800 capitalize">
-                  {getOrderStatusLabel(order?.status)}
-                </p>
+                {(() => {
+                  // Khiếu nại pending => hiển thị "Đang khiếu nại"
+                  // Khiếu nại complete (đã hoàn tiền) => coi đơn là "Đã hủy"
+                  // Khiếu nại rejected (từ chối) => coi đơn là "Hoàn tất"
+                  let label;
+                  if (status === "pending") label = "Đang khiếu nại";
+                  else if (status === "complete") label = "Đã hủy";
+                  else if (status === "rejected") label = "Hoàn tất";
+                  else label = getOrderStatusLabel(order?.status);
+                  return (
+                    <p className="text-sm font-bold text-orange-800 capitalize">
+                      {label}
+                    </p>
+                  );
+                })()}
               </div>
               <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100">
                 <p className="text-xs uppercase tracking-wide text-emerald-600 font-semibold mb-1">
@@ -688,7 +719,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     {complaint.raw?.reason && (
                       <div className="bg-white rounded-lg p-3 border border-gray-200">
                         <p className="font-semibold text-gray-700 mb-1">
-                          Reason (server):
+                          Đơn hàng:
                         </p>
                         <p className="text-gray-800">{complaint.raw.reason}</p>
                       </div>
@@ -701,7 +732,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                       <ImageIcon className="h-5 w-5 text-blue-600" />
-                      Ảnh bánh (từ Marketplace Post)
+                      Ảnh bánh (từ bài đăng bán SP)
                     </h3>
                     {order?.marketplace_post_id && (
                       <button
@@ -867,7 +898,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       </label>
                       <p className="font-medium text-gray-800 flex items-center gap-2">
                         <Phone className="h-4 w-4" />
-                        {customerInfo.phone}
+                        {customerInfo.phone || "Chưa cập nhật"}
                       </p>
                     </div>
                     <div>

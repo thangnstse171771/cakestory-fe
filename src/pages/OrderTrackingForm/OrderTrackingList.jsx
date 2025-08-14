@@ -677,9 +677,11 @@ export default function OrderTrackingList({
                     <th className="px-4 py-3 font-semibold">#</th>
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
                     <th className="px-4 py-3 font-semibold">Khách hàng</th>
-                    <th className="px-4 py-3 font-semibold">SP</th>
+                    <th className="px-4 py-3 font-semibold">
+                      Số lượng topping
+                    </th>
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
-                    <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
+                    <th className="px-4 py-3 font-semibold">Tổng giá</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
                   </tr>
                 </thead>

@@ -81,21 +81,25 @@ const Sidebar = () => {
   const publicMenu = [
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
-    { icon: Cake, label: "Cake Design", path: "/cake-design" },
-    { icon: Trophy, label: "Challenge", path: "/challenge" },
+    { icon: Cake, label: "Thiết kế bánh", path: "/cake-design" },
+    { icon: Trophy, label: "Thử thách", path: "/challenge" },
     // Shop order tracking (dùng component lấy theo shop của user hiện tại)
     { icon: ListOrdered, label: "Đơn hàng của shop", path: "/order-tracking" },
-    { icon: MessageSquareWarning, label: "Khiếu nại", path: "/complaints" },
+    {
+      icon: MessageSquareWarning,
+      label: "Khiếu nại của shop",
+      path: "/complaints",
+    },
   ];
 
   // Menu cho user thường
   const userMenu = [
-    { icon: MessageCircle, label: "Messages", path: "/chat" },
-    { icon: BookImage, label: "My Post", path: "/mypost" },
-    { icon: SquareLibrary, label: "My Album", path: "/myalbum" },
+    { icon: MessageCircle, label: "Tin nhắn", path: "/chat" },
+    { icon: BookImage, label: "Bài viết của tôi", path: "/mypost" },
+    { icon: SquareLibrary, label: "Album của tôi", path: "/myalbum" },
     {
       icon: ListOrdered,
-      label: "Đơn hàng của tôi",
+      label: "Lịch sử mua hàng",
       path: "/order-tracking-user",
     },
     {
@@ -103,29 +107,33 @@ const Sidebar = () => {
       label: "Khiếu nại của tôi",
       path: "/my-complaints",
     },
-    { icon: User, label: "Profile", path: "/profile" },
-    { icon: Wallet, label: "Nạp tiền", path: "/wallet" },
-    { icon: ArrowDownToLine, label: "Rút tiền", path: "/withdraw" },
+    { icon: User, label: "Hồ sơ cá nhân", path: "/profile" },
+    { icon: Wallet, label: "Ví tiền", path: "/wallet" },
+    { icon: ArrowDownToLine, label: "Yêu cầu rút tiền", path: "/withdraw" },
     { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
   ];
 
   // Menu cho admin/staff
   const adminMenu = [
     { icon: Shield, label: "Admin Dashboard", path: "/admin" },
-    { icon: ListOrdered, label: "All Orders", path: "/admin/order-tracking" },
+    {
+      icon: ListOrdered,
+      label: "Tất cả đơn hàng",
+      path: "/admin/order-tracking",
+    },
     {
       icon: MessageSquareWarning,
-      label: "All Complaints",
+      label: "Tất cả khiếu nại",
       path: "/admin/complaints",
     },
-    { icon: Wallet, label: "Quản Lý Ví", path: "/admin/wallet" },
+    { icon: Wallet, label: "Quản lý ví tiền", path: "/admin/wallet" },
     {
       icon: CreditCard,
-      label: "Yêu Cầu Rút Tiền",
+      label: "Tất cả yêu cầu rút tiền",
       path: "/admin/withdraw-requests",
     },
     { icon: Trophy, label: "Admin Challenge", path: "/admin/challenge" },
-    { icon: User, label: "Profile", path: "/profile" },
+    { icon: User, label: "Hồ sơ cá nhân", path: "/profile" },
   ];
 
   // Build menu based on role and shop ownership
@@ -145,14 +153,16 @@ const Sidebar = () => {
       if (!hasShopResolved) {
         menuItems = menuItems.filter(
           (item) =>
-            item.path !== "/complaints" && item.path !== "/order-tracking"
+            item.path !== "/Khiếu nại đơn hàng" &&
+            item.path !== "/order-tracking"
         );
       }
     }
   } else {
     // Khách: ẩn mục Khiếu nại (shop) và Shop Orders
     menuItems = publicMenu.filter(
-      (item) => item.path !== "/complaints" && item.path !== "/order-tracking"
+      (item) =>
+        item.path !== "/Khiếu nại của tôi" && item.path !== "/order-tracking"
     );
   }
 

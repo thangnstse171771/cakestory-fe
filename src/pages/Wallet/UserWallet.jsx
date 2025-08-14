@@ -769,7 +769,8 @@ export default function UserWallet() {
             <span className="font-medium text-pink-600">Tức thì</span>
           </div>
           <div className="flex items-center gap-2 text-gray-500 text-sm">
-            <Shield className="w-4 h-4 text-pink-400" /> Bảo mật 256-bit SSL
+            <Shield className="w-4 h-4 text-pink-400" /> Thanh toán dễ dàng,
+            nhanh chóng
           </div>
           <div className="flex items-center gap-2 text-gray-500 text-sm">
             <CheckCircle className="w-4 h-4 text-pink-400" /> Không có phí ẩn
