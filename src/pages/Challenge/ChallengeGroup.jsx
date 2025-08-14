@@ -1,7 +1,19 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
+import { ChevronLeft, ChevronRight, Heart, MessageCircle } from "lucide-react";
 import axiosInstance from "../../api/axios";
+import CreateChallengePost from "./ChallengePost/CreateChallengePost";
+import { authAPI } from "../../api/auth";
+import { useAuth } from "../../contexts/AuthContext";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+dayjs.extend(relativeTime);
 
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
@@ -15,19 +27,37 @@ const countParticipants = (entries, challengeId) => {
 };
 
 export default function ChallengeGroup() {
+  const { user } = useAuth();
+  const currentUserId = user?.id;
   const navigate = useNavigate();
   const { id } = useParams();
 
   // States
   const [challengeInfo, setChallengeInfo] = useState(null);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [openCreatePost, setOpenCreatePost] = useState(false);
   const [newPost, setNewPost] = useState({ content: "", image: "" });
   const [posts, setPosts] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const videoRefs = useRef([]);
+  const [likesData, setLikesData] = useState({});
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [participantCount, setParticipantCount] = useState(0);
   const [isLoadingCount, setIsLoadingCount] = useState(true);
+
+  useEffect(() => {
+    videoRefs.current.forEach((video, idx) => {
+      if (video) {
+        if (idx === activeIndex) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      }
+    });
+  }, [activeIndex]);
 
   // Fetch challenge info
   useEffect(() => {
@@ -90,67 +120,72 @@ export default function ChallengeGroup() {
     fetchParticipantCount();
   }, [id]);
 
-  // Fetch challenge posts
   useEffect(() => {
-    const fetchChallengePosts = async () => {
-      setPostsLoading(true);
-      try {
-        // Fetch all challenge posts
-        const response = await axiosInstance.get("/challenge-posts", {
-          headers: {
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-        });
-
-        const allPosts = response.data.posts || response.data || [];
-        console.log("All challenge posts:", allPosts);
-
-        // Filter posts for current challenge if challenge ID is available
-        let filteredPosts = allPosts;
-        if (id) {
-          filteredPosts = allPosts.filter(
-            (post) =>
-              post.challenge_id === parseInt(id) || post.challenge_id === id
-          );
+    const fetchLikesForPosts = async () => {
+      const initialLikes = {};
+      for (const post of posts) {
+        try {
+          const res = await authAPI.getLikesByPostId(post.post_id);
+          const data = res.likes;
+          const totalLikes = res.total_likes || data.length;
+          const liked = data.some((like) => like.user_id === currentUserId);
+          initialLikes[post.post_id] = { liked, count: totalLikes };
+        } catch (error) {
+          console.error("Failed to fetch likes for post", post.post_id, error);
+          initialLikes[post.post_id] = {
+            liked: false,
+            count: post.total_likes || 0,
+          };
         }
-
-        console.log(`Filtered posts for challenge ${id}:`, filteredPosts);
-
-        // Transform API data to component format
-        const transformedPosts = filteredPosts.map((post) => ({
-          id: post.id || post.post_id,
-          user: {
-            name: post.user?.name || post.username || "Người dùng",
-            avatar: post.user?.avatar || post.user_avatar || IMAGE_URL,
-            level:
-              post.user?.level ||
-              `Bánh sư cấp ${Math.floor(Math.random() * 5) + 1}`,
-          },
-          content: post.content || post.description || "",
-          image:
-            post.image ||
-            post.media_url ||
-            (post.images && post.images[0]) ||
-            null,
-          likes: post.likes_count || post.likes || 0,
-          comments: post.comments_count || post.comments || 0,
-          timeAgo: formatTimeAgo(post.created_at || post.createdAt),
-          isLiked: post.is_liked || false,
-          challenge_id: post.challenge_id,
-        }));
-
-        setPosts(transformedPosts);
-      } catch (error) {
-        console.error("Error fetching challenge posts:", error);
-        toast.error("Không thể tải bài đăng challenge");
-        // Set empty array on error
-        setPosts([]);
-      } finally {
-        setPostsLoading(false);
       }
+      setLikesData(initialLikes);
     };
 
+    if (posts.length > 0) {
+      fetchLikesForPosts();
+    }
+  }, [posts]);
+
+  const handleLike = async (postId) => {
+    try {
+      await authAPI.likePost(postId);
+      setLikesData((prev) => {
+        const wasLiked = prev[postId]?.liked;
+        const newCount = wasLiked
+          ? prev[postId].count - 1
+          : prev[postId].count + 1;
+        return {
+          ...prev,
+          [postId]: {
+            liked: !wasLiked,
+            count: newCount,
+          },
+        };
+      });
+    } catch (error) {
+      console.error("Failed to toggle like", error);
+    }
+  };
+
+  // Fetch challenge posts
+  const fetchChallengePosts = async () => {
+    setPostsLoading(true);
+    try {
+      // Fetch all challenge posts
+      const response = await authAPI.getChallengePostsByChallengeId(id);
+      const allChallPosts = response.posts;
+
+      console.log("All challenge posts:", allChallPosts);
+      setPosts(allChallPosts);
+    } catch (error) {
+      console.error("Error fetching challenge posts:", error);
+      setPosts([]);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchChallengePosts();
   }, [id]);
 
@@ -291,28 +326,28 @@ export default function ChallengeGroup() {
   };
 
   // Handle like post
-  const handleLike = async (postId) => {
-    try {
-      // Call API to like/unlike post
-      await axiosInstance.post(`/challenge-posts/${postId}/like`);
+  // const handleLike = async (postId) => {
+  //   try {
+  //     // Call API to like/unlike post
+  //     await axiosInstance.post(`/challenge-posts/${postId}/like`);
 
-      // Update local state
-      setPosts(
-        posts.map((post) =>
-          post.id === postId
-            ? {
-                ...post,
-                isLiked: !post.isLiked,
-                likes: post.isLiked ? post.likes - 1 : post.likes + 1,
-              }
-            : post
-        )
-      );
-    } catch (error) {
-      console.error("Error liking post:", error);
-      toast.error("Không thể thích bài đăng");
-    }
-  };
+  //     // Update local state
+  //     setPosts(
+  //       posts.map((post) =>
+  //         post.id === postId
+  //           ? {
+  //               ...post,
+  //               isLiked: !post.isLiked,
+  //               likes: post.isLiked ? post.likes - 1 : post.likes + 1,
+  //             }
+  //           : post
+  //       )
+  //     );
+  //   } catch (error) {
+  //     console.error("Error liking post:", error);
+  //     toast.error("Không thể thích bài đăng");
+  //   }
+  // };
 
   // Loading state
   if (loading) {
@@ -358,7 +393,7 @@ export default function ChallengeGroup() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FFF5F7" }}>
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 max-w-3xl">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
@@ -398,7 +433,9 @@ export default function ChallengeGroup() {
                     <h1 className="text-2xl font-bold text-gray-800">
                       {challengeTitle}
                     </h1>
-                    <p className="text-gray-600">Nhóm thảo luận và chia sẻ</p>
+                    <p className="text-gray-600">
+                      {challengeInfo?.description}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -503,7 +540,7 @@ export default function ChallengeGroup() {
               </div>
             ) : !showCreatePost ? (
               <button
-                onClick={() => setShowCreatePost(true)}
+                onClick={() => setOpenCreatePost(true)}
                 className="w-full border border-gray-300 text-gray-700 hover:bg-pink-50 px-4 py-2 rounded flex items-center justify-center"
               >
                 <svg
@@ -580,7 +617,7 @@ export default function ChallengeGroup() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto mb-4"></div>
               <p className="text-gray-600">Đang tải bài đăng...</p>
             </div>
-          ) : posts.length === 0 ? (
+          ) : posts?.length === 0 ? (
             <div className="text-center py-8 bg-white border border-gray-200 rounded-lg">
               <svg
                 className="w-12 h-12 text-gray-400 mx-auto mb-4"
@@ -601,104 +638,139 @@ export default function ChallengeGroup() {
               </p>
             </div>
           ) : (
-            posts.map((post) => (
+            posts.map((challPost) => (
               <div
-                key={post.id}
+                key={challPost.post_id}
                 className="border border-gray-200 bg-white shadow-sm rounded-lg"
               >
                 <div className="p-4">
                   {/* Post Header */}
                   <div className="flex items-center space-x-3 mb-4">
                     <img
-                      src={post.user.avatar}
+                      src={challPost.post.user.avatar}
                       alt="avatar"
                       className="w-10 h-10 rounded-full bg-pink-100 object-cover"
                     />
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-800">
-                        {post.user.name}
+                        {challPost.post.user.username}
                       </h4>
                       <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <span className="border border-pink-200 text-pink-600 text-xs px-2 py-0.5 rounded">
-                          {post.user.level}
+                        <span>
+                          {dayjs(challPost.post.created_at).fromNow()}
                         </span>
-                        <span>•</span>
-                        <span>{post.timeAgo}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Post Content */}
-                  <p className="text-gray-700 mb-4">{post.content}</p>
+                  <p className="text-gray-700 mb-4">
+                    {challPost.post.description}
+                  </p>
 
-                  {/* Post Image */}
-                  {post.image && (
-                    <div className="mb-4 rounded-lg overflow-hidden">
-                      <img
-                        src={post.image}
-                        alt="Challenge post"
-                        className="w-full h-64 object-cover"
-                      />
-                    </div>
-                  )}
+                  <div className="relative rounded-lg overflow-hidden max-h-[770px]">
+                    <Swiper
+                      modules={[Pagination, Navigation]}
+                      spaceBetween={10}
+                      slidesPerView={1}
+                      loop
+                      pagination={{ clickable: true }}
+                      navigation={{
+                        nextEl: ".custom-next",
+                        prevEl: ".custom-prev",
+                      }}
+                      onSlideChange={(swiper) =>
+                        setActiveIndex(swiper.realIndex)
+                      }
+                      className="rounded-lg"
+                    >
+                      {Array.isArray(challPost.post.media) &&
+                      challPost.post.media.length > 0 ? (
+                        challPost.post.media.map((item, index) => (
+                          <SwiperSlide key={item.id}>
+                            <div className="w-full aspect-[4/5] rounded-lg overflow-hidden">
+                              {item.image_url ? (
+                                <img
+                                  src={item.image_url}
+                                  alt="media"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : item.video_url ? (
+                                <video
+                                  ref={(el) => (videoRefs.current[index] = el)}
+                                  src={item.video_url}
+                                  autoPlay
+                                  controls
+                                  muted
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                                  No media
+                                </div>
+                              )}
+                            </div>
+                          </SwiperSlide>
+                        ))
+                      ) : (
+                        <SwiperSlide>
+                          <div className="w-full aspect-[4/5] rounded-lg overflow-hidden flex items-center justify-center bg-gray-200 text-gray-500">
+                            No media
+                          </div>
+                        </SwiperSlide>
+                      )}
+
+                      <div className="custom-prev absolute top-1/2 left-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                          <ChevronLeft
+                            size={20}
+                            strokeWidth={2}
+                            className="text-pink-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="custom-next absolute top-1/2 right-2 -translate-y-1/2 z-10 cursor-pointer hover:scale-110 transition">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full border border-pink-500 bg-white/80 backdrop-blur-sm">
+                          <ChevronRight
+                            size={20}
+                            strokeWidth={2}
+                            className="text-pink-500"
+                          />
+                        </div>
+                      </div>
+                    </Swiper>
+                  </div>
 
                   {/* Post Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                     <div className="flex items-center space-x-4">
                       <button
-                        onClick={() => handleLike(post.id)}
-                        className={`flex items-center text-sm ${
-                          post.isLiked ? "text-pink-500" : "text-gray-600"
-                        } hover:text-pink-500`}
+                        onClick={() => handleLike(challPost.post_id)}
+                        className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
                       >
-                        <svg
-                          className={`w-4 h-4 mr-1 ${
-                            post.isLiked ? "fill-current" : ""
+                        <Heart
+                          className={`w-5 h-5 ${
+                            likesData[challPost.post_id]?.liked
+                              ? "fill-pink-500 text-pink-500"
+                              : ""
                           }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
-                          />
-                        </svg>
-                        {post.likes}
+                        />
+                        <span className="text-sm">
+                          {likesData[challPost.post_id]?.count ??
+                            challPost.post.total_likes}
+                        </span>
                       </button>
-                      <button className="flex items-center text-sm text-gray-600 hover:text-pink-500">
-                        <svg
-                          className="w-4 h-4 mr-1"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h12a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                          />
-                        </svg>
-                        {post.comments}
-                      </button>
-                      <button className="flex items-center text-sm text-gray-600 hover:text-pink-500">
-                        <svg
-                          className="w-4 h-4 mr-1"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                          />
-                        </svg>
-                        Chia sẻ
+                      <button
+                        // onClick={() => {
+                        //   setSelectedPost(post);
+                        //   setIsPostDetailOpen(true);
+                        // }}
+                        className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="text-sm">
+                          {challPost.post.total_comments}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -727,6 +799,12 @@ export default function ChallengeGroup() {
           </button>
         </div>
       </div>
+      <CreateChallengePost
+        isOpen={openCreatePost}
+        onClose={() => setOpenCreatePost(false)}
+        onCreate={fetchChallengePosts}
+        challengeId={id}
+      />
     </div>
   );
 }

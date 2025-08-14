@@ -212,4 +212,14 @@ export const authAPI = {
     });
     return response.data;
   },
+
+  createChallengePost: async (postData) => {
+    const response = await axiosInstance.post(`/challenge-posts`, postData);
+    return response.data;
+  },
+
+  getChallengePostsByChallengeId: async (challengeId) => {
+    const response = await axiosInstance.get(`challenge-posts/challenge/${challengeId}`)
+    return response.data; 
+  }
 };
