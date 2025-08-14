@@ -17,7 +17,6 @@ const ChallengeLeaderboard = ({ challengeId }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchLeaderboard = async () => {
-    setLoading(true);
     try {
       // Fetch all challenge posts
       const response = await authAPI.getChallengeLeaderboardById(challengeId);
@@ -122,78 +121,72 @@ const ChallengeLeaderboard = ({ challengeId }) => {
         </div>
 
         {/* Leaderboard */}
+        {/* Leaderboard */}
         <div className="space-y-3">
-          {leaderboard.map((competitor) => (
-            <div
-              key={competitor.user_id}
-              className={`p-4 md:p-6 border rounded-lg flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] cursor-pointer ${getRankStyle(
-                competitor.rank
-              )}`}
-            >
-              {/* Rank */}
-              <div className="flex-shrink-0">
-                {getRankStyle(competitor.rank)}
-              </div>
-
-              {/* Avatar */}
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden ring-2 ring-white shadow-md bg-gray-200 flex items-center justify-center">
-                {competitor.post.avatar ? (
-                  <img
-                    src={competitor.post.user.avatar}
-                    alt={competitor.post.user.username}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="font-semibold text-rose-600">
-                    {competitor.post.user.username
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </span>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-semibold text-lg text-slate-800 truncate">
-                    {competitor.post.user.username}
-                  </h3>
-                  {/* <span
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
-                      competitor.change.startsWith("+")
-                        ? "bg-green-100 text-green-700"
-                        : competitor.change.startsWith("-")
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {getChangeIcon(competitor.change)}
-                    {competitor.change}
-                  </span> */}
-                </div>
-                <div className="flex items-center gap-4 text-sm text-slate-600">
-                  <div className="flex items-center gap-1">
-                    <Target size={14} />{" "}
-                    <span className="font-medium">
-                      {competitor.post.total_likes} likes
-                    </span>
-                  </div>
-                  {/* <div className="flex items-center gap-1">
-                    <Clock size={14} /> <span>{competitor.time}</span>
-                  </div> */}
-                </div>
-              </div>
-
-              {/* Points on right */}
-              <div className="text-right font-bold hidden md:block">
-                <Heart className="text-pink-500 inline-block mr-1 fill-pink-500" />
-                <span className="text-slate-700">
-                  {competitor.post.total_likes}
-                </span>
-              </div>
+          {loading ? (
+            <div className="flex justify-center items-center h-44">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
             </div>
-          ))}
+          ) : leaderboard.length === 0 ? (
+            <p className="text-center text-slate-500">
+              Challenge chưa bắt đầu, quay lại sau nhé!
+            </p>
+          ) : (
+            leaderboard.map((competitor) => (
+              <div
+                key={competitor.user_id}
+                className={`p-4 md:p-6 border rounded-lg flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] cursor-pointer`}
+              >
+                {/* Rank */}
+                <div className="flex-shrink-0">
+                  {getRankStyle(competitor.rank)}
+                </div>
+
+                {/* Avatar */}
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden ring-2 ring-white shadow-md bg-gray-200 flex items-center justify-center">
+                  {competitor.post?.user?.avatar ? (
+                    <img
+                      src={competitor.post.user.avatar}
+                      alt={competitor.post.user.username}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="font-semibold text-rose-600">
+                      {competitor.post?.user?.username
+                        ?.split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </span>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-lg text-slate-800 truncate">
+                      {competitor.post?.user?.username}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-slate-600">
+                    <div className="flex items-center gap-1">
+                      <Target size={14} />
+                      <span className="font-medium">
+                        {competitor.post?.total_likes} likes
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Points on right */}
+                <div className="text-right font-bold hidden md:block">
+                  <Heart className="text-pink-500 inline-block mr-1 fill-pink-500" />
+                  <span className="text-slate-700">
+                    {competitor.post?.total_likes}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
