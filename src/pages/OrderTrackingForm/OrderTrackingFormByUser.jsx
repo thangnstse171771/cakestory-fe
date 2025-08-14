@@ -1,9 +1,9 @@
 // NOTE: This file was originally for shop tracking but misnamed.
 // Use OrderTrackingFormShop.jsx instead for shop view.
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
 import ComplaintModal from "../ComplaintManagement/ComplaintModal";
-import { fetchOrderById } from "../../api/axios";
+import { fetchOrderById, fetchMarketplacePostById } from "../../api/axios";
 import {
   User,
   Package,
@@ -71,6 +71,61 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
     )
   );
   const [loading, setLoading] = useState(false);
+  // Marketplace post preview
+  const [marketplacePost, setMarketplacePost] = useState(null);
+  const [marketplaceImage, setMarketplaceImage] = useState(null);
+  const [isLoadingMarketplace, setIsLoadingMarketplace] = useState(false);
+  const hasFetchedMarketplaceRef = useRef(false);
+
+  // Helper: extract image url from a marketplace post object
+  const extractImageFromMarketplacePost = (mp) => {
+    if (!mp) return null;
+    const imageFields = [
+      "image_url",
+      "image",
+      "photo_url",
+      "photo",
+      "thumbnail",
+      "thumb",
+      "url",
+    ];
+    const isStr = (v) => typeof v === "string" && v.trim();
+    const pickFrom = (obj) => {
+      if (!obj || typeof obj !== "object") return null;
+      for (const f of imageFields) if (isStr(obj[f])) return obj[f].trim();
+      return null;
+    };
+
+    const direct = pickFrom(mp);
+    if (direct) return direct;
+    const containers = [mp.post, mp.data];
+    for (const c of containers) {
+      const val = pickFrom(c);
+      if (val) return val;
+    }
+    const mediaArrays = [mp.media, mp.post?.media, mp.data?.media];
+    for (const arr of mediaArrays) {
+      if (Array.isArray(arr)) {
+        for (const item of arr) {
+          const val =
+            pickFrom(item) || pickFrom(item?.image) || pickFrom(item?.data);
+          if (val) return val;
+        }
+      }
+    }
+    const seen = new Set();
+    const stack = [mp];
+    while (stack.length) {
+      const node = stack.pop();
+      if (!node || typeof node !== "object" || seen.has(node)) continue;
+      seen.add(node);
+      const picked = pickFrom(node);
+      if (picked) return picked;
+      if (Array.isArray(node)) stack.push(...node);
+      else stack.push(...Object.values(node));
+    }
+    return null;
+  };
 
   // Fetch order detail nếu có orderId từ URL params
   useEffect(() => {
@@ -125,6 +180,16 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
           response.createdAt ||
           response.placeDate ||
           new Date().toISOString(),
+        // marketplace reference (id + embed if available)
+        marketplace_post_id:
+          response.marketplace_post_id ||
+          response.order_details?.[0]?.marketplace_post?.id ||
+          response.orderDetails?.[0]?.marketplace_post_id ||
+          null,
+        marketplace_post:
+          response.marketplace_post ||
+          response.order_details?.[0]?.marketplace_post ||
+          null,
         history: response.history || [
           {
             date: response.placeDate || new Date().toISOString().split("T")[0],
@@ -155,6 +220,52 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
       setLoading(false);
     }
   };
+
+  // Load marketplace post and image (once)
+  useEffect(() => {
+    const embedded = orderDetail?.marketplace_post;
+    const postId = orderDetail?.marketplace_post_id;
+
+    if (marketplaceImage) return;
+
+    if (!marketplacePost && embedded && Object.keys(embedded).length) {
+      setMarketplacePost(embedded);
+      const img = extractImageFromMarketplacePost(embedded);
+      if (img) setMarketplaceImage(img);
+      return;
+    }
+
+    if (
+      !hasFetchedMarketplaceRef.current &&
+      postId &&
+      !marketplacePost &&
+      !isLoadingMarketplace
+    ) {
+      hasFetchedMarketplaceRef.current = true;
+      setIsLoadingMarketplace(true);
+      (async () => {
+        try {
+          const res = await fetchMarketplacePostById(postId);
+          const postData = res?.post || res?.data || res;
+          if (postData) {
+            setMarketplacePost(postData);
+            const img = extractImageFromMarketplacePost(postData);
+            if (img) setMarketplaceImage(img);
+          }
+        } catch (e) {
+          hasFetchedMarketplaceRef.current = false;
+        } finally {
+          setIsLoadingMarketplace(false);
+        }
+      })();
+    }
+  }, [
+    orderDetail?.marketplace_post_id,
+    orderDetail?.marketplace_post,
+    marketplacePost,
+    marketplaceImage,
+    isLoadingMarketplace,
+  ]);
 
   const handleBackToList = () => {
     if (onBackToList) {
@@ -334,7 +445,11 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
                     </p>
                     {item.customization && (
                       <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                        <p>Kích thước: {item.customization.size}</p>
+                        {typeof item.customization.size !== "undefined" && (
+                          <p className="text-gray-800 text-sm md:text-base font-medium">
+                            Kích thước: {item.customization.size}
+                          </p>
+                        )}
                         {item.customization.toppings?.length > 0 && (
                           <p>
                             Topping:{" "}
@@ -357,6 +472,66 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
               <span>{orderDetail.base_price.toLocaleString("vi-VN")}đ</span>
             </div>
           </div>
+
+          {/* Marketplace reference (nếu có) */}
+          {(marketplacePost || marketplaceImage) && (
+            <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
+                <Package className="h-5 w-5" />
+                Bài đăng tham chiếu
+              </h3>
+              <div className="flex items-start gap-4">
+                {marketplaceImage &&
+                  (orderDetail?.marketplace_post_id ? (
+                    <Link
+                      to={`/marketplace/product/${orderDetail.marketplace_post_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0"
+                    >
+                      <img
+                        src={marketplaceImage}
+                        alt="Marketplace"
+                        className="w-24 h-24 rounded object-cover border border-pink-200 hover:opacity-90"
+                      />
+                    </Link>
+                  ) : (
+                    <img
+                      src={marketplaceImage}
+                      alt="Marketplace"
+                      className="w-24 h-24 rounded object-cover border border-pink-200"
+                    />
+                  ))}
+                <div className="text-gray-800 text-sm">
+                  {(() => {
+                    const title =
+                      marketplacePost?.title ||
+                      marketplacePost?.name ||
+                      marketplacePost?.post?.title ||
+                      marketplacePost?.data?.title ||
+                      "Bài đăng";
+                    return orderDetail?.marketplace_post_id ? (
+                      <Link
+                        to={`/marketplace/product/${orderDetail.marketplace_post_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-gray-800 hover:underline"
+                      >
+                        {title}
+                      </Link>
+                    ) : (
+                      <p className="font-medium">{title}</p>
+                    );
+                  })()}
+                  {marketplacePost?.description && (
+                    <p className="text-gray-600 mt-1 line-clamp-3">
+                      {marketplacePost.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Status History */}
           <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">

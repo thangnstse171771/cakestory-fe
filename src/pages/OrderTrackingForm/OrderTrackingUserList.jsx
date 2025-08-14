@@ -303,6 +303,17 @@ export default function OrderTrackingList({
         });
       }
 
+      // Lấy thông tin bài đăng marketplace (nếu có)
+      const marketplace_post_id =
+        data.marketplace_post_id ||
+        data.order_details?.[0]?.marketplace_post?.id ||
+        data.orderDetails?.[0]?.marketplace_post_id ||
+        null;
+      const marketplace_post =
+        data.marketplace_post ||
+        data.order_details?.[0]?.marketplace_post ||
+        null;
+
       const transformedOrder = {
         id: data.id,
         orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
@@ -318,6 +329,8 @@ export default function OrderTrackingList({
         shippingAddress: {
           address: data.shipped_at || "",
         },
+        marketplace_post_id,
+        marketplace_post,
         history: [
           {
             date: new Date(
