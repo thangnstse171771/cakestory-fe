@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, RotateCcw, Sparkles, AlertCircle, X, DollarSign, Wallet } from "lucide-react";
+import {
+  Download,
+  RotateCcw,
+  Sparkles,
+  AlertCircle,
+  X,
+  DollarSign,
+  Wallet,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import html2canvas from "html2canvas";
@@ -2296,7 +2304,13 @@ Trang trí: ${
                       <Wallet className="w-4 h-4 text-blue-600" />
                       <span className="text-blue-700">Số dư hiện tại:</span>
                     </div>
-                    <span className={`font-medium ${balance >= AI_GENERATION_COST ? 'text-green-600' : 'text-red-600'}`}>
+                    <span
+                      className={`font-medium ${
+                        balance >= AI_GENERATION_COST
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
                       {balance.toLocaleString()} VND
                     </span>
                   </div>
@@ -2340,7 +2354,8 @@ Trang trí: ${
                     ) : balance < AI_GENERATION_COST ? (
                       <>
                         <Wallet className="w-4 h-4 mr-2 inline" />
-                        Không đủ tiền ({AI_GENERATION_COST.toLocaleString()} VND)
+                        Không đủ tiền ({AI_GENERATION_COST.toLocaleString()}{" "}
+                        VND)
                       </>
                     ) : (
                       <>
