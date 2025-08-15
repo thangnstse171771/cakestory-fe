@@ -10,11 +10,13 @@ import * as Yup from "yup";
 import { toast } from "react-toastify";
 
 const UpdatePostSchema = Yup.object().shape({
-  eventTitle: Yup.string().required("Event title is required"),
-  eventDate: Yup.string().required("Event date is required"),
-  eventType: Yup.string().required("Event type is required"),
-  story: Yup.string().max(1000, "Story cannot exceed 1000 characters"),
-  media: Yup.array().min(1, "Please add at least one media file"),
+  eventTitle: Yup.string().required("Hãy nhập tên sự kiện.").max(100, "Tên sự kiện không được vượt quá 100 ký tự."),
+  eventDate: Yup.date()
+    .max(new Date(), "Ngày sự kiện không thể ở tương lai.")
+    .required("Hãy chọn ngày sự kiện."),
+  eventType: Yup.string().required("Hãy chọn thể loại sự kiện."),
+  story: Yup.string().max(1000, "Câu chuyện không được vượt quá 1000 ký tự."),
+  media: Yup.array().min(1, "Hãy chọn ít nhất một tệp."),
 });
 
 const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
@@ -95,7 +97,7 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
             initialValues={{
               eventTitle: post?.title || "",
               eventDate: formatDateForInput(post?.date) || "",
-              eventType: post?.category || "Birthday",
+              eventType: post?.category || "Sinh Nhật",
               story: post?.description || "",
               media: convertExistingMediaToFiles(),
             }}
@@ -146,12 +148,12 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
                 await authAPI.updateMemoryPost(post.id, payload);
                 if (onUpdate) await onUpdate();
                 onClose();
-                toast.success("Post updated!");
+                toast.success("Cập nhật thành công!");
               } catch (err) {
                 console.error("UpdatePost: Error updating post:", err);
                 setFieldError(
                   "general",
-                  "Failed to update post. Please try again."
+                  "Gặp lỗi khi cập nhật. Vui lòng thử lại."
                 );
               } finally {
                 setLoading(false);
@@ -279,6 +281,7 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
                   <Field
                     type="date"
                     name="eventDate"
+                    max={new Date().toISOString().split("T")[0]}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
                   <ErrorMessage
@@ -298,10 +301,10 @@ const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {
                     name="eventType"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   >
-                    <option value="Birthday">Birthday</option>
-                    <option value="Wedding">Wedding</option>
-                    <option value="Anniversary">Anniversary</option>
-                    <option value="Reunion">Reunion</option>
+                    <option value="Sinh Nhật">Sinh Nhật</option>
+                    <option value="Đám Cưới">Đám Cưới</option>
+                    <option value="Kỉ Niệm">Kỉ Niệm</option>
+                    <option value="Tái Ngộ">Tái Ngộ</option>
                   </Field>
                   <ErrorMessage
                     name="eventType"

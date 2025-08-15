@@ -18,6 +18,7 @@ import { authAPI } from "../../api/auth";
 import UpdateAlbum from "./UpdateAlbum";
 import DeleteAlbum from "./DeleteAlbum";
 import dayjs from "dayjs";
+import { toast } from "react-toastify";
 
 const MyAlbum = () => {
   const { user } = useAuth();
@@ -69,7 +70,7 @@ const MyAlbum = () => {
       setSelectedAlbum(null);
     } catch (error) {
       console.error("Delete album failed:", error);
-      setError("Failed to album post");
+      toast.error("Xóa album thất bại.");
     } finally {
       setLoading(false);
     }
@@ -99,9 +100,9 @@ const MyAlbum = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-pink-600 mb-2">My Album</h1>
+          <h1 className="text-3xl font-bold text-pink-600 mb-2">Album của tôi</h1>
           <p className="text-gray-600">
-            Showcase your delicious cake creations
+            Lưu trữ ảnh và quản lý album của bạn tại đây.
           </p>
         </div>
         <button
@@ -109,7 +110,7 @@ const MyAlbum = () => {
           onClick={() => setIsCreateAlbumOpen(true)}
         >
           <Plus className="w-5 h-5" />
-          <span>Create Album</span>
+          <span>Tạo Album</span>
         </button>
       </div>
 
@@ -124,7 +125,7 @@ const MyAlbum = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search albums..."
+              placeholder="Tìm album..."
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           </div>
@@ -158,7 +159,7 @@ const MyAlbum = () => {
       {loading ? (
         <div className="flex justify-center items-center py-20">
           <div className="text-pink-500 text-lg font-medium animate-pulse">
-            Loading albums...
+            Đang tải album...
           </div>
         </div>
       ) : viewMode === "grid" ? (
@@ -207,7 +208,7 @@ const MyAlbum = () => {
                         }}
                         className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
                       >
-                        Edit
+                        Chỉnh sửa
                       </button>
                       <button
                         onClick={() => {
@@ -217,7 +218,7 @@ const MyAlbum = () => {
                         }}
                         className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
                       >
-                        Delete
+                        Xóa
                       </button>
                     </div>
                   )}
@@ -291,7 +292,7 @@ const MyAlbum = () => {
                           }}
                           className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
                         >
-                          Edit
+                          Chỉnh sửa
                         </button>
                         <button
                           onClick={() => {
@@ -301,7 +302,7 @@ const MyAlbum = () => {
                           }}
                           className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
                         >
-                          Delete
+                          Xóa
                         </button>
                       </div>
                     )}
@@ -342,17 +343,17 @@ const MyAlbum = () => {
             <Grid className="w-12 h-12 text-gray-400" />
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">
-            No albums found
+            Không tìm thấy album nào.
           </h3>
-          <p className="text-gray-600 mb-6">
+          {/* <p className="text-gray-600 mb-6">
             Try adjusting your filters or add your first album!
-          </p>
+          </p> */}
           <button
             className="bg-pink-500 hover:bg-pink-600 text-white px-6 py-3 rounded-lg flex items-center space-x-2 mx-auto transition-colors"
             onClick={() => setIsCreateAlbumOpen(true)}
           >
             <Plus className="w-5 h-5" />
-            <span>Add Your First Album</span>
+            <span>Tạo Album</span>
           </button>
         </div>
       )}

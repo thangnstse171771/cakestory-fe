@@ -61,9 +61,6 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
   // Map fields from API response
   const { title, description, user, media, MemoryPost } = postDetail;
 
-  const eventDate = MemoryPost?.event_date
-    ? new Date(MemoryPost.event_date).toLocaleDateString("en-GB")
-    : "";
   const eventType = MemoryPost?.event_type || "";
 
   return (
@@ -74,7 +71,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
       >
         <X className="w-6 h-6 text-gray-500" />
       </button>
-      <div className="bg-white rounded-md shadow-2xl max-w-[1220px] max-h-[650px] w-full flex flex-col md:flex-row overflow-hidden relative">
+      <div className="bg-white rounded-md shadow-2xl max-w-[1220px] min-h-[650px] max-h-90vh md:max-h-[650px] w-full flex flex-col md:flex-row overflow-hidden relative">
         {/* Image Section */}
         <div className="md:w-1/2 w-full bg-black flex items-center justify-center">
           <Swiper
@@ -88,7 +85,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
               prevEl: ".custom-prev",
             }}
             onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
-            className="w-full h-80 md:h-full"
+            className="w-full h-full"
           >
             {Array.isArray(media) && media.length > 0 ? (
               media.map((item, index) => (
@@ -97,7 +94,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
                     <img
                       src={item.image_url}
                       alt="media"
-                      className="object-cover w-full h-80 md:h-full"
+                      className="object-cover w-full h-full"
                     />
                   ) : item.video_url ? (
                     <video
@@ -106,19 +103,19 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
                       autoPlay
                       controls
                       muted
-                      className="object-cover w-full h-80 md:h-full"
+                      className="object-cover w-full h-full"
                     />
                   ) : (
-                    <div className="flex items-center justify-center w-full h-80 md:h-full bg-gray-200 text-gray-500">
-                      No media
+                    <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                      Không có phương tiện
                     </div>
                   )}
                 </SwiperSlide>
               ))
             ) : (
               <SwiperSlide>
-                <div className="flex items-center justify-center w-full h-80 md:h-full bg-gray-200 text-gray-500">
-                  No media
+                <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
+                  Không có phương tiện
                 </div>
               </SwiperSlide>
             )}
@@ -160,7 +157,9 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
                 <div className="font-semibold text-gray-800">
                   {user?.full_name || user?.username}
                 </div>
-                <div className="text-gray-500 text-sm">{dayjs(post.created_at).fromNow()}</div>
+                <div className="text-gray-500 text-sm">
+                  {dayjs(post.created_at).fromNow()}
+                </div>
               </div>
             </div>
             {/* <button className="text-gray-400 hover:text-gray-600">

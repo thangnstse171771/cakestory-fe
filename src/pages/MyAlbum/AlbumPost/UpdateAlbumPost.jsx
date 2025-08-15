@@ -10,12 +10,11 @@ import * as Yup from "yup";
 import { toast } from "react-toastify";
 
 const UpdateAlbumPostSchema = Yup.object().shape({
-  title: Yup.string().required("Post title is required"),
-  description: Yup.string().max(
-    1000,
-    "Description cannot exceed 1000 characters"
-  ),
-  media: Yup.array().min(1, "Please add at least one media file"),
+  title: Yup.string()
+    .required("Hãy nhập tên bài viết.")
+    .max(100, "Tên không được vượt quá 100 ký tự."),
+  description: Yup.string().max(1000, "Mô tả không được vượt quá 1000 ký tự."),
+  media: Yup.array().min(1, "Hãy chọn ít nhất một tệp."),
 });
 
 const UpdateAlbumPost = ({ isOpen, onClose, post, onUpdate }) => {
@@ -143,12 +142,12 @@ const UpdateAlbumPost = ({ isOpen, onClose, post, onUpdate }) => {
                 await authAPI.updateAlbumPost(post.id, payload);
                 if (onUpdate) await onUpdate();
                 onClose();
-                toast.success("Post updated!");
+                toast.success("Cập nhật thành công!");
               } catch (err) {
                 console.error("UpdatePost: Error updating post:", err);
                 setFieldError(
                   "general",
-                  "Failed to update post. Please try again."
+                  "Gặp lỗi khi cập nhật. Vui lòng thử lại."
                 );
               } finally {
                 setLoading(false);

@@ -114,11 +114,11 @@ const SearchResults = () => {
   return (
     <div className="p-4 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">
-        Results for <span className="text-pink-500">"{query}"</span>
+        Kết quả cho <span className="text-pink-500">"{query}"</span>
       </h1>
 
       {!loadingResults && results.length === 0 ? (
-        <p className="text-gray-500">No results found.</p>
+        <p className="text-gray-500">Không tìm thấy kết quả nào.</p>
       ) : (
         results.map((post) => (
           <div
@@ -150,9 +150,6 @@ const SearchResults = () => {
                     </div>
                   </div>
                 </div>
-                <button className="text-gray-400 hover:text-gray-600">
-                  <MoreHorizontal className="w-5 h-5" />
-                </button>
               </div>
 
               {/* Media Carousel */}
@@ -190,7 +187,7 @@ const SearchResults = () => {
                             />
                           ) : (
                             <div className="flex items-center justify-center h-full text-gray-500 rounded-lg">
-                              No media
+                              Không có phương tiện
                             </div>
                           )}
                         </div>
@@ -199,7 +196,7 @@ const SearchResults = () => {
                   ) : (
                     <SwiperSlide>
                       <div className="aspect-[4/5] flex items-center justify-center bg-gray-100 text-gray-500">
-                        No media
+                        Không có phương tiện
                       </div>
                     </SwiperSlide>
                   )}
@@ -246,13 +243,7 @@ const SearchResults = () => {
                     <MessageCircle className="w-5 h-5" />
                     <span className="text-sm">{post.total_comments}</span>
                   </button>
-                  <button className="flex items-center space-x-2 text-gray-600 hover:text-pink-500">
-                    <Share className="w-5 h-5" />
-                  </button>
                 </div>
-                <button className="text-gray-600 hover:text-yellow-500">
-                  <Bookmark className="w-5 h-5" />
-                </button>
               </div>
 
               <div className="text-left">
@@ -268,7 +259,7 @@ const SearchResults = () => {
                 }}
                 className="text-gray-500 text-sm text-left"
               >
-                <span className="cursor-pointer">View comments</span>
+                <span className="cursor-pointer">Xem bình luận</span>
               </div>
             </div>
           </div>

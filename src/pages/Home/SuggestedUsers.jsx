@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { authAPI } from "../../api/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const SuggestedUsers = () => {
   const { user } = useAuth();
@@ -56,6 +57,7 @@ const SuggestedUsers = () => {
       );
     } catch (error) {
       console.error("Failed to toggle follow:", error);
+      toast.error("Đã xảy ra lỗi. Vui lòng thử lại.");
     } finally {
       setFollowing((prev) => ({ ...prev, [targetUserId]: false }));
     }

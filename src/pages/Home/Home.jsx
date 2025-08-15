@@ -540,7 +540,7 @@ const Home = () => {
                             className="text-pink-400 mb-2"
                           />
                           <span className="text-gray-500 text-md italic whitespace-nowrap">
-                            No more posts.
+                            Bạn đã xem hết bài viết.
                           </span>
                         </div>
                       ) : null
@@ -630,7 +630,7 @@ const Home = () => {
                                           />
                                         ) : (
                                           <div className="flex items-center justify-center w-full h-full bg-gray-200 text-gray-500">
-                                            No media
+                                            Không có phương tiện
                                           </div>
                                         )}
                                       </div>
@@ -639,7 +639,7 @@ const Home = () => {
                                 ) : (
                                   <SwiperSlide>
                                     <div className="w-full aspect-[4/5] rounded-lg overflow-hidden flex items-center justify-center bg-gray-200 text-gray-500">
-                                      No media
+                                      Không có phương tiện
                                     </div>
                                   </SwiperSlide>
                                 )}

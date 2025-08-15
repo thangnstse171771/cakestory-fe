@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 import DeleteCommentPopup from "./DeleteCommentPopup";
+import { toast } from "react-toastify";
 
 const CommentsSection = ({ postId }) => {
   const { user } = useAuth();
@@ -32,6 +33,12 @@ const CommentsSection = ({ postId }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+
+    if (newComment.length > MAX_COMMENT_LENGTH) {
+      toast.error(`Bình luận không được vượt quá ${MAX_COMMENT_LENGTH} ký tự.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const commentData = { content: newComment };
@@ -48,6 +55,12 @@ const CommentsSection = ({ postId }) => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editingContent.trim()) return;
+
+    if (editingContent.length > MAX_COMMENT_LENGTH) {
+      toast.error(`Bình luận không được vượt quá ${MAX_COMMENT_LENGTH} ký tự.`);
+      return;
+    }
+
     try {
       await authAPI.editComment(editingCommentId, { content: editingContent });
       setEditingCommentId(null);
@@ -66,6 +79,7 @@ const CommentsSection = ({ postId }) => {
       fetchComments();
     } catch (error) {
       console.error("Failed to delete comment", error);
+      toast.error("Xóa bình luận thất bại.");
     } finally {
       setLoading(false);
       setIsPopupOpen(false);
@@ -83,6 +97,8 @@ const CommentsSection = ({ postId }) => {
       fetchComments();
     }
   }, [postId]);
+
+  const MAX_COMMENT_LENGTH = 500;
 
   return (
     <div className="flex flex-col h-full">
@@ -117,24 +133,38 @@ const CommentsSection = ({ postId }) => {
                         type="text"
                         value={editingContent}
                         onChange={(e) => setEditingContent(e.target.value)}
+                        maxLength={MAX_COMMENT_LENGTH}
                         className="flex-1 px-3 py-1 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setEditingCommentId(null);
-                          setEditingContent("");
-                        }}
-                        className="text-sm text-gray-400 hover:underline"
-                      >
-                        Hủy
-                      </button>
-                      <button
-                        type="submit"
-                        className="text-sm text-blue-500 hover:underline"
-                      >
-                        Lưu
-                      </button>
+
+                      {/* Actions + counter in one row */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCommentId(null);
+                            setEditingContent("");
+                          }}
+                          className="text-sm text-gray-400 hover:underline"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="submit"
+                          className="text-sm text-blue-500 hover:underline"
+                        >
+                          Lưu
+                        </button>
+                        <div
+                          className={`text-sm  ${
+                            editingContent.length > MAX_COMMENT_LENGTH * 0.8
+                              ? "text-red-500"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {editingContent.length}/{MAX_COMMENT_LENGTH}
+                        </div>
+                      </div>
                     </form>
                   ) : (
                     <p className="text-gray-700 text-sm">{comment.content}</p>
@@ -173,22 +203,37 @@ const CommentsSection = ({ postId }) => {
       {/* Add Comment Form (always at bottom) */}
       <form
         onSubmit={handleSubmit}
-        className="flex gap-2 pt-3 border-t border-gray-200 mt-2"
+        className="flex flex-col gap-2 pt-3 border-t border-gray-200 mt-2"
       >
-        <input
-          type="text"
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Hãy viết gì đó..."
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
-        >
-          {loading ? "Đang tải..." : "Đăng"}
-        </button>
+        <div className="flex items-center gap-2 w-full">
+          <input
+            type="text"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Hãy viết gì đó..."
+            maxLength={MAX_COMMENT_LENGTH}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          />
+          {newComment.length > 0 && (
+            <span
+              className={`text-xs ${
+                newComment.length > MAX_COMMENT_LENGTH * 0.8
+                  ? "text-red-500"
+                  : "text-gray-400"
+              }`}
+            >
+              {newComment.length}/{MAX_COMMENT_LENGTH}
+            </span>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
+          >
+            {loading ? "Đang tải..." : "Đăng"}
+          </button>
+        </div>
       </form>
 
       <DeleteCommentPopup

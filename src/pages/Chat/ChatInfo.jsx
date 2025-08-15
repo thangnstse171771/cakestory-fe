@@ -21,7 +21,7 @@ const ChatInfo = ({ open, onClose, avatar, name, images }) => {
           <h2 className="text-lg font-semibold text-gray-800">{name}</h2>
 
           <div className="w-full mt-4">
-            <h3 className="font-medium text-gray-700 mb-2">Sent Images</h3>
+            <h3 className="font-medium text-gray-700 mb-2">Ảnh đã gửi.</h3>
             <div className="flex flex-wrap gap-2">
               {images?.length > 0 ? (
                 [...images]
@@ -35,7 +35,7 @@ const ChatInfo = ({ open, onClose, avatar, name, images }) => {
                     />
                   ))
               ) : (
-                <span className="text-gray-400 text-sm">No images sent.</span>
+                <span className="text-gray-400 text-sm">Chưa có ảnh nào được gửi.</span>
               )}
             </div>
           </div>

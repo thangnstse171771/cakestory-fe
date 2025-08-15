@@ -10,12 +10,11 @@ import { storage } from "../../../firebase";
 import { toast } from "react-toastify";
 
 const CreateAlbumPostSchema = Yup.object().shape({
-  title: Yup.string().required("Post title is required"),
-  description: Yup.string().max(
-    1000,
-    "Description cannot exceed 1000 characters"
-  ),
-  media: Yup.array().min(1, "Please add at least one media file"),
+  title: Yup.string()
+    .required("Hãy nhập tên bài viết.")
+    .max(100, "Tên không được vượt quá 100 ký tự."),
+  description: Yup.string().max(1000, "Mô tả không được vượt quá 1000 ký tự."),
+  media: Yup.array().min(1, "Hãy chọn ít nhất một tệp."),
 });
 
 const CreateAlbumPost = ({ isOpen, onClose, onCreate, albumId }) => {
@@ -99,13 +98,10 @@ const CreateAlbumPost = ({ isOpen, onClose, onCreate, albumId }) => {
                 if (onCreate) await onCreate();
                 resetForm();
                 onClose();
-                toast.success("Post created!");
+                toast.success("Đăng bài thành công!");
               } catch (err) {
                 console.error(err);
-                setFieldError(
-                  "general",
-                  "Failed to create post. Please try again."
-                );
+                setFieldError("general", "Gặp lỗi khi tạo. Vui lòng thử lại.");
               } finally {
                 setLoading(false);
                 setSubmitting(false);
