@@ -10,11 +10,13 @@ import { storage } from "../../firebase";
 import { toast } from "react-toastify";
 
 const CreatePostSchema = Yup.object().shape({
-  eventTitle: Yup.string().required("Event title is required"),
-  eventDate: Yup.string().required("Event date is required"),
-  eventType: Yup.string().required("Event type is required"),
-  story: Yup.string().max(1000, "Story cannot exceed 1000 characters"),
-  media: Yup.array().min(1, "Please add at least one media file"),
+  eventTitle: Yup.string().required("Hãy nhập tên sự kiện.").max(100, "Tên sự kiện không được vượt quá 100 ký tự."),
+  eventDate: Yup.date()
+    .max(new Date(), "Ngày sự kiện không thể ở tương lai.")
+    .required("Hãy chọn ngày sự kiện."),
+  eventType: Yup.string().required("Hãy chọn thể loại sự kiện."),
+  story: Yup.string().max(1000, "Câu chuyện không được vượt quá 1000 ký tự."),
+  media: Yup.array().min(1, "Hãy chọn ít nhất một tệp."),
 });
 
 const CreatePost = ({ isOpen, onClose, onCreate }) => {
@@ -46,10 +48,10 @@ const CreatePost = ({ isOpen, onClose, onCreate }) => {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-white">
-                Đăng Bài Viết Kỉ Niệm
+                Đăng Bài Viết
               </h2>
               <p className="text-pink-100 text-sm mt-1">
-                Thêm bài viết kỉ niệm
+                Thêm bài viết
               </p>
             </div>
             <button
@@ -66,7 +68,7 @@ const CreatePost = ({ isOpen, onClose, onCreate }) => {
             initialValues={{
               eventTitle: "",
               eventDate: "",
-              eventType: "Birthday",
+              eventType: "Sinh Nhật",
               story: "",
               media: [],
             }}
@@ -100,13 +102,10 @@ const CreatePost = ({ isOpen, onClose, onCreate }) => {
                 if (onCreate) await onCreate();
                 resetForm();
                 onClose();
-                toast.success("Post created!");
+                toast.success("Đăng bài thành công!");
               } catch (err) {
                 console.error(err);
-                setFieldError(
-                  "general",
-                  "Failed to create post. Please try again."
-                );
+                setFieldError("general", "Gặp lỗi khi tạo. Vui lòng thử lại.");
               } finally {
                 setLoading(false);
                 setSubmitting(false);
@@ -229,6 +228,7 @@ const CreatePost = ({ isOpen, onClose, onCreate }) => {
                   <Field
                     type="date"
                     name="eventDate"
+                    max={new Date().toISOString().split("T")[0]}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
                   <ErrorMessage
@@ -248,10 +248,10 @@ const CreatePost = ({ isOpen, onClose, onCreate }) => {
                     name="eventType"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   >
-                    <option value="Birthday">Birthday</option>
-                    <option value="Wedding">Wedding</option>
-                    <option value="Anniversary">Anniversary</option>
-                    <option value="Reunion">Reunion</option>
+                    <option value="Sinh Nhật">Sinh Nhật</option>
+                    <option value="Đám Cưới">Đám Cưới</option>
+                    <option value="Kỉ Niệm">Kỉ Niệm</option>
+                    <option value="Tái Ngộ">Tái Ngộ</option>
                   </Field>
                   <ErrorMessage
                     name="eventType"

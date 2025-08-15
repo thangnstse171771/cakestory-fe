@@ -152,7 +152,7 @@ const AddUser = ({ isOpen, onClose }) => {
         </button>
 
         <h2 className="text-xl font-semibold mb-4 text-gray-800">
-          Add New User
+          Thêm Người Dùng
         </h2>
 
         {/* Search Form */}
@@ -160,14 +160,14 @@ const AddUser = ({ isOpen, onClose }) => {
           <input
             name="username"
             type="text"
-            placeholder="Enter username"
+            placeholder="Nhập username..."
             className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 mb-4"
           />
           <button
             type="submit"
             className="w-full py-2 px-4 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
           >
-            Search
+            Tìm
           </button>
         </form>
 

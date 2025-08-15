@@ -21,6 +21,7 @@ import AlbumPostDetail from "./AlbumPost/AlbumPostDetail";
 import DeletePostPopup from "../MyPost/DeletePostPopup";
 import { useAuth } from "../../contexts/AuthContext";
 import dayjs from "dayjs";
+import { toast } from "react-toastify";
 
 const AlbumDetail = () => {
   const { id } = useParams();
@@ -84,7 +85,7 @@ const AlbumDetail = () => {
       setSelectedPost(null);
     } catch (error) {
       console.error("Delete post failed:", error);
-      setError("Failed to delete post");
+      toast.error("Xoá bài viết thất bại.");
     } finally {
       setLoading(false);
     }
@@ -116,7 +117,7 @@ const AlbumDetail = () => {
     return (
       <div className="flex justify-center items-center py-20 h-screen">
         <div className="text-pink-500 text-lg font-medium animate-pulse">
-          Loading album posts...
+          Đang tải bài viết album...
         </div>
       </div>
     );
@@ -150,9 +151,9 @@ const AlbumDetail = () => {
               <div className="flex items-center space-x-6 text-sm">
                 <span className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
-                  <span>Created {formatDate(album.createdDate)}</span>
+                  <span>Tạo vào {dayjs(album.createdDate).format("D MMM, YYYY")}</span>
                 </span>
-                <span>{album.totalPosts} posts</span>
+                <span>{album.totalPosts} bài đăng</span>
               </div>
             </div>
 
@@ -163,7 +164,7 @@ const AlbumDetail = () => {
                   onClick={() => setIsCreatePostOpen(true)}
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Create Post</span>
+                  <span>Đăng Bài</span>
                 </button>
               )}
             </div>
@@ -178,7 +179,7 @@ const AlbumDetail = () => {
             <Search className="w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search posts..."
+              placeholder="Tìm bài viết..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
@@ -306,7 +307,7 @@ const AlbumDetail = () => {
                         }}
                         className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
                       >
-                        Edit
+                        Chỉnh sửa
                       </button>
                       <button
                         onClick={() => {
@@ -316,7 +317,7 @@ const AlbumDetail = () => {
                         }}
                         className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
                       >
-                        Delete
+                        Xóa
                       </button>
                     </div>
                   )}
@@ -432,7 +433,7 @@ const AlbumDetail = () => {
                             }}
                             className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
                           >
-                            Edit
+                            Chỉnh sửa
                           </button>
                           <button
                             onClick={() => {
@@ -442,7 +443,7 @@ const AlbumDetail = () => {
                             }}
                             className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
                           >
-                            Delete
+                            Xóa
                           </button>
                         </div>
                       )}
@@ -487,7 +488,7 @@ const AlbumDetail = () => {
             <Grid className="w-12 h-12 text-gray-400" />
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">
-            No posts found.
+            Không có bài viết nào.
           </h3>
         </div>
       )}

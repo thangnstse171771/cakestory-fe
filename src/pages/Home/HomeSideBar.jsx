@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef, use } from "react";
 import {
   generateTrendingTopics,
-  generateSuggestionGroups,
-  generateUpcomingEvents,
 } from "../../data/mockData";
 import { Link } from "react-router-dom";
 import { authAPI } from "../../api/auth";

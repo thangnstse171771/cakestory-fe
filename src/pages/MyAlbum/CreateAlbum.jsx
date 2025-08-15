@@ -7,10 +7,10 @@ import { X } from "lucide-react";
 
 // Validation schema
 const AlbumSchema = Yup.object().shape({
-  name: Yup.string().required("Album name is required"),
+  name: Yup.string().required("Hãy nhập tên album").max(100, "Tên album không được quá 100 ký tự"),
   description: Yup.string()
-    .required("Description is required")
-    .max(300, "Description must be at most 300 characters"),
+    .required("Hãy nhập mô tả")
+    .max(1000, "Mô ta mô tả không được quá 1000 ký tự"),
 });
 
 const CreateAlbum = ({ isOpen, onClose, onCreate }) => {
@@ -44,13 +44,13 @@ const CreateAlbum = ({ isOpen, onClose, onCreate }) => {
               setLoading(true);
               try {
                 await authAPI.createAlbum(values);
-                toast.success("Album created successfully!");
+                toast.success("Tạo album thành công!");
                 if (onCreate) await onCreate();
                 resetForm();
                 onClose();
               } catch (error) {
                 console.error("Failed to create album", error);
-                toast.error("Failed to create album");
+                toast.error("Gặp lỗi khi tạo album. Vui lòng thử lại.");
               } finally {
                 setSubmitting(false);
                 setLoading(false);

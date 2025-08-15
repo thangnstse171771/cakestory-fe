@@ -19,6 +19,7 @@ import { authAPI } from "../../api/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { toast } from "react-toastify";
 dayjs.extend(relativeTime);
 
 const MyPost = () => {
@@ -162,7 +163,7 @@ const MyPost = () => {
     try {
       const user = authAPI.getCurrentUser();
       if (!user) {
-        setError("User not logged in");
+        setError("Người dùng chưa đăng nhập.");
         setPosts([]);
         setLoading(false);
         return;
@@ -183,7 +184,7 @@ const MyPost = () => {
       }));
       setPosts(mappedPosts);
     } catch (err) {
-      setError("Failed to fetch posts");
+      setError("Tải bài thất bại. Vui lòng thử lại sau.");
       setPosts([]);
     } finally {
       setLoading(false);
@@ -202,7 +203,7 @@ const MyPost = () => {
       setSelectedPost(null);
     } catch (error) {
       console.error("Delete post failed:", error);
-      setError("Failed to delete post");
+      toast.error("Xóa bài viết thất bại.");
     } finally {
       setLoading(false);
     }
@@ -213,11 +214,11 @@ const MyPost = () => {
   }, []);
 
   const filters = [
-    { id: "all", label: "All Posts" },
-    { id: "birthday", label: "Birthday" },
-    { id: "wedding", label: "Wedding" },
-    { id: "anniversary", label: "Anniversary" },
-    { id: "reunion", label: "Reunion" },
+    { id: "tất cả", label: "Tất cả" },
+    { id: "sinh nhật", label: "Sinh Nhật" },
+    { id: "đám cưới", label: "Đám Cưới" },
+    { id: "kỉ niệm", label: "Kỉ Niệm" },
+    { id: "tái ngộ", label: "Tái Ngộ" },
   ];
 
   const filteredPosts = posts.filter((post) => {
@@ -230,7 +231,7 @@ const MyPost = () => {
       description.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesFilter =
-      selectedFilter === "all" || category.toLowerCase() === selectedFilter;
+      selectedFilter === "tất cả" || category.toLowerCase() === selectedFilter;
 
     return matchesSearch && matchesFilter;
   });
@@ -243,10 +244,10 @@ const MyPost = () => {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
-                My Posts
+                Bài viết của tôi
               </h1>
               <p className="text-gray-600">
-                Manage and share your cake creations
+                Quản lý bài viết của bạn tại đây.
               </p>
             </div>
             <button
@@ -254,7 +255,7 @@ const MyPost = () => {
               className="flex items-center gap-2 px-6 py-3 bg-pink-500 text-white rounded-xl hover:bg-pink-400 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               <Plus className="w-5 h-5" />
-              Create Post
+              Đăng Bài
             </button>
           </div>
 
@@ -266,7 +267,7 @@ const MyPost = () => {
               </div>
               <input
                 type="text"
-                placeholder="Search your posts..."
+                placeholder="Tìm bài viết..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-white/10 border border-gray/20 rounded-xl placeholder-pink-400 text-gray-800 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-300"
@@ -322,7 +323,7 @@ const MyPost = () => {
         {loading ? (
           <div className="text-center py-12">
             <p className="text-pink-500 text-lg font-medium animate-pulse">
-              Loading...
+              Đang tải...
             </p>
           </div>
         ) : error ? (
@@ -425,7 +426,7 @@ const MyPost = () => {
                               }}
                               className="w-full px-4 py-2 text-left font-semibold text-sm text-gray-700 hover:bg-gray-100"
                             >
-                              Edit
+                              Chỉnh sửa
                             </button>
                             <button
                               onClick={() => {
@@ -435,7 +436,7 @@ const MyPost = () => {
                               }}
                               className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
                             >
-                              Delete
+                              Xóa
                             </button>
                           </div>
                         )}
@@ -502,11 +503,11 @@ const MyPost = () => {
               <Search className="w-8 h-8 text-pink-500" />
             </div>
             <p className="text-gray-500 text-lg">
-              No posts found.
+              Không tìm thấy vài viết.
             </p>
-            <button className="mt-4 text-pink-500 hover:text-pink-600 font-medium">
+            {/* <button className="mt-4 text-pink-500 hover:text-pink-600 font-medium">
               Clear filters
-            </button>
+            </button> */}
           </div>
         )}
       </div>

@@ -326,9 +326,20 @@ const ChatArea = () => {
                     />
                   )}
                   <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
-                    <p className="text-sm break-words whitespace-pre-wrap">
-                      {message.text}
-                    </p>
+                    {message.text?.match(
+                      /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i
+                    ) ? (
+                      <img
+                        src={message.text}
+                        alt="Sent image"
+                        className="rounded-lg max-w-full h-auto"
+                      />
+                    ) : (
+                      <p className="text-sm break-words whitespace-pre-wrap">
+                        {message.text}
+                      </p>
+                    )}
+
                     <span className="text-xs text-white/70 mt-1 block">
                       {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
                     </span>
@@ -356,9 +367,19 @@ const ChatArea = () => {
                       />
                     )}
                     <div className="bg-pink-100 rounded-lg p-3 max-w-xs">
-                      <p className="text-sm text-gray-800 break-words whitespace-pre-wrap">
-                        {message.text}
-                      </p>
+                      {message.text?.match(
+                        /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i
+                      ) ? (
+                        <img
+                          src={message.text}
+                          alt="Sent image"
+                          className="rounded-lg max-w-full h-auto"
+                        />
+                      ) : (
+                        <p className="text-sm text-gray-800 break-words whitespace-pre-wrap">
+                          {message.text}
+                        </p>
+                      )}
                       <span className="text-xs text-gray-500 mt-1 block">
                         {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
                       </span>
@@ -443,7 +464,7 @@ const ChatArea = () => {
           <div className="flex items-center space-x-2">
             <input
               type="text"
-              placeholder="Type a message..."
+              placeholder="Hãy viết gì đó..."
               value={text}
               onChange={(e) => setText(e.target.value)}
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"

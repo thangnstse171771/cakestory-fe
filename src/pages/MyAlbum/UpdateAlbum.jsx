@@ -7,10 +7,12 @@ import { X } from "lucide-react";
 
 // Validation schema
 const AlbumSchema = Yup.object().shape({
-  name: Yup.string().required("Album name is required"),
+  name: Yup.string()
+    .required("Hãy nhập tên album")
+    .max(100, "Tên album không được quá 100 ký tự"),
   description: Yup.string()
-    .required("Description is required")
-    .max(300, "Description must be at most 300 characters"),
+    .required("Hãy nhập mô tả")
+    .max(1000, "Mô ta mô tả không được quá 1000 ký tự"),
 });
 
 const UpdateAlbum = ({ isOpen, onClose, album, onUpdate }) => {
@@ -24,8 +26,10 @@ const UpdateAlbum = ({ isOpen, onClose, album, onUpdate }) => {
         <div className="bg-gradient-to-r from-pink-500 to-rose-400 px-8 py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold text-white">Update Album</h2>
-              <p className="text-pink-100 text-sm mt-1">Update your Album</p>
+              <h2 className="text-2xl font-bold text-white">Cập Nhật Album</h2>
+              <p className="text-pink-100 text-sm mt-1">
+                Chỉnh sửa Album của bạn
+              </p>
             </div>
             <button
               onClick={onClose}
@@ -47,12 +51,12 @@ const UpdateAlbum = ({ isOpen, onClose, album, onUpdate }) => {
               setLoading(true);
               try {
                 await authAPI.updateAlbum(album.id, values); // assumes `updateAlbum` exists in API
-                toast.success("Album updated successfully!");
+                toast.success("Cập nhật thành công!");
                 if (onUpdate) await onUpdate();
                 onClose();
               } catch (error) {
                 console.error("Failed to update album", error);
-                toast.error("Failed to update album");
+                toast.error("Gặp lỗi khi cập nhật album. Vui lòng thử lại.");
               } finally {
                 setSubmitting(false);
                 setLoading(false);
@@ -96,7 +100,7 @@ const UpdateAlbum = ({ isOpen, onClose, album, onUpdate }) => {
                     className="px-6 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
                     disabled={isSubmitting || loading}
                   >
-                    {isSubmitting || loading ? "Updating..." : "Update Album"}
+                    {isSubmitting || loading ? "Đang tải..." : "Cập Nhật"}
                   </button>
                 </div>
               </Form>

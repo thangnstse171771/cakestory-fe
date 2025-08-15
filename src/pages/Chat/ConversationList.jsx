@@ -162,7 +162,7 @@ const ConversationList = () => {
     <div className="min-w-[180px] w-1/5 lg:w-1/4 flex flex-col bg-white rounded-l-xl shadow-sm border border-gray-100">
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Messages</h2>
+          <h2 className="text-xl font-bold text-gray-800">Tin nhắn</h2>
           <button
             className="p-2 rounded-full hover:bg-gray-100 transition"
             onClick={() => setIsModalOpen(true)}
@@ -175,7 +175,7 @@ const ConversationList = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Search conversations..."
+            placeholder="Tìm cuộc trò chuyện..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -220,7 +220,7 @@ const ConversationList = () => {
                       )}
                       {chat.role === "shopMember" && (
                         <span className="bg-pink-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                          Customer
+                          Khách
                         </span>
                       )}
                     </div>

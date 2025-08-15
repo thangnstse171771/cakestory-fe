@@ -55,7 +55,7 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 px-4 py-12">
         <div className="bg-white rounded-md shadow-2xl max-w-[600px] w-full p-8 text-center">
-          <p className="text-gray-500">Loading post details...</p>
+          <p className="text-gray-500">Đang tải...</p>
         </div>
       </div>
     );
@@ -119,7 +119,7 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
                     />
                   ) : (
                     <div className="flex items-center justify-center w-full h-80 md:h-full bg-gray-200 text-gray-500">
-                      No media
+                      Không có phương tiện
                     </div>
                   )}
                 </SwiperSlide>
@@ -127,7 +127,7 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
             ) : (
               <SwiperSlide>
                 <div className="flex items-center justify-center w-full h-80 md:h-full bg-gray-200 text-gray-500">
-                  No media
+                  Không có phương tiện
                 </div>
               </SwiperSlide>
             )}
@@ -198,7 +198,7 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
               href={`/album/${Album?.id}`}
               className="text-sm text-pink-600 hover:underline mb-4"
             >
-              View full album →
+              Xem album →
             </a>
           </div>
         </div>
