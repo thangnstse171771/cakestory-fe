@@ -125,6 +125,7 @@ const CreateShop = () => {
   }); // Hà Nội mặc định
   const [marker, setMarker] = useState(null);
   const [selectedProvince, setSelectedProvince] = useState("");
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   useEffect(() => {
     const checkUserShop = async () => {
@@ -168,8 +169,7 @@ const CreateShop = () => {
             Tạo cửa hàng mới
           </h2>
           <p className="text-gray-600 text-lg">
-            Bắt đầu hành trình kinh doanh bánh ngọt của bạn (Bạn chỉ có thể tạo
-            một cửa hàng duy nhất!)
+            Bắt đầu hành trình kinh doanh bánh ngọt của bạn
           </p>
         </div>
 
@@ -874,6 +874,15 @@ const CreateShop = () => {
                 )}
 
                 <div className="text-center">
+                  <div className="mb-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowRulesModal(true)}
+                      className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-3 rounded-xl font-semibold text-sm hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 shadow-lg transform hover:scale-105 active:scale-95 mb-4"
+                    >
+                      📋 Quy Định
+                    </button>
+                  </div>
                   <button
                     type="submit"
                     disabled={isSubmitting || loading}
@@ -931,6 +940,79 @@ const CreateShop = () => {
           </Formik>
         </div>
       </div>
+
+      {/* Modal Quy Định */}
+      {showRulesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-100">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">
+                  📋 Quy Định Cửa Hàng
+                </h3>
+                <button
+                  onClick={() => setShowRulesModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-yellow-500 text-xl">⚠️</div>
+                    <div>
+                      <h4 className="font-semibold text-yellow-800 mb-1">
+                        Giới hạn cửa hàng
+                      </h4>
+                      <p className="text-yellow-700 text-sm">
+                        Bạn chỉ có thể tạo một cửa hàng duy nhất!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-blue-500 text-xl">💰</div>
+                    <div>
+                      <h4 className="font-semibold text-blue-800 mb-1">
+                        Phí nền tảng
+                      </h4>
+                      <p className="text-blue-700 text-sm">
+                        Mỗi đơn hàng sẽ tính phí nền tảng 5% (số tiền thực nhận
+                        về ví sẽ là 95%)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setShowRulesModal(false)}
+                  className="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-2 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-600 transition-all duration-300"
+                >
+                  Đã hiểu
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
