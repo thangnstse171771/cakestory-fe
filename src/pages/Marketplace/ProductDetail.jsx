@@ -97,6 +97,19 @@ const ProductDetail = () => {
     navigate(`/marketplace/shop/${shop.user_id}`);
   };
 
+  // Kiểm tra xem sản phẩm có Hết hàng không
+  const isExpired = () => {
+    if (!product.expiry_date) return false;
+    const currentDate = new Date();
+    const expiryDate = new Date(product.expiry_date);
+    return currentDate > expiryDate;
+  };
+
+  // Kiểm tra trạng thái sản phẩm (còn hàng và chưa Hết hàng)
+  const isProductAvailable = () => {
+    return product.available && !isExpired();
+  };
+
   if (loading) {
     return <ProductDetailSkeleton />;
   }
@@ -214,14 +227,20 @@ const ProductDetail = () => {
               <div className="absolute top-6 left-6">
                 <div
                   className={`px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm ${
-                    product.available
+                    isProductAvailable()
                       ? "bg-green-500/90 text-white"
+                      : isExpired()
+                      ? "bg-orange-500/90 text-white"
                       : "bg-red-500/90 text-white"
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4" />
-                    {product.available ? "Còn hàng" : "Hết hàng"}
+                    {isProductAvailable()
+                      ? "Còn hàng"
+                      : isExpired()
+                      ? "Hết hàng"
+                      : "Hết hàng"}
                   </div>
                 </div>
               </div>
@@ -289,7 +308,7 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-gray-500" />
                   <div>
-                    <div className="text-sm text-gray-600">Ngày hết hạn</div>
+                    <div className="text-sm text-gray-600">Ngày Hết hàng</div>
                     <div className="font-medium">
                       {product.expiry_date
                         ? new Date(product.expiry_date).toLocaleDateString()
@@ -316,28 +335,37 @@ const ProductDetail = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-4">
-              <button
-                onClick={handleAddToCart}
-                disabled={!product.available}
-                className={`flex-1 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
-                  product.available
-                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  Đặt Ngay
-                </div>
-              </button>
+              {isProductAvailable() ? (
+                <>
+                  <button
+                    onClick={handleAddToCart}
+                    className="flex-1 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <ShoppingCart className="w-5 h-5" />
+                      Đặt Ngay
+                    </div>
+                  </button>
 
-              <button
-                onClick={handleShopVisit}
-                className="px-6 py-4 rounded-xl border-2 border-pink-500 text-pink-500 font-semibold hover:bg-pink-50 transition-all duration-300 flex items-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Trò chuyện
-              </button>
+                  <button
+                    onClick={handleShopVisit}
+                    className="px-6 py-4 rounded-xl border-2 border-pink-500 text-pink-500 font-semibold hover:bg-pink-50 transition-all duration-300 flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Trò chuyện
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleShopVisit}
+                  className="w-full px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    Liên Hệ
+                  </div>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -618,6 +646,18 @@ const ProductDetail = () => {
                         )
                       : item.price || 0;
 
+                  // Kiểm tra xem item có Hết hàng không
+                  const itemIsExpired = () => {
+                    if (!item.expiry_date) return false;
+                    const currentDate = new Date();
+                    const expiryDate = new Date(item.expiry_date);
+                    return currentDate > expiryDate;
+                  };
+
+                  const itemIsAvailable = () => {
+                    return item.available && !itemIsExpired();
+                  };
+
                   return (
                     <div
                       key={item.post_id}
@@ -634,12 +674,18 @@ const ProductDetail = () => {
                         />
                         <div
                           className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium ${
-                            item.available
+                            itemIsAvailable()
                               ? "bg-green-500/90 text-white"
-                              : "bg-gray-500/90 text-white"
+                              : itemIsExpired()
+                              ? "bg-orange-500/90 text-white"
+                              : "bg-red-500/90 text-white"
                           }`}
                         >
-                          {item.available ? "Còn hàng" : "Hết hàng"}
+                          {itemIsAvailable()
+                            ? "Còn hàng"
+                            : itemIsExpired()
+                            ? "Hết hàng"
+                            : "Hết hàng"}
                         </div>
                       </div>
 
