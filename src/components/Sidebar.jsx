@@ -272,6 +272,7 @@ const Sidebar = () => {
       <div key={item.path || item.label}>
         {/* Main menu item */}
         {item.path && !hasSubmenu ? (
+          // Trường hợp 1: Chỉ có path, không có submenu
           <NavLink
             to={item.path}
             end={
@@ -296,7 +297,45 @@ const Sidebar = () => {
               </span>
             )}
           </NavLink>
+        ) : hasSubmenu && item.path ? (
+          // Trường hợp 2: Có cả path và submenu
+          <>
+            <div className="flex items-center">
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center justify-center ${
+                    !collapsed ? "lg:justify-start lg:space-x-3" : ""
+                  } ${paddingLeft} py-3 rounded-xl transition-all duration-200 group flex-1 ${
+                    isActive
+                      ? "bg-gradient-to-r from-pink-50 to-pink-100 text-pink-700 border-r-4 border-pink-500 shadow-sm font-medium"
+                      : "text-gray-600 hover:bg-pink-50 hover:text-pink-800 hover:shadow-sm"
+                  }`
+                }
+              >
+                <item.icon className="w-5 h-5 transition-all duration-200" />
+                {!collapsed && (
+                  <span className="hidden lg:block font-medium text-sm tracking-wide">
+                    {item.label}
+                  </span>
+                )}
+              </NavLink>
+              {!collapsed && (
+                <button
+                  onClick={() => toggleMenu(item.label)}
+                  className="px-2 py-3 text-gray-400 hover:text-pink-500 transition-colors duration-200"
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+          </>
         ) : hasSubmenu ? (
+          // Trường hợp 3: Chỉ có submenu, không có path
           <>
             <button
               onClick={() => toggleMenu(item.label)}
@@ -319,46 +358,20 @@ const Sidebar = () => {
               {!collapsed && hasSubmenu && (
                 <div className="hidden lg:block">
                   {isExpanded ? (
-                    <ChevronDown
-                      className="w-4 h-4 transition-all duration-200 text-gray-400 group-hover:text-pink-500"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleMenu(item.label);
-                      }}
-                    />
+                    <ChevronDown className="w-4 h-4 transition-all duration-200 text-gray-400 group-hover:text-pink-500" />
                   ) : (
-                    <ChevronRight
-                      className="w-4 h-4 transition-all duration-200 text-gray-400 group-hover:text-pink-500"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleMenu(item.label);
-                      }}
-                    />
+                    <ChevronRight className="w-4 h-4 transition-all duration-200 text-gray-400 group-hover:text-pink-500" />
                   )}
                 </div>
               )}
             </button>
-            {/* Submenu items */}
-            {hasSubmenu && isExpanded && !collapsed && (
-              <div className="ml-6 mt-1 space-y-1 border-l-2 border-pink-100 pl-4">
-                {item.submenu.map((subItem) =>
-                  renderMenuItem(subItem, depth + 1)
-                )}
-              </div>
-            )}
           </>
-        ) : (
-          <div
-            className={`flex items-center justify-center ${
-              !collapsed ? "lg:justify-start lg:space-x-3" : ""
-            } ${paddingLeft} py-3 rounded-xl transition-all duration-200 text-gray-600 hover:bg-pink-50 hover:text-pink-800 cursor-default`}
-          >
-            <item.icon className="w-5 h-5 transition-all duration-200" />
-            {!collapsed && (
-              <span className="hidden lg:block font-medium text-sm tracking-wide">
-                {item.label}
-              </span>
-            )}
+        ) : null}
+
+        {/* Submenu items */}
+        {hasSubmenu && isExpanded && !collapsed && (
+          <div className="ml-6 mt-1 space-y-1 border-l-2 border-pink-100 pl-4">
+            {item.submenu.map((subItem) => renderMenuItem(subItem, depth + 1))}
           </div>
         )}
       </div>
