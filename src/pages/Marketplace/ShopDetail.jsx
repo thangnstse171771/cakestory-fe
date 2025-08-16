@@ -120,7 +120,7 @@ const ShopDetail = ({ id: propId }) => {
       />
 
       {/* Gallery Component */}
-      <ShopGallery gallery={shop.gallery} />
+      <ShopGallery shopId={shop.id} shopUserId={id} isOwner={isOwner} />
 
       {/* Shop Analytics Summary Component */}
       {isOwner && (
