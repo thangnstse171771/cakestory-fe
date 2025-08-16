@@ -10,9 +10,30 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "antd": "^5.26.6",
+    "axios": "^1.10.0",
     "cakestory_fe": "file:",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
+    "firebase": "^11.9.1",
+    "formik": "^2.4.6",
+    "framer-motion": "^12.19.2",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^0.511.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-date-range": "^2.0.1",
+    "react-dom": "^19.1.0",
+    "react-hot-toast": "^2.5.2",
+    "react-infinite-scroll-component": "^6.1.0",
+    "react-router-dom": "^7.6.1",
+    "react-toastify": "^11.0.5",
+    "recharts": "^3.1.0",
+    "relative-time": "^1.0.0",
+    "swiper": "^11.2.10",
+    "toastify": "^2.0.1",
+    "yup": "^1.6.1",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
