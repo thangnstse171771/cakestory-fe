@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Cake, Eye, EyeOff, User, Users, BookOpen } from "lucide-react";
+import { Cake, Eye, EyeOff, Palette, Store, Award } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -33,28 +33,28 @@ const Signup = () => {
 
     // Frontend validation
     if (!formData.username.trim()) {
-      setError("Username is required.");
+      setError("Tên người dùng là bắt buộc.");
       return;
     }
     if (!formData.fullName.trim()) {
-      setError("Full name is required.");
+      setError("Họ và tên là bắt buộc.");
       return;
     }
     if (!formData.email.trim()) {
-      setError("Email is required.");
+      setError("Email là bắt buộc.");
       return;
     }
     // Simple email regex
     if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
-      setError("Please enter a valid email address.");
+      setError("Vui lòng nhập địa chỉ email hợp lệ.");
       return;
     }
     if (!formData.password) {
-      setError("Password is required.");
+      setError("Mật khẩu là bắt buộc.");
       return;
     }
     if (formData.password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      setError("Mật khẩu phải có ít nhất 8 ký tự.");
       return;
     }
 
@@ -64,7 +64,7 @@ const Signup = () => {
       navigate("/home");
     } catch (err) {
       setError(
-        err.response?.data?.message || "Registration failed. Please try again."
+        err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại."
       );
     } finally {
       setLoading(false);
@@ -83,49 +83,37 @@ const Signup = () => {
                   CakeStory
                 </h1>
                 <p className="text-pink-100 text-lg">
-                  Join our baking community
+                  Tham gia cộng đồng yêu bánh kẹo
                 </p>
               </div>
 
               <div className="space-y-8">
                 <div className="flex items-start space-x-4">
                   <div className="bg-white/20 p-3 rounded-full">
-                    <User className="w-6 h-6" />
+                    <Palette className="w-6 h-6" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg mb-2">
-                      Create Your Profile
+                      Tạo Hồ Sơ Cá Nhân
                     </h3>
                     <p className="text-pink-100">
-                      Set up your baking profile and start sharing your
-                      creations.
+                      Thiết lập hồ sơ bánh kẹo của bạn và bắt đầu chia sẻ những
+                      sáng tạo độc đáo.
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start space-x-4">
                   <div className="bg-white/20 p-3 rounded-full">
-                    <Users className="w-6 h-6" />
+                    <Store className="w-6 h-6" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg mb-2">
-                      Join the Community
+                      Tham Gia Cộng Đồng
                     </h3>
                     <p className="text-pink-100">
-                      Connect with fellow bakers and share your passion for
-                      baking.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="bg-white/20 p-3 rounded-full">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg mb-2">Learn & Grow</h3>
-                    <p className="text-pink-100">
-                      Access exclusive tutorials and improve your baking skills.
+                      Kết nối với những người yêu bánh kẹo và chia sẻ đam mê
+                      cùng nhau.
                     </p>
                   </div>
                 </div>
@@ -141,9 +129,11 @@ const Signup = () => {
                   <Cake className="w-8 h-8 text-pink-500" />
                 </div>
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                  Create Account
+                  Tạo Tài Khoản
                 </h2>
-                <p className="text-gray-600">Join our baking community today</p>
+                <p className="text-gray-600">
+                  Tham gia cộng đồng bánh kẹo hôm nay
+                </p>
               </div>
 
               {error && (
@@ -155,7 +145,7 @@ const Signup = () => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Username
+                    Tên người dùng
                   </label>
                   <input
                     type="text"
@@ -164,13 +154,13 @@ const Signup = () => {
                     onChange={handleChange}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="Choose a username"
+                    placeholder="Chọn Tên người dùng"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name
+                    Họ và tên
                   </label>
                   <input
                     type="text"
@@ -179,7 +169,7 @@ const Signup = () => {
                     onChange={handleChange}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="Enter your full name"
+                    placeholder="Nhập họ và tên đầy đủ"
                   />
                 </div>
 
@@ -194,13 +184,13 @@ const Signup = () => {
                     onChange={handleChange}
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                    placeholder="Enter your email"
+                    placeholder="Nhập email của bạn"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Password
+                    Mật khẩu
                   </label>
                   <div className="relative">
                     <input
@@ -210,7 +200,7 @@ const Signup = () => {
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                      placeholder="Create a password"
+                      placeholder="Tạo mật khẩu"
                     />
                     <button
                       type="button"
@@ -235,16 +225,16 @@ const Signup = () => {
                       : "bg-pink-500 hover:bg-pink-600"
                   }`}
                 >
-                  {loading ? "Creating account..." : "Create Account"}
+                  {loading ? "Đang tạo tài khoản..." : "Tạo Tài Khoản"}
                 </button>
 
                 <p className="text-center text-sm text-gray-600">
-                  Already have an account?{" "}
+                  Đã có tài khoản?{" "}
                   <Link
                     to="/login"
                     className="text-pink-500 hover:text-pink-600 font-medium"
                   >
-                    Sign in
+                    Đăng nhập ngay
                   </Link>
                 </p>
               </form>
