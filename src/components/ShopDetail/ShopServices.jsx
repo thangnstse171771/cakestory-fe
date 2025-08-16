@@ -147,11 +147,11 @@ const ShopServices = ({
                     <div className="absolute top-3 right-3">
                       {available ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm">
-                          Có Sẵn
+                          Còn hàng
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm">
-                          Hết Hạn
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-sm">
+                          Hết hạn
                         </span>
                       )}
                     </div>
@@ -321,21 +321,36 @@ const ShopServices = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/order/customize/${product.shop_id}`, {
-                                state: {
-                                  shopId: product.shop_id,
-                                  product: {
-                                    id: product.post_id,
-                                    name: postObj.title,
-                                    description: postObj.description,
-                                    basePrice: displayPrice,
-                                    image: imageUrl,
-                                  },
-                                  postDetails: postObj,
-                                },
-                              });
+                              if (available) {
+                                navigate(
+                                  `/order/customize/${product.shop_id}`,
+                                  {
+                                    state: {
+                                      shopId: product.shop_id,
+                                      product: {
+                                        id: product.post_id,
+                                        name: postObj.title,
+                                        description: postObj.description,
+                                        basePrice: displayPrice,
+                                        image: imageUrl,
+                                      },
+                                      postDetails: postObj,
+                                    },
+                                  }
+                                );
+                              } else {
+                                // Navigate to shop if product is expired
+                                const userIdToUse =
+                                  shopUserId ||
+                                  window.location.pathname.split("/")[3];
+                                navigate(`/marketplace/shop/${userIdToUse}`);
+                              }
                             }}
-                            className="group bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                            className={`group text-white text-sm font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 ${
+                              available
+                                ? "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                                : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                            }`}
                           >
                             <span className="flex items-center gap-2">
                               <svg
@@ -348,10 +363,14 @@ const ShopServices = ({
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth="2"
-                                  d="M3 3h2l.4 2M7 13h10l4-8H5.4m-2.4-2L3 3m4 10v6a1 1 0 001 1h12a1 1 0 001-1v-6M7 13l-1.35-6.5M17 21v-2a4 4 0 00-8 0v2"
+                                  d={
+                                    available
+                                      ? "M3 3h2l.4 2M7 13h10l4-8H5.4m-2.4-2L3 3m4 10v6a1 1 0 001 1h12a1 1 0 001-1v-6M7 13l-1.35-6.5M17 21v-2a4 4 0 00-8 0v2"
+                                      : "M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                  }
                                 />
                               </svg>
-                              Đặt Ngay
+                              {available ? "Đặt Ngay" : "Liên Hệ"}
                             </span>
                           </button>
                         </div>

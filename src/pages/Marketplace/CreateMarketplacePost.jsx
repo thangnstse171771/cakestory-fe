@@ -23,14 +23,18 @@ const CreateMarketplacePostSchema = Yup.object().shape({
     .required("Số tầng là bắt buộc"),
   available: Yup.boolean().required(),
   expiry_date: Yup.string()
-    .required("Ngày hết hạn là bắt buộc")
-    .test("future-date", "Ngày hết hạn phải trong tương lai", function (value) {
-      if (!value) return false;
-      const selectedDate = new Date(value);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return selectedDate >= today;
-    }),
+    .required("Ngày Hết hàng là bắt buộc")
+    .test(
+      "future-date",
+      "Ngày Hết hàng phải trong tương lai",
+      function (value) {
+        if (!value) return false;
+        const selectedDate = new Date(value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return selectedDate >= today;
+      }
+    ),
   is_public: Yup.boolean().required(),
   media: Yup.array().min(1, "Vui lòng thêm ít nhất một tệp media"),
 });
@@ -523,7 +527,7 @@ const CreateMarketplacePost = ({
                 {/* Expiry Date */}
                 <div className="space-y-2">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Ngày hết hạn sản phẩm
+                    Ngày Hết hàng sản phẩm
                   </label>
                   <div className="relative">
                     <Field
@@ -568,7 +572,7 @@ const CreateMarketplacePost = ({
                       />
                     </svg>
                     <span>
-                      Chọn thời điểm danh sách sản phẩm này sẽ hết hạn. Không
+                      Chọn thời điểm danh sách sản phẩm này sẽ Hết hàng. Không
                       được phép chọn ngày trong quá khứ.
                     </span>
                   </div>
