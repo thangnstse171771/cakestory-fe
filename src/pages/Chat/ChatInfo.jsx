@@ -22,22 +22,22 @@ const ChatInfo = ({ open, onClose, avatar, name, images }) => {
 
           <div className="w-full mt-4">
             <h3 className="font-medium text-gray-700 mb-2">Ảnh đã gửi.</h3>
-            <div className="flex flex-wrap gap-2">
-              {images?.length > 0 ? (
-                [...images]
-                  .reverse()
-                  .map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={img}
-                      alt={`Sent ${idx + 1}`}
-                      className="w-20 h-20 object-cover rounded-md border"
-                    />
-                  ))
-              ) : (
-                <span className="text-gray-400 text-sm">Chưa có ảnh nào được gửi.</span>
-              )}
-            </div>
+            {images?.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {[...images].reverse().map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={img}
+                    alt={`Sent ${idx + 1}`}
+                    className="w-full aspect-square object-cover rounded-md border"
+                  />
+                ))}
+              </div>
+            ) : (
+              <span className="text-gray-400 text-sm">
+                Chưa có ảnh nào được gửi.
+              </span>
+            )}
           </div>
         </div>
       </div>

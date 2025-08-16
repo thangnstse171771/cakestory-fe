@@ -20,7 +20,7 @@ const Layout = () => {
 
         <main
           className={`flex-1 ${
-            !isAuthPage && !isChatPage ? "ml-20 lg:ml-64" : ""
+            !isAuthPage && !isChatPage ? "ml-20 lg:ml-72" : ""
           } p-6 transition-all duration-300`}
         >
           <Outlet />

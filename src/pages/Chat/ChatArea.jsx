@@ -147,6 +147,18 @@ const ChatArea = () => {
     return () => unsub();
   }, [chatId]);
 
+  const handlePaste = (e) => {
+    const items = e.clipboardData.items;
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        const file = item.getAsFile();
+        if (file) {
+          setImage(file); // same as file input flow
+        }
+      }
+    }
+  };
+
   const handleRemoveImage = () => {
     setImage(null);
     if (fileInputRef.current) {
@@ -227,6 +239,19 @@ const ChatArea = () => {
       setIsSending(false);
     }
   };
+
+  const extractImagesFromMessages = (messages = []) =>
+    messages
+      .map((m) => {
+        if (m.img) return m.img;
+        if (m.text?.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i)) {
+          return m.text;
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+  const chatImages = extractImagesFromMessages(chat?.messages);
 
   const chatPrompts = [
     "Shop mình mở từ mấy giờ ạ?",
@@ -467,8 +492,10 @@ const ChatArea = () => {
               placeholder="Hãy viết gì đó..."
               value={text}
               onChange={(e) => setText(e.target.value)}
+              onPaste={handlePaste} // 👈 here
               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             />
+
             <label className="p-2 text-pink-500 hover:text-pink-600 rounded-lg cursor-pointer">
               <Image className="w-8 h-8" />
               <input
@@ -501,7 +528,7 @@ const ChatArea = () => {
         onClose={() => setShowUserInfo(false)}
         avatar={user?.avatar}
         name={user?.username}
-        images={chat?.messages?.filter((m) => m.img).map((m) => m.img)}
+        images={chatImages || []}
       />
     </div>
   );
