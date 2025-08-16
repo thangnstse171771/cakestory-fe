@@ -139,7 +139,7 @@ const Sidebar = () => {
               {
                 icon: Store,
                 label: "Cửa Hàng của Tôi",
-                path: `/marketplace/shop/${user.id}`,
+                path: `/marketplace/shop/${userShop.user_id}`,
                 submenu: [
                   {
                     icon: ListOrdered,

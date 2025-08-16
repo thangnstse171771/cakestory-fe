@@ -73,6 +73,22 @@ const ShopDetail = ({ id: propId }) => {
   const [deleteIngredient, setDeleteIngredient] = useState(null);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
+  // Reset state when id changes to avoid showing stale data
+  useEffect(() => {
+    setShop(null);
+    setProducts([]);
+    setIngredients([]);
+    setShowUpdate(false);
+    setShowCreate(false);
+    setEditProduct(null);
+    setDeleteProduct(null);
+    setShowMenu(null);
+    setSelectedProduct(null);
+    setShowAddIngredient(false);
+    setEditIngredient(null);
+    setDeleteIngredient(null);
+  }, [id]);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -112,8 +128,7 @@ const ShopDetail = ({ id: propId }) => {
       }
     };
     fetchData();
-    // eslint-disable-next-line
-  }, []);
+  }, [id]);
 
   // Hàm lấy topping
   const fetchIngredients = async (shopId) => {

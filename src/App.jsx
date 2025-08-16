@@ -6,6 +6,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useParams,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
@@ -18,6 +19,12 @@ import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
+
+// Wrapper component to ensure ShopDetail re-renders when id changes
+const ShopDetailWrapper = () => {
+  const { id } = useParams();
+  return <ShopDetail key={id} />;
+};
 import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
 import ShopGalleryPage from "./pages/ShopGalleryPage";
 import Chat from "./pages/Chat/Chat";
@@ -119,7 +126,10 @@ export default function App() {
               path="marketplace/product/:productId"
               element={<ProductDetail />}
             />
-            <Route path="marketplace/shop/:id" element={<ShopDetail />} />
+            <Route
+              path="marketplace/shop/:id"
+              element={<ShopDetailWrapper />}
+            />
             <Route
               path="marketplace/shop/:id/all-cakes"
               element={<AllShopCakes />}
