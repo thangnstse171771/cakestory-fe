@@ -13,9 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useChatStore } from "./libs/useChatStore";
-import { getOrCreateShopChat } from "./libs/shopChatUtils";
 import ChatInfo from "./ChatInfo";
-import { message } from "antd";
 import { useAuth } from "../../contexts/AuthContext";
 import dayjs from "dayjs";
 import upload from "./libs/upload";
@@ -292,29 +290,6 @@ const ChatArea = () => {
         <div className="flex-1 p-4 overflow-y-auto bg-gray">
           <div className="space-y-4">
             {chat?.messages?.map((message) => {
-              // const isOwnMessage = (() => {
-              //   const isGroup = chat?.isGroup;
-              //   // const isSenderCustomer = message.senderId === chat?.customerId;
-              //   const isSenderShopMember = chat?.shopMemberIds?.includes(
-              //     message.senderId
-              //   );
-              //   const isCurrentUserShopMember =
-              //     isGroup && currentUserChatEntry?.role === "shopMember";
-
-              //   // If not a group chat, use default logic
-              //   if (!isGroup) {
-              //     return message.senderId === firebaseUserId;
-              //   }
-
-              //   // If current user is a shop member
-              //   if (isCurrentUserShopMember) {
-              //     // Messages from any shop member (including self) are "own"
-              //     return isSenderShopMember;
-              //   }
-
-              //   // If current user is a customer, use default logic
-              //   return message.senderId === firebaseUserId;
-              // })();
 
               const isOwnMessage = (() => {
                 const isGroup = chat?.isGroup;
@@ -350,25 +325,32 @@ const ChatArea = () => {
                       className="chat-image rounded-md max-w-[350px] object-cover"
                     />
                   )}
-                  <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
-                    {message.text?.match(
-                      /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i
-                    ) ? (
+
+                  {message.text?.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) ? (
+                    <>
                       <img
                         src={message.text}
                         alt="Sent image"
-                        className="rounded-lg max-w-full h-auto"
+                        className="chat-image rounded-md max-w-[350px] object-cover"
                       />
-                    ) : (
+                      <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
+                        <span className="text-xs text-white/70 mt-1 block">
+                          {dayjs(message.createdAt?.toDate?.()).format(
+                            "h:mm A"
+                          )}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
                       <p className="text-sm break-words whitespace-pre-wrap">
                         {message.text}
                       </p>
-                    )}
-
-                    <span className="text-xs text-white/70 mt-1 block">
-                      {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
-                    </span>
-                  </div>
+                      <span className="text-xs text-white/70 mt-1 block">
+                        {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div
@@ -391,64 +373,41 @@ const ChatArea = () => {
                         className="chat-image rounded-md max-w-[350px] object-cover"
                       />
                     )}
-                    <div className="bg-pink-100 rounded-lg p-3 max-w-xs">
-                      {message.text?.match(
-                        /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i
-                      ) ? (
+
+                    {message.text?.match(
+                      /\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i
+                    ) ? (
+                      <>
                         <img
                           src={message.text}
-                          alt="Sent image"
-                          className="rounded-lg max-w-full h-auto"
+                          alt="Sent media"
+                          className="chat-image rounded-md max-w-[350px] object-cover"
                         />
-                      ) : (
+                        <div className="bg-pink-100 rounded-lg p-3 max-w-xs">
+                          <span className="text-xs text-gray-500 mt-1 block">
+                            {dayjs(message.createdAt?.toDate?.()).format(
+                              "h:mm A"
+                            )}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="bg-pink-100 rounded-lg p-3 max-w-xs">
                         <p className="text-sm text-gray-800 break-words whitespace-pre-wrap">
                           {message.text}
                         </p>
-                      )}
-                      <span className="text-xs text-gray-500 mt-1 block">
-                        {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
-                      </span>
-                    </div>
+                        <span className="text-xs text-gray-500 mt-1 block">
+                          {dayjs(message.createdAt?.toDate?.()).format(
+                            "h:mm A"
+                          )}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
 
-            {/* <div className="flex flex-col items-end gap-2 mb-3">
-              <img
-                src="https://assets.epicurious.com/photos/65ca8c02e09b10a92f8e7775/4:3/w_5132,h_3849,c_limit/Swiss-Meringue-Buttercream_RECIPE.jpg"
-                alt="Sent media"
-                className="rounded-md max-w-[350px] object-cover"
-              />
-
-              <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
-                <p className="text-sm">
-                  Of course! I use a Swiss meringue buttercream. The key is to
-                  whip the egg whites to soft peaks first.
-                </p>
-                <span className="text-xs text-pink-100 mt-1 block text-right">
-                  10:32 AM
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <img
-                src={OPPOSING_USER.avatar}
-                alt={OPPOSING_USER.name}
-                className="w-10 h-10 rounded-full"
-              />
-              <div className="flex flex-col gap-2">
-                <div className="bg-gray-100 rounded-lg p-3 max-w-xs">
-                  <p className="text-sm text-gray-800">
-                    Thanks for the cake recipe!
-                  </p>
-                  <span className="text-xs text-gray-500 mt-1 block">
-                    10:35 AM
-                  </span>
-                </div>
-              </div>
-            </div> */}
             <div ref={endRef}></div>
           </div>
         </div>
