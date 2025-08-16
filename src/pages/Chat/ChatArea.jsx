@@ -251,6 +251,8 @@ const ChatArea = () => {
 
   const chatImages = extractImagesFromMessages(chat?.messages);
 
+  const MAX_MESSAGE_LENGTH = 1000;
+
   const chatPrompts = [
     "Shop mình mở từ mấy giờ ạ?",
     "Mình có thể xem menu được không?",
@@ -290,7 +292,6 @@ const ChatArea = () => {
         <div className="flex-1 p-4 overflow-y-auto bg-gray">
           <div className="space-y-4">
             {chat?.messages?.map((message) => {
-
               const isOwnMessage = (() => {
                 const isGroup = chat?.isGroup;
 
@@ -446,13 +447,20 @@ const ChatArea = () => {
 
           {/* Input and buttons */}
           <div className="flex items-center space-x-2">
-            <input
-              type="text"
+            <textarea
               placeholder="Hãy viết gì đó..."
               value={text}
+              maxLength={MAX_MESSAGE_LENGTH}
               onChange={(e) => setText(e.target.value)}
-              onPaste={handlePaste} // 👈 here
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              onPaste={handlePaste}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault(); // stop newline
+                  handleSend(); // send message
+                }
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
+              rows={1}
             />
 
             <label className="p-2 text-pink-500 hover:text-pink-600 rounded-lg cursor-pointer">
