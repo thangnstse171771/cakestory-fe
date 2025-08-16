@@ -380,7 +380,7 @@ const Profile = () => {
                   onClick={() => navigate("/edit-profile")}
                 >
                   <Edit className="w-5 h-5" />
-                  <span>Edit Profile</span>
+                  <span>Chỉnh Sửa Thông Tin</span>
                 </button>
               </div>
 
@@ -486,27 +486,6 @@ const Profile = () => {
                 followingIds={following.map((u) => u.id)}
               />
             </div>
-          </div>
-        </div>
-
-        {/* Achievements */}
-        <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-            <Award className="w-6 h-6 text-pink-400 mr-3" />
-            Thành tựu
-          </h2>
-          <div className="flex flex-wrap gap-4">
-            {achievements.map((achievement) => (
-              <div
-                key={achievement.name}
-                className="flex items-center space-x-3 bg-pink-50 px-6 py-4 rounded-xl"
-              >
-                <achievement.icon className={`w-6 h-6 ${achievement.color}`} />
-                <span className="text-lg font-medium text-gray-700">
-                  {achievement.name}
-                </span>
-              </div>
-            ))}
           </div>
         </div>
 
