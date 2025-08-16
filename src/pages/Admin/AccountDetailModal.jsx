@@ -57,7 +57,7 @@ const AccountDetailModal = ({
               </div>
               <div className="flex items-center justify-between mb-4">
                 <span className="font-semibold text-gray-700">
-                  Tên đăng nhập:
+                  Tên người dùng:
                 </span>
                 <span className="text-gray-900">
                   {selectedAccount.username}

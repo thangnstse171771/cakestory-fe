@@ -244,7 +244,7 @@ const CreateMarketplacePost = ({
                 {/* Media Upload */}
                 <div className="space-y-4">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Media Sản phẩm
+                    Ảnh Sản phẩm
                   </label>
                   <div
                     className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
@@ -452,7 +452,7 @@ const CreateMarketplacePost = ({
                           <div className="flex-1">
                             <input
                               type="number"
-                              placeholder="Price (VND)"
+                              placeholder="Giá (VND)"
                               value={row.price}
                               onChange={(e) =>
                                 handleChangeSize(idx, "price", e.target.value)

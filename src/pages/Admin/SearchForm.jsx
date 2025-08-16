@@ -53,7 +53,7 @@ const SearchForm = ({ search, setSearch, view, setView }) => {
           onChange={(e) =>
             setSearch((s) => ({ ...s, username: e.target.value }))
           }
-          placeholder="Tìm kiếm tên người dùng..."
+          placeholder="Tìm kiếm Tên người dùng..."
         />
       </div>
       <div className="flex-1 min-w-[160px]">

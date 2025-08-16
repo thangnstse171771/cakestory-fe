@@ -19,6 +19,7 @@ import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
 import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
+import ShopGalleryPage from "./pages/ShopGalleryPage";
 import Chat from "./pages/Chat/Chat";
 import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -123,6 +124,7 @@ export default function App() {
               path="marketplace/shop/:id/all-cakes"
               element={<AllShopCakes />}
             />
+            <Route path="shop-gallery/:shopId" element={<ShopGalleryPage />} />
             <Route path="marketplace/create-shop" element={<CreateShop />} />
             <Route
               path="order/customize/:shopId"
