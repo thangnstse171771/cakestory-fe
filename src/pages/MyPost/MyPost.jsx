@@ -25,7 +25,7 @@ dayjs.extend(relativeTime);
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedFilter, setSelectedFilter] = useState("tất cả");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isUpdatePostOpen, setIsUpdatePostOpen] = useState(false);
   const [isDeletePostOpen, setIsDeletePostOpen] = useState(false);
@@ -246,9 +246,7 @@ const MyPost = () => {
               <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
                 Bài viết của tôi
               </h1>
-              <p className="text-gray-600">
-                Quản lý bài viết của bạn tại đây.
-              </p>
+              <p className="text-gray-600">Quản lý bài viết của bạn tại đây.</p>
             </div>
             <button
               onClick={() => setIsCreatePostOpen(true)}
@@ -502,9 +500,7 @@ const MyPost = () => {
             <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-pink-500" />
             </div>
-            <p className="text-gray-500 text-lg">
-              Không tìm thấy vài viết.
-            </p>
+            <p className="text-gray-500 text-lg">Không tìm thấy vài viết.</p>
             {/* <button className="mt-4 text-pink-500 hover:text-pink-600 font-medium">
               Clear filters
             </button> */}
