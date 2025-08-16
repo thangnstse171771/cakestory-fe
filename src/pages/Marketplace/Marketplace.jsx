@@ -6,11 +6,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { fetchAllShops, fetchMarketplacePosts } from "../../api/axios";
 import CreateMarketplacePost from "./CreateMarketplacePost";
-import ShopDetail from "./ShopDetail";
-import ShopAnalystic from "./ShopAnalystic";
 
 const Marketplace = () => {
-  const [view, setView] = useState("products"); // "products" or "shops" or "myshop" or "shop-analysic"
+  const [view, setView] = useState("products"); // "products" or "shops"
   const navigate = useNavigate();
   const { user } = useAuth();
   const [hasShop, setHasShop] = useState(false);
@@ -49,7 +47,16 @@ const Marketplace = () => {
             Khám phá những chiếc bánh tuyệt vời từ các thợ làm bánh địa phương
           </p>
         </div>
-        <div className="flex items-center space-x-4"></div>
+        {/* Nút Tạo Cửa Hàng - đặt ở góc phải */}
+        {user && !hasShop && (
+          <button
+            onClick={() => navigate("/marketplace/create-shop")}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            Tạo Cửa Hàng
+          </button>
+        )}
       </div>
 
       <div className="flex items-center mb-6">
@@ -74,27 +81,6 @@ const Marketplace = () => {
           >
             Cửa hàng
           </button>
-          {user && hasShop && (
-            <button
-              onClick={() => setView("myshop")}
-              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                view === "myshop"
-                  ? "bg-pink-500 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              Cửa Hàng Của Tôi
-            </button>
-          )}
-          {view === "shops" && !hasShop && (
-            <button
-              onClick={() => navigate("/marketplace/create-shop")}
-              className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
-            >
-              <Plus className="w-5 h-5" />
-              Tạo Cửa Hàng
-            </button>
-          )}
         </div>
         <div className="flex-1" />
       </div>
@@ -109,8 +95,6 @@ const Marketplace = () => {
         )
       ) : view === "shops" ? (
         <ShopsList />
-      ) : view === "myshop" && user && hasShop ? (
-        <ShopDetail id={user.id} />
       ) : null}
 
       <CreateMarketplacePost
