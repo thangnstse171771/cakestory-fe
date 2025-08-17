@@ -361,8 +361,8 @@ const LandingPage = () => {
                       Chất Lượng Được Đảm Bảo
                     </h3>
                     <p className="text-gray-600">
-                      Các cửa hàng tham gia đều trải qua quy trình xác minh và
-                      kiểm duyệt.
+                      Tất cả các cửa hàng đều được xác minh và kiểm duyệt nghiêm
+                      ngặt
                     </p>
                   </div>
                 </div>
