@@ -65,6 +65,7 @@ import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
 // import OrderTrackingFormByShop from "./pages/OrderTrackingForm/OrderTrackingFormByShop";
 import OrderTrackingUserList from "./pages/OrderTrackingForm/OrderTrackingUserList";
 import OrderTrackingAdminAllList from "./pages/OrderTrackingForm/OrderTrackingAdminAllList";
+import UserOrdersWithReviews from "./pages/UserOrdersWithReviews";
 import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
 import AllShopCakes from "./pages/AllShopCakes";
 import AIGeneratedImages from "./pages/AIGeneratedImages";
@@ -184,6 +185,10 @@ export default function App() {
             <Route
               path="order-tracking-user/:orderId"
               element={<OrderTrackingUserList showOrderDetails={true} />}
+            />
+            <Route
+              path="my-orders-reviews"
+              element={<UserOrdersWithReviews />}
             />
             <Route
               path="admin/order-tracking"

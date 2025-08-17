@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Store,
   LogIn,
+  Star,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -104,6 +105,7 @@ const Sidebar = () => {
         "/order-tracking",
         "/my-complaints",
         "/order-tracking-user",
+        "/my-orders-reviews",
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
@@ -162,6 +164,11 @@ const Sidebar = () => {
                 icon: ListOrdered,
                 label: "Lịch sử mua hàng",
                 path: "/order-tracking-user",
+              },
+              {
+                icon: Star,
+                label: "Đơn hàng & Đánh giá",
+                path: "/my-orders-reviews",
               },
               {
                 icon: MessageSquareWarning,
@@ -244,6 +251,7 @@ const Sidebar = () => {
         "/order-tracking",
         "/my-complaints",
         "/order-tracking-user",
+        "/my-orders-reviews",
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],

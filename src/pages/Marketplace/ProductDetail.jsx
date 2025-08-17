@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import axios from "../../api/axios";
 import ProductDetailSkeleton from "../../components/ProductDetailSkeleton";
+import ReviewSection from "../../components/ReviewSection";
 
 const ProductDetail = () => {
   const { productId } = useParams();
@@ -372,133 +373,13 @@ const ProductDetail = () => {
 
         {/* Reviews Section */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 mb-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Đánh giá của khách hàng
-          </h2>
-
-          {/* Rating Summary */}
-          <div className="flex items-center gap-8 mb-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-yellow-600">4.8</div>
-              <div className="flex items-center gap-1 mt-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-5 h-5 ${
-                      i < 5 ? "text-yellow-400 fill-current" : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">124 đánh giá</div>
-            </div>
-
-            <div className="flex-1">
-              {[5, 4, 3, 2, 1].map((star) => (
-                <div key={star} className="flex items-center gap-3 mb-2">
-                  <span className="text-sm font-medium w-8">{star}★</span>
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-yellow-400 h-2 rounded-full"
-                      style={{
-                        width: `${
-                          star === 5
-                            ? 70
-                            : star === 4
-                            ? 20
-                            : star === 3
-                            ? 5
-                            : star === 2
-                            ? 3
-                            : 2
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm text-gray-600 w-8">
-                    {star === 5
-                      ? 87
-                      : star === 4
-                      ? 25
-                      : star === 3
-                      ? 6
-                      : star === 2
-                      ? 4
-                      : 2}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Sample Reviews */}
-          <div className="space-y-6">
-            {[
-              {
-                name: "Nguyễn Thị Mai",
-                rating: 5,
-                comment:
-                  "Bánh rất ngon, đúng như mong đợi. Shop phục vụ tận tình!",
-                date: "2 days ago",
-                avatar:
-                  "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64",
-              },
-              {
-                name: "Trần Văn Nam",
-                rating: 4,
-                comment:
-                  "Chất lượng tốt, giao hàng nhanh. Sẽ ủng hộ shop tiếp.",
-                date: "1 week ago",
-                avatar:
-                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64",
-              },
-              {
-                name: "Lê Thị Hoa",
-                rating: 5,
-                comment:
-                  "Bánh đẹp và ngon, phù hợp cho tiệc sinh nhật. Highly recommended!",
-                date: "2 weeks ago",
-                avatar:
-                  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64",
-              },
-            ].map((review, index) => (
-              <div
-                key={index}
-                className="border-b border-gray-100 pb-6 last:border-b-0"
-              >
-                <div className="flex items-start gap-4">
-                  <img
-                    src={review.avatar}
-                    alt={review.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-semibold text-gray-900">
-                        {review.name}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < review.rating
-                                ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        {review.date}
-                      </span>
-                    </div>
-                    <p className="text-gray-700">{review.comment}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ReviewSection
+            marketplacePostId={productId}
+            productInfo={{
+              title: post.title,
+              image: media[0]?.image_url,
+            }}
+          />
         </div>
 
         {/* Shop Information */}
