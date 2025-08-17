@@ -22,6 +22,20 @@ export const authAPI = {
     return response.data;
   },
 
+  verifyEmail: async (email) => {
+    const response = await axiosInstance.get(
+      `/auth/verify?email=${encodeURIComponent(email)}`
+    );
+    return response.data;
+  },
+
+  resendVerificationEmail: async (email) => {
+    const response = await axiosInstance.post("/auth/resend-verification", {
+      email,
+    });
+    return response.data;
+  },
+
   logout: () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
