@@ -12,6 +12,8 @@ import {
   Star,
   Sparkles,
   ShoppingCart,
+  Check,
+  X,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -24,12 +26,32 @@ const Signup = () => {
     username: "",
     email: "",
     password: "",
+    confirmPassword: "",
     fullName: "",
     avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Password validation functions
+  const validatePassword = (password) => {
+    return {
+      length: password.length >= 8,
+      hasLetter: /[a-zA-Z]/.test(password),
+      hasNumber: /\d/.test(password),
+    };
+  };
+
+  const isPasswordValid = (password) => {
+    const validation = validatePassword(password);
+    return validation.length && validation.hasLetter && validation.hasNumber;
+  };
+
+  const isConfirmPasswordValid = (password, confirmPassword) => {
+    return confirmPassword && password === confirmPassword;
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,8 +85,16 @@ const Signup = () => {
       setError("Mật khẩu là bắt buộc.");
       return;
     }
-    if (formData.password.length < 8) {
-      setError("Mật khẩu phải có ít nhất 8 ký tự.");
+    if (!isPasswordValid(formData.password)) {
+      setError("Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ cái và số.");
+      return;
+    }
+    if (!formData.confirmPassword) {
+      setError("Vui lòng xác nhận mật khẩu.");
+      return;
+    }
+    if (!isConfirmPasswordValid(formData.password, formData.confirmPassword)) {
+      setError("Mật khẩu xác nhận không khớp.");
       return;
     }
 
@@ -72,26 +102,33 @@ const Signup = () => {
     try {
       await register(formData);
       // Hiển thị toast thành công với emoji và animation đẹp
-      toast.success("🎉 Đăng ký thành công! Hãy đăng nhập để tiếp tục.", {
-        position: "top-right",
-        autoClose: 4000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-      });
+      toast.success(
+        "🎉 Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.",
+        {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+        }
+      );
 
       // Reset form sau khi đăng ký thành công
       setFormData({
         username: "",
         email: "",
         password: "",
+        confirmPassword: "",
         fullName: "",
         avatarUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
       });
 
-      // Chuyển hướng về trang login sau delay ngắn
-      setTimeout(() => navigate("/login"), 1500);
+      // Chuyển hướng đến trang verify email
+      setTimeout(
+        () => navigate("/verify-email", { state: { email: formData.email } }),
+        1500
+      );
     } catch (err) {
       const errorMessage =
         err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
@@ -317,12 +354,149 @@ const Signup = () => {
                           )}
                         </button>
                       </div>
+
+                      {/* Password validation indicators */}
+                      {formData.password && (
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            {validatePassword(formData.password).length ? (
+                              <Check className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <X className="w-4 h-4 text-red-400" />
+                            )}
+                            <span
+                              className={
+                                validatePassword(formData.password).length
+                                  ? "text-green-300"
+                                  : "text-red-300"
+                              }
+                            >
+                              Ít nhất 8 ký tự
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            {validatePassword(formData.password).hasLetter ? (
+                              <Check className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <X className="w-4 h-4 text-red-400" />
+                            )}
+                            <span
+                              className={
+                                validatePassword(formData.password).hasLetter
+                                  ? "text-green-300"
+                                  : "text-red-300"
+                              }
+                            >
+                              Có chứa chữ cái
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            {validatePassword(formData.password).hasNumber ? (
+                              <Check className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <X className="w-4 h-4 text-red-400" />
+                            )}
+                            <span
+                              className={
+                                validatePassword(formData.password).hasNumber
+                                  ? "text-green-300"
+                                  : "text-red-300"
+                              }
+                            >
+                              Có chứa số
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-white/90 text-sm font-medium mb-2">
+                        Xác nhận mật khẩu
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          className={`w-full px-4 py-3 bg-white/10 backdrop-blur-sm border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:border-transparent transition-all pr-12 ${
+                            formData.confirmPassword
+                              ? isConfirmPasswordValid(
+                                  formData.password,
+                                  formData.confirmPassword
+                                )
+                                ? "border-green-400/50 focus:ring-green-400/50"
+                                : "border-red-400/50 focus:ring-red-400/50"
+                              : "border-white/20 focus:ring-purple-400/50"
+                          }`}
+                          placeholder="Nhập lại mật khẩu"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff size={20} />
+                          ) : (
+                            <Eye size={20} />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Confirm password validation indicator */}
+                      {formData.confirmPassword && (
+                        <div className="mt-3">
+                          <div className="flex items-center gap-2 text-sm">
+                            {isConfirmPasswordValid(
+                              formData.password,
+                              formData.confirmPassword
+                            ) ? (
+                              <Check className="w-4 h-4 text-green-400" />
+                            ) : (
+                              <X className="w-4 h-4 text-red-400" />
+                            )}
+                            <span
+                              className={
+                                isConfirmPasswordValid(
+                                  formData.password,
+                                  formData.confirmPassword
+                                )
+                                  ? "text-green-300"
+                                  : "text-red-300"
+                              }
+                            >
+                              {isConfirmPasswordValid(
+                                formData.password,
+                                formData.confirmPassword
+                              )
+                                ? "Mật khẩu khớp"
+                                : "Mật khẩu không khớp"}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <button
                       type="submit"
-                      disabled={loading}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-purple-400/50 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                      disabled={
+                        loading ||
+                        !formData.username.trim() ||
+                        !formData.fullName.trim() ||
+                        !formData.email.trim() ||
+                        !/^\S+@\S+\.\S+$/.test(formData.email) ||
+                        !isPasswordValid(formData.password) ||
+                        !isConfirmPasswordValid(
+                          formData.password,
+                          formData.confirmPassword
+                        )
+                      }
+                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-purple-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-xl"
                     >
                       {loading ? "Đang đăng ký..." : "Tạo Tài Khoản"}
                     </button>

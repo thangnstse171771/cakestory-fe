@@ -15,6 +15,8 @@ import "react-toastify/dist/ReactToastify.css";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
+import VerifyEmail from "./pages/VerifyEmail";
+import EmailVerified from "./pages/EmailVerified";
 import Home from "./pages/Home/Home";
 import LandingPage from "./pages/LandingPage";
 import CakeDesign from "./pages/CakeDesign";
@@ -81,7 +83,7 @@ function ProtectedRoute({ children }) {
     return <div>Loading...</div>;
   }
   if (!isAuthenticated()) {
-    return <Navigate to="/landing" replace />;
+    return <Navigate to="/" replace />;
   }
   return children;
 }
@@ -118,11 +120,26 @@ export default function App() {
               </PublicRoute>
             }
           />
+          <Route
+            path="/verify-email"
+            element={
+              <PublicRoute>
+                <VerifyEmail />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/email-verified"
+            element={
+              <PublicRoute>
+                <EmailVerified />
+              </PublicRoute>
+            }
+          />
 
           {/* Public pages (guest) */}
           <Route element={<Layout />}>
-            <Route index element={<Navigate to="landing" replace />} />
-            <Route path="landing" element={<LandingPage />} />
+            <Route index element={<LandingPage />} />
             <Route path="search" element={<SearchResults />} />
             <Route path="marketplace" element={<Marketplace />} />
             <Route
@@ -247,7 +264,7 @@ export default function App() {
           </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/landing" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
         {/* Toast Container */}
