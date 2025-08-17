@@ -13,6 +13,7 @@ import {
   Star,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { authAPI } from "../api/auth";
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
@@ -41,8 +42,7 @@ const VerifyEmail = () => {
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
-      // TODO: Implement API call to resend verification email
-      // await resendVerificationEmail(email);
+      await authAPI.resendVerificationEmail(email);
 
       toast.success("🎉 Email xác thực đã được gửi lại!", {
         position: "top-right",
@@ -56,7 +56,12 @@ const VerifyEmail = () => {
       setCountdown(60);
       setCanResend(false);
     } catch (error) {
-      toast.error("❌ Không thể gửi lại email. Vui lòng thử lại sau.", {
+      console.error("Failed to resend verification email:", error);
+      const errorMessage =
+        error.response?.data?.message ||
+        "Không thể gửi lại email. Vui lòng thử lại sau.";
+
+      toast.error(`❌ ${errorMessage}`, {
         position: "top-right",
         autoClose: 3000,
         hideProgressBar: false,
