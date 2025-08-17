@@ -23,7 +23,7 @@ export const authAPI = {
   },
 
   verifyEmail: async (email) => {
-    const response = await axiosInstance.get(
+    const response = await axiosInstance.put(
       `/auth/verify?email=${encodeURIComponent(email)}`
     );
     return response.data;
