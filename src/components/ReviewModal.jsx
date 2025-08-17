@@ -35,38 +35,6 @@ const ReviewModal = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (images.length + files.length > 5) {
-      alert("Chỉ được tải lên tối đa 5 hình ảnh");
-      return;
-    }
-
-    files.forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("Kích thước file không được vượt quá 5MB");
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setImages((prev) => [
-          ...prev,
-          {
-            id: Date.now() + Math.random(),
-            file,
-            preview: event.target.result,
-          },
-        ]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const removeImage = (imageId) => {
-    setImages((prev) => prev.filter((img) => img.id !== imageId));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -206,56 +174,6 @@ const ReviewModal = ({
               <p className="text-sm text-gray-500 ml-auto">
                 {comment.length}/500 ký tự
               </p>
-            </div>
-          </div>
-
-          {/* Image Upload Section */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Hình ảnh (Tùy chọn)
-            </label>
-            <div className="space-y-3">
-              {images.length > 0 && (
-                <div className="grid grid-cols-3 gap-3">
-                  {images.map((image) => (
-                    <div
-                      key={image.id}
-                      className="relative group rounded-lg overflow-hidden bg-gray-100"
-                    >
-                      <img
-                        src={image.preview}
-                        alt="Review"
-                        className="w-full h-24 object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(image.id)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {images.length < 5 && (
-                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                  <div className="flex flex-col items-center justify-center">
-                    <Image className="w-6 h-6 text-gray-400 mb-1" />
-                    <p className="text-sm text-gray-500">
-                      Thêm hình ảnh ({images.length}/5)
-                    </p>
-                  </div>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </label>
-              )}
             </div>
           </div>
 
