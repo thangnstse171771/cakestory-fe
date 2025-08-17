@@ -12,48 +12,97 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { authAPI } from "../api/auth";
+import { getAuth, applyActionCode } from "firebase/auth";
 
-const EmailVerified = () => {
+const FirebaseEmailVerification = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const email = searchParams.get("email") || "";
-  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  // Get Firebase action parameters
+  const mode = searchParams.get("mode");
+  const oobCode = searchParams.get("oobCode");
+  const continueUrl = searchParams.get("continueUrl");
+
+  // Extract email from continueUrl if available
+  const emailMatch = continueUrl?.match(/email=([^&]+)/);
+  const email = emailMatch ? decodeURIComponent(emailMatch[1]) : "";
+
   const [isVerifying, setIsVerifying] = useState(true);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [verificationError, setVerificationError] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    // This page is reached after successful Firebase verification
-    // No need to verify again, just show success and redirect
-    if (!email) {
-      setVerificationError("Email không hợp lệ");
-      setIsVerifying(false);
-      return;
-    }
+    const verifyEmail = async () => {
+      // Check if this is an email verification request
+      if (mode !== "verifyEmail" || !oobCode) {
+        setVerificationError("Liên kết xác thực không hợp lệ");
+        setIsVerifying(false);
+        return;
+      }
 
-    // Mark as successful since we reached this page after verification
-    setVerificationSuccess(true);
-    setIsVerifying(false);
+      try {
+        setIsVerifying(true);
 
-    // Show success message
-    toast.success("🎉 Email đã được xác thực thành công!", {
-      position: "top-right",
-      autoClose: 4000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: false,
-      draggable: true,
-    });
+        // Apply the email verification code using Firebase
+        const auth = getAuth();
+        await applyActionCode(auth, oobCode);
 
-    // Start redirect countdown
-    setIsRedirecting(true);
-    const redirectTimer = setTimeout(() => {
-      navigate("/login");
-    }, 3000);
+        setVerificationSuccess(true);
 
-    return () => clearTimeout(redirectTimer);
-  }, [email, navigate]);
+        // Show success message
+        toast.success("🎉 Email đã được xác thực thành công!", {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+        });
+
+        // Start redirect countdown
+        setIsRedirecting(true);
+        const redirectTimer = setTimeout(() => {
+          // Redirect to the continue URL if available, otherwise go to login
+          if (continueUrl) {
+            window.location.href = continueUrl;
+          } else {
+            navigate("/login");
+          }
+        }, 3000);
+
+        return () => clearTimeout(redirectTimer);
+      } catch (error) {
+        console.error("Firebase email verification failed:", error);
+        let errorMessage = "Xác thực email thất bại";
+
+        // Handle specific Firebase errors
+        if (error.code === "auth/expired-action-code") {
+          errorMessage =
+            "Liên kết xác thực đã hết hạn. Vui lòng yêu cầu gửi lại email.";
+        } else if (error.code === "auth/invalid-action-code") {
+          errorMessage = "Liên kết xác thực không hợp lệ.";
+        } else if (error.code === "auth/user-disabled") {
+          errorMessage = "Tài khoản đã bị vô hiệu hóa.";
+        }
+
+        setVerificationError(errorMessage);
+
+        toast.error(`❌ ${errorMessage}`, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: false,
+          draggable: true,
+        });
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+
+    verifyEmail();
+  }, [mode, oobCode, continueUrl, navigate]);
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -152,7 +201,7 @@ const EmailVerified = () => {
 
               {email && (
                 <p className="text-pink-300 font-semibold text-xl mb-8 break-all">
-                  {decodeURIComponent(email)}
+                  {email}
                 </p>
               )}
 
@@ -193,9 +242,7 @@ const EmailVerified = () => {
                 <div className="mb-8">
                   <div className="flex items-center justify-center gap-2 text-purple-200 mb-4">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-300"></div>
-                    <span className="text-sm">
-                      Đang chuyển đến trang đăng nhập...
-                    </span>
+                    <span className="text-sm">Đang chuyển hướng...</span>
                   </div>
                   <div className="w-full bg-white/20 rounded-full h-2">
                     <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full animate-pulse"></div>
@@ -266,4 +313,4 @@ const EmailVerified = () => {
   );
 };
 
-export default EmailVerified;
+export default FirebaseEmailVerification;
