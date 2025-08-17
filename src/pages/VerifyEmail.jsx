@@ -61,17 +61,57 @@ const VerifyEmail = () => {
           const auth = getAuth();
           await applyActionCode(auth, oobCode);
 
-          setVerificationSuccess(true);
+          // After Firebase verification success, call backend API to activate account
+          if (email) {
+            try {
+              const response = await authAPI.verifyEmail(email);
+              console.log("Backend verification response:", response);
 
-          // Show success message
-          toast.success("🎉 Email đã được xác thực thành công!", {
-            position: "top-right",
-            autoClose: 4000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
+              if (response.verified) {
+                setVerificationSuccess(true);
+
+                // Show success message
+                toast.success(
+                  "🎉 Email đã được xác thực và tài khoản đã được kích hoạt!",
+                  {
+                    position: "top-right",
+                    autoClose: 4000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: false,
+                    draggable: true,
+                  }
+                );
+              } else {
+                throw new Error("Backend verification failed");
+              }
+            } catch (backendError) {
+              console.error("Backend verification failed:", backendError);
+              // Still mark as success since Firebase verification worked
+              setVerificationSuccess(true);
+
+              toast.success("🎉 Email đã được xác thực thành công!", {
+                position: "top-right",
+                autoClose: 4000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: false,
+                draggable: true,
+              });
+            }
+          } else {
+            setVerificationSuccess(true);
+
+            // Show success message
+            toast.success("🎉 Email đã được xác thực thành công!", {
+              position: "top-right",
+              autoClose: 4000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: false,
+              draggable: true,
+            });
+          }
 
           // Start redirect countdown
           setIsRedirecting(true);
