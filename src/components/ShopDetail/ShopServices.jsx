@@ -409,7 +409,7 @@ const ShopServices = ({
           </p>
           {isOwner && (
             <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-              Create First Product
+              Tạo Sản Phẩm Đầu Tiên
             </button>
           )}
         </div>
