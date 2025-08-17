@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { CalendarDays, ListOrdered, User, Package } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -170,6 +170,35 @@ export default function OrderTrackingAdminAllList({
     return matchStatus && matchSearch && matchDate;
   });
 
+  // Helper to derive numeric sort key (prefer id, then parse from orderNumber, then date)
+  const getOrderKey = (o) => {
+    let n = Number(o.id);
+    if (!Number.isFinite(n) || n <= 0) {
+      const s = String(o.orderNumber || "");
+      const digits = s.match(/\d+/g);
+      if (digits && digits.length) n = Number(digits.join(""));
+    }
+    if (!Number.isFinite(n)) {
+      n = Date.parse(o.placedDate || 0) || 0;
+    }
+    return n;
+  };
+
+  // Sort orders: largest -> smallest by order key
+  const sortedFilteredOrders = useMemo(() => {
+    const arr = [...filteredOrders];
+    arr.sort((a, b) => {
+      const kb = getOrderKey(b);
+      const ka = getOrderKey(a);
+      if (kb !== ka) return kb - ka; // desc
+      const tb = Date.parse(b.placedDate || 0) || 0;
+      const ta = Date.parse(a.placedDate || 0) || 0;
+      if (tb !== ta) return tb - ta; // newest first tie-breaker
+      return (Number(b.id) || 0) - (Number(a.id) || 0);
+    });
+    return arr;
+  }, [filteredOrders]);
+
   useEffect(() => {
     if (showOrderDetails && orderId) {
       handleView(orderId);
@@ -298,7 +327,7 @@ export default function OrderTrackingAdminAllList({
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((o, idx) => (
+                  {sortedFilteredOrders.map((o, idx) => (
                     <tr
                       key={o.id}
                       className={`border-b last:border-b-0 hover:bg-pink-50 transition ${

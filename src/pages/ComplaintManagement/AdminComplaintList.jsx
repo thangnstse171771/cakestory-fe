@@ -7,7 +7,7 @@ import {
   Search,
   RefreshCw,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchComplaintsByShop, fetchShopByUserId } from "../../api/axios";
 import { fetchAllComplaints } from "../../api/axios";
@@ -234,6 +234,33 @@ export default function ComplaintList({
     return matchesStatus && matchesSearch && matchesDate;
   });
 
+  // Helper to derive numeric sort key from order id/number
+  const getOrderKey = (c) => {
+    let n = Number(c.orderId);
+    if (!Number.isFinite(n) || n <= 0) {
+      const s = String(c.orderNumber || "");
+      const digits = s.match(/\d+/g);
+      if (digits && digits.length) n = Number(digits.join(""));
+    }
+    if (!Number.isFinite(n)) n = Number(c.id) || 0;
+    return n;
+  };
+
+  // Sort: pending first, then by order key ascending
+  const sortedComplaints = useMemo(() => {
+    const arr = [...filteredComplaints];
+    arr.sort((a, b) => {
+      const pa = a.status === "pending" ? 0 : 1;
+      const pb = b.status === "pending" ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      const ka = getOrderKey(a);
+      const kb = getOrderKey(b);
+      if (ka !== kb) return ka - kb;
+      return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+    return arr;
+  }, [filteredComplaints]);
+
   const handleViewDetails = (complaint) =>
     navigate(
       isAdmin
@@ -325,7 +352,7 @@ export default function ComplaintList({
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredComplaints.map((complaint) => (
+            {sortedComplaints.map((complaint) => (
               <div
                 key={complaint.id}
                 className="p-6 shadow-lg rounded-xl border border-red-100 hover:shadow-xl transition-all duration-200 bg-white cursor-pointer hover:border-red-200"

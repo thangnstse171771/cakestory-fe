@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import ComplaintModal from "../ComplaintManagement/ComplaintModal";
 import { fetchOrderById } from "../../api/axios";
 import {
@@ -197,6 +197,11 @@ export default function OrderTrackingForm({
 }) {
   const { orderId } = useParams();
   const { user } = useAuth();
+  const location = useLocation();
+  // Detect if viewing from user purchase history page; restrict shop transitions here
+  const isUserHistoryPage = (location?.pathname || "").startsWith(
+    "/order-tracking-user"
+  );
 
   // Memoized role and permission calculations
   const { role, isShopActor, inferredUserShopId } = useMemo(() => {
@@ -256,11 +261,16 @@ export default function OrderTrackingForm({
       try {
         if (!user?.id) return;
         const shopResp = await fetchShopByUserId(user.id);
+        // Support multiple response shapes
         const sid =
           shopResp?.shop?.shop_id ||
           shopResp?.shop_id ||
           shopResp?.id ||
           shopResp?.shop?.id ||
+          shopResp?.data?.shop?.shop_id ||
+          shopResp?.data?.shop_id ||
+          shopResp?.data?.id ||
+          shopResp?.data?.shop?.id ||
           null;
         if (mounted)
           setViewerShopId(sid != null ? String(sid) : inferFromUser());
@@ -407,11 +417,16 @@ export default function OrderTrackingForm({
         if (!shopIdToUse && isShopActor && user?.id) {
           try {
             const shopResp = await fetchShopByUserId(user.id);
+            // Support multiple response shapes
             shopIdToUse =
               shopResp?.shop?.shop_id ||
               shopResp?.shop_id ||
               shopResp?.id ||
               shopResp?.shop?.id ||
+              shopResp?.data?.shop?.shop_id ||
+              shopResp?.data?.shop_id ||
+              shopResp?.data?.id ||
+              shopResp?.data?.shop?.id ||
               null;
           } catch (e) {
             // Silent fallback
@@ -589,11 +604,12 @@ export default function OrderTrackingForm({
     : inferredUserShopId
     ? String(inferredUserShopId)
     : null;
+  // Shop controls are available whenever current viewer belongs to the order's shop
   const canShopControl = Boolean(
-    !isOrderOwner &&
-      viewerShopIdStr &&
-      (!orderShopIdStr || viewerShopIdStr === orderShopIdStr)
+    viewerShopIdStr && (!orderShopIdStr || viewerShopIdStr === orderShopIdStr)
   );
+  // On user history page, even if viewer belongs to the shop, do not allow shop transitions
+  const canShopControlHere = canShopControl && !isUserHistoryPage;
 
   const hasComplaint = Boolean(
     orderDetail &&
@@ -762,7 +778,7 @@ export default function OrderTrackingForm({
 
               {/* Bỏ nút Tiếp nhận đơn hàng: backend tự chuyển pending -> ordered */}
 
-              {canShopControl && orderDetail.status === "ordered" && (
+              {canShopControlHere && orderDetail.status === "ordered" && (
                 <button
                   onClick={() =>
                     handleUpdateStatus(orderDetail.id, "preparedForDelivery")
@@ -773,7 +789,7 @@ export default function OrderTrackingForm({
                 </button>
               )}
 
-              {canShopControl &&
+              {canShopControlHere &&
                 orderDetail.status === "preparedForDelivery" && (
                   <button
                     onClick={() =>
