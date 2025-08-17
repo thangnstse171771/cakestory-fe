@@ -10,12 +10,12 @@ const Layout = () => {
   const isAuthPage =
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
-    location.pathname === "/landing";
+    location.pathname === "/";
 
   const isChatPage = location.pathname === "/chat";
 
   // Nếu là landing page thì không có padding và margin
-  const isLandingPage = location.pathname === "/landing";
+  const isLandingPage = location.pathname === "/";
 
   return (
     <div className="min-h-screen">

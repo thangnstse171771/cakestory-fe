@@ -309,7 +309,7 @@ const Login = () => {
 
                     <div className="text-center pt-4">
                       <Link
-                        to="/landing"
+                        to="/"
                         className="inline-flex items-center gap-2 text-pink-300/80 hover:text-pink-200 text-sm transition-colors"
                       >
                         ← Quay lại trang chủ
