@@ -105,12 +105,14 @@ const Profile = () => {
           const data = res.likes;
           const totalLikes = res.total_likes || data.length;
           const liked = data.some((like) => like.user_id === user?.id);
-          initialLikes[post.id] = { liked, count: totalLikes };
+
+          initialLikes[post.id] = { liked, count: totalLikes, liking: false };
         } catch (error) {
           console.error("Failed to fetch likes for post", post.id, error);
           initialLikes[post.id] = {
             liked: false,
             count: post.total_likes || 0,
+            liking: false,
           };
         }
       }
@@ -124,22 +126,43 @@ const Profile = () => {
 
   const handleLike = async (postId) => {
     try {
-      await authAPI.likePost(postId); // your likePost function that can like/unlike
+      // set loading = true for this post
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: true,
+        },
+      }));
+
+      await authAPI.likePost(postId);
+
       setLikesData((prev) => {
         const wasLiked = prev[postId]?.liked;
         const newCount = wasLiked
           ? prev[postId].count - 1
           : prev[postId].count + 1;
+
         return {
           ...prev,
           [postId]: {
             liked: !wasLiked,
             count: newCount,
+            liking: false, // reset loading
           },
         };
       });
     } catch (error) {
       console.error("Failed to toggle like", error);
+
+      // reset loading on error
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: false,
+        },
+      }));
     }
   };
 

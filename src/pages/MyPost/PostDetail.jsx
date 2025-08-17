@@ -175,17 +175,16 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
           </p>
 
           <div className="flex items-center gap-4 mb-4">
-            <div
-              className="flex items-center gap-1 text-pink-500 cursor-pointer"
+            <button
               onClick={() => handleLike(post.id)}
+              disabled={likesData[post.id]?.liking}
+              className="flex items-center gap-1 text-pink-500 cursor-pointer"
             >
               <Heart
                 className={`w-5 h-5 ${likeInfo.liked ? "fill-pink-500" : ""}`}
               />
-              <span className="font-semibold">
-                {likeInfo.count || postDetail.total_likes}
-              </span>
-            </div>
+              <span className="font-semibold">{likeInfo.count}</span>
+            </button>
             <div className="flex items-center gap-1 text-gray-500">
               <MessageCircle className="w-5 h-5" />
               <span>{postDetail.total_comments || 0}</span>

@@ -12,14 +12,23 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 dayjs.extend(relativeTime);
 
-const ChallengePostDetail = ({ isOpen, challPost, likesData, handleLike, onClose }) => {
+const ChallengePostDetail = ({
+  isOpen,
+  challPost,
+  likesData,
+  handleLike,
+  onClose,
+}) => {
   const [postDetail, setPostDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const videoRefs = useRef([]);
   const { user: currentUser } = useAuth();
 
-  const likeInfo = likesData?.[challPost?.post_id] || { liked: false, count: 0 };
+  const likeInfo = likesData?.[challPost?.post_id] || {
+    liked: false,
+    count: 0,
+  };
 
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
@@ -147,7 +156,9 @@ const ChallengePostDetail = ({ isOpen, challPost, likesData, handleLike, onClose
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <img
-                src={post.user?.avatar || "https://placehold.co/100x100?text=User"}
+                src={
+                  post.user?.avatar || "https://placehold.co/100x100?text=User"
+                }
                 alt={post.user?.username}
                 className="w-11 h-11 rounded-full"
               />
@@ -155,7 +166,9 @@ const ChallengePostDetail = ({ isOpen, challPost, likesData, handleLike, onClose
                 <div className="font-semibold text-gray-800">
                   {post.user?.username}
                 </div>
-                <div className="text-gray-500 text-sm">{dayjs(post.created_at).fromNow()}</div>
+                <div className="text-gray-500 text-sm">
+                  {dayjs(post.created_at).fromNow()}
+                </div>
               </div>
             </div>
             <button className="text-gray-400 hover:text-gray-600">
@@ -174,13 +187,12 @@ const ChallengePostDetail = ({ isOpen, challPost, likesData, handleLike, onClose
             <div
               className="flex items-center gap-1 text-pink-500 cursor-pointer"
               onClick={() => handleLike(post.id)}
+              disabled={likesData[post.id]?.liking}
             >
               <Heart
                 className={`w-5 h-5 ${likeInfo.liked ? "fill-pink-500" : ""}`}
               />
-              <span className="font-semibold">
-                {likeInfo.count || post.total_likes}
-              </span>
+              <span className="font-semibold">{likeInfo.count}</span>
             </div>
             <div className="flex items-center gap-1 text-gray-500">
               <MessageCircle className="w-5 h-5" />

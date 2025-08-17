@@ -74,9 +74,13 @@ const SearchResults = () => {
           const liked = res.likes.some(
             (like) => like.user_id === currentUserId
           );
-          likes[post.id] = { liked, count: totalLikes };
+          likes[post.id] = { liked, count: totalLikes, liking: false };
         } catch {
-          likes[post.id] = { liked: false, count: post.total_likes || 0 };
+          likes[post.id] = {
+            liked: false,
+            count: post.total_likes || 0,
+            liking: false,
+          };
         }
       }
       setLikesData(likes);
@@ -87,19 +91,43 @@ const SearchResults = () => {
 
   const handleLike = async (postId) => {
     try {
+      // set loading = true for this post
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: true,
+        },
+      }));
+
       await authAPI.likePost(postId);
+
       setLikesData((prev) => {
         const wasLiked = prev[postId]?.liked;
+        const newCount = wasLiked
+          ? prev[postId].count - 1
+          : prev[postId].count + 1;
+
         return {
           ...prev,
           [postId]: {
             liked: !wasLiked,
-            count: wasLiked ? prev[postId].count - 1 : prev[postId].count + 1,
+            count: newCount,
+            liking: false, // reset loading
           },
         };
       });
     } catch (error) {
       console.error("Failed to toggle like", error);
+
+      // reset loading on error
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: false,
+        },
+      }));
     }
   };
 
@@ -220,6 +248,7 @@ const SearchResults = () => {
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={() => handleLike(post.id)}
+                    disabled={likesData[post.id]?.liking}
                     className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
                   >
                     <Heart
