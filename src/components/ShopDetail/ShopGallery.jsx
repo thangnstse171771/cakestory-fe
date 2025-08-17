@@ -93,9 +93,9 @@ const ShopGallery = ({ shopId, isOwner = false, shopUserId = null }) => {
   const isCurrentUserOwner =
     isOwner || (user && shopUserId && user.id === parseInt(shopUserId));
 
-  // Show maximum 6 items in preview
-  const previewGallery = gallery.slice(0, 6);
-  const hasMore = gallery.length > 6;
+  // Show maximum 8 items in preview
+  const previewGallery = gallery.slice(0, 8);
+  const hasMore = gallery.length > 8;
 
   if (loading) {
     return (
@@ -246,7 +246,7 @@ const ShopGallery = ({ shopId, isOwner = false, shopUserId = null }) => {
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <ExternalLink className="w-5 h-5" />
-                Xem thêm {gallery.length - 6} ảnh
+                Xem thêm {gallery.length - 8} ảnh
               </button>
             </div>
           )}
