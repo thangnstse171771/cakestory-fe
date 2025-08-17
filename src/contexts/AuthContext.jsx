@@ -33,11 +33,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData);
-      localStorage.setItem("token", response.token);
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-        setUser(response.user);
-      }
+      // Không tự động đăng nhập sau khi đăng ký
       return response;
     } catch (error) {
       throw error;
