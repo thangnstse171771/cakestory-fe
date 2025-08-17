@@ -172,30 +172,6 @@ const Login = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-6 text-center">
-                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                      <div className="text-2xl font-bold text-pink-200">
-                        25K+
-                      </div>
-                      <div className="text-pink-300/80 text-sm">Thành viên</div>
-                    </div>
-                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                      <div className="text-2xl font-bold text-orange-200">
-                        1.2K+
-                      </div>
-                      <div className="text-orange-300/80 text-sm">Cửa hàng</div>
-                    </div>
-                    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                      <div className="text-2xl font-bold text-purple-200">
-                        50K+
-                      </div>
-                      <div className="text-purple-300/80 text-sm">
-                        Bánh đã bán
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
