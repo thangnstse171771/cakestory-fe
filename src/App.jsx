@@ -9,11 +9,14 @@ import {
   useParams,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import Home from "./pages/Home/Home";
+import LandingPage from "./pages/LandingPage";
 import CakeDesign from "./pages/CakeDesign";
 import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
@@ -78,7 +81,7 @@ function ProtectedRoute({ children }) {
     return <div>Loading...</div>;
   }
   if (!isAuthenticated()) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/landing" replace />;
   }
   return children;
 }
@@ -118,8 +121,8 @@ export default function App() {
 
           {/* Public pages (guest) */}
           <Route element={<Layout />}>
-            <Route index element={<Navigate to="home" replace />} />
-            <Route path="home" element={<Home />} />
+            <Route index element={<Navigate to="landing" replace />} />
+            <Route path="landing" element={<LandingPage />} />
             <Route path="search" element={<SearchResults />} />
             <Route path="marketplace" element={<Marketplace />} />
             <Route
@@ -204,6 +207,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+            <Route path="home" element={<Home />} />
             <Route path="profile" element={<Profile />} />
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="mypost" element={<MyPost />} />
@@ -243,8 +247,23 @@ export default function App() {
           </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/landing" replace />} />
         </Routes>
+
+        {/* Toast Container */}
+        <ToastContainer
+          position="top-right"
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss={false}
+          draggable
+          pauseOnHover={false}
+          theme="colored"
+          style={{ zIndex: 9999 }}
+        />
       </Router>
     </AuthProvider>
   );
