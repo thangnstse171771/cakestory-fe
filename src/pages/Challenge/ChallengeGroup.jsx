@@ -132,12 +132,14 @@ export default function ChallengeGroup() {
           const data = res.likes;
           const totalLikes = res.total_likes || data.length;
           const liked = data.some((like) => like.user_id === currentUserId);
-          initialLikes[post.post_id] = { liked, count: totalLikes };
+
+          initialLikes[post.post_id] = { liked, count: totalLikes, liking: false };
         } catch (error) {
           console.error("Failed to fetch likes for post", post.post_id, error);
           initialLikes[post.post_id] = {
             liked: false,
             count: post.total_likes || 0,
+            liking: false,
           };
         }
       }
@@ -151,22 +153,43 @@ export default function ChallengeGroup() {
 
   const handleLike = async (postId) => {
     try {
+      // set loading = true for this post
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: true,
+        },
+      }));
+
       await authAPI.likePost(postId);
+
       setLikesData((prev) => {
         const wasLiked = prev[postId]?.liked;
         const newCount = wasLiked
           ? prev[postId].count - 1
           : prev[postId].count + 1;
+
         return {
           ...prev,
           [postId]: {
             liked: !wasLiked,
             count: newCount,
+            liking: false, // reset loading
           },
         };
       });
     } catch (error) {
       console.error("Failed to toggle like", error);
+
+      // reset loading on error
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: false,
+        },
+      }));
     }
   };
 
@@ -723,6 +746,7 @@ export default function ChallengeGroup() {
                     <div className="flex items-center w-full">
                       <button
                         onClick={() => handleLike(challPost.post_id)}
+                        disabled={likesData[challPost.post_id]?.liking}
                         className="flex-1 flex items-center justify-center space-x-2 text-gray-600 hover:text-pink-500"
                       >
                         <Heart
