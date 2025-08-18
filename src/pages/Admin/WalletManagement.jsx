@@ -8,60 +8,34 @@ import {
   fetchSystemWalletBalance,
   fetchTotalAmountAiGenerate,
   fetchAllWithdrawHistory,
+  fetchAllOrders,
+  fetchAllUsers,
 } from "../../api/axios";
 
-// Mock data cho các ví (sẽ được thay thế bằng dữ liệu từ API)
-const mockWalletData = {
-  holding: {
-    balance: 0, // Sẽ được cập nhật từ API
-    currency: "VND",
-    description: "Tổng tiền nạp thành công",
-  },
-  floating: {
-    balance: 0, // Sẽ được cập nhật từ AI API
-    currency: "VND",
-    description: "Doanh thu từ AI Generation",
-  },
-  accounting: {
-    balance: 0, // Sẽ được cập nhật từ admin wallet API
-    currency: "VND",
-    description: "Doanh thu hệ thống từ gói AI",
-  },
-  withdraw: {
-    balance: 0, // Sẽ được cập nhật từ withdraw API
-    currency: "VND",
-    description: "Tổng tiền đang chờ rút",
-  },
-};
-
-// Fake thêm 40 giao dịch
-const mockTransactions = Array.from({ length: 40 }, (_, i) => {
-  const statusArr = ["completed", "pending", "failed"];
-  const descArr = [
-    "Nạp tiền vào ví",
-    "Mua gói AI Premium",
-    "Đặt bánh sinh nhật",
-    "Yêu cầu rút tiền",
-    "Thanh toán đơn hàng",
-    "Nhận tiền bán bánh",
-    "Hoàn tiền khiếu nại",
-  ];
-  return {
-    id: i + 1,
-    userId: `user${(i % 7) + 1}`,
-    type: descArr[i % descArr.length].toLowerCase().replace(/ /g, "_"),
-    amount: 1000000 + (i % 7) * 50000,
-    status: statusArr[i % statusArr.length],
-    timestamp: `2024-01-15T${String(10 + (i % 10)).padStart(2, "0")}:${String(
-      10 + (i % 50)
-    ).padStart(2, "0")}:00Z`,
-    description: descArr[i % descArr.length],
-  };
-});
-
 const WalletManagement = () => {
-  const [walletData, setWalletData] = useState(mockWalletData);
-  const [transactions, setTransactions] = useState(mockTransactions);
+  const [walletData, setWalletData] = useState({
+    holding: {
+      balance: 0,
+      currency: "VND",
+      description: "Tổng tiền nạp thành công",
+    },
+    floating: {
+      balance: 0,
+      currency: "VND",
+      description: "Doanh thu từ AI Generation",
+    },
+    accounting: {
+      balance: 0,
+      currency: "VND",
+      description: "Doanh thu hệ thống từ gói AI",
+    },
+    withdraw: {
+      balance: 0,
+      currency: "VND",
+      description: "Tổng tiền đã rút",
+    },
+  });
+  const [transactions, setTransactions] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -76,7 +50,8 @@ const WalletManagement = () => {
   // Filter states
   const [filters, setFilters] = useState({
     status: "",
-    user_id: "",
+  user_id: "",
+  type: "",
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -98,13 +73,57 @@ const WalletManagement = () => {
         aiRevenueResponse,
         allWalletsResponse,
         withdrawResponse,
+        ordersResponse,
+        usersResponse,
       ] = await Promise.allSettled([
         fetchSystemWalletBalance(),
         fetchAllDepositsAdmin(appliedFilters), // Pass filters to API call
         fetchTotalAmountAiGenerate(), // Fetch AI revenue
         fetchAllUserWallets(), // Fetch all user wallets for total balance
         fetchAllWithdrawHistory(), // Fetch withdraw data
+        fetchAllOrders(), // Fetch all cake orders (purchases)
+        fetchAllUsers(), // Fetch all users to map full names
       ]);
+
+      // Build a user map for quick lookup of display names
+      const usersMap = (() => {
+        if (usersResponse?.status !== "fulfilled") return {};
+        const data = usersResponse.value;
+        const arr = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data?.users)
+          ? data.users
+          : [];
+        const toName = (u) =>
+          u?.full_name ||
+          u?.fullName ||
+          (u?.first_name && u?.last_name
+            ? `${u.first_name} ${u.last_name}`
+            : u?.name || u?.username || u?.email || "User");
+        const map = {};
+        arr.forEach((u) => {
+          const id = u?.id ?? u?.user_id;
+          if (id != null) map[id] = toName(u);
+        });
+        return map;
+      })();
+
+      const resolveUserDisplay = (rawId, embeddedUser) => {
+        // Prefer embedded full name if available
+        const embeddedName =
+          embeddedUser?.full_name ||
+          embeddedUser?.fullName ||
+          (embeddedUser?.first_name && embeddedUser?.last_name
+            ? `${embeddedUser.first_name} ${embeddedUser.last_name}`
+            : embeddedUser?.name || embeddedUser?.username || null);
+        if (embeddedName) return embeddedName;
+        // Then lookup from usersMap
+        if (rawId != null && usersMap[rawId]) return usersMap[rawId];
+        // Fallback
+        return rawId != null ? `user${rawId}` : "User";
+      };
 
       // Update wallet data với system balance (holding wallet)
       if (systemBalanceResponse.status === "fulfilled") {
@@ -123,7 +142,10 @@ const WalletManagement = () => {
         }));
       }
 
-      // Update transactions với deposit data thật
+      // Build unified recent transactions from deposits + withdraws + orders
+      let unifiedTransactions = [];
+
+      // Deposits
       if (depositsResponse.status === "fulfilled") {
         const depositsData = depositsResponse.value;
         console.log("Deposits data:", depositsData);
@@ -158,12 +180,16 @@ const WalletManagement = () => {
         console.log("Deposits count:", deposits.length);
 
         if (deposits.length > 0) {
-          const transformedTransactions = deposits.map((deposit) => ({
+          const depositTx = deposits.map((deposit) => ({
             id: deposit.id,
+            // Keep numeric/string ID for filtering
             userId:
-              deposit.user?.username ||
-              deposit.user?.full_name ||
-              `user${deposit.user_id}`,
+              deposit.user_id ?? deposit.user?.id ?? deposit.user?.user_id ?? "",
+            // Prefer full name for display
+            userDisplay: resolveUserDisplay(
+              deposit.user_id ?? deposit.user?.id ?? deposit.user?.user_id,
+              deposit.user
+            ),
             type: "deposit",
             amount: parseFloat(deposit.amount) || 0,
             status:
@@ -176,14 +202,10 @@ const WalletManagement = () => {
             description: "Nạp tiền vào ví",
           }));
 
-          setTransactions(transformedTransactions);
-          console.log("Transformed transactions:", transformedTransactions);
-        } else {
-          console.log("No deposits found, keeping mock transactions");
-          // Keep mock transactions if no real data
-        }
-      }
-
+          unifiedTransactions = [...unifiedTransactions, ...depositTx];
+          console.log("Deposit transactions prepared:", depositTx.length);
+  }
+  }
       // Update floating wallet với AI revenue data thật
       if (aiRevenueResponse.status === "fulfilled") {
         const aiRevenueData = aiRevenueResponse.value;
@@ -313,7 +335,7 @@ const WalletManagement = () => {
         setTotalUserWalletsBalance(totalBalance);
       }
 
-      // Update withdraw wallet với withdraw data thật
+      // Withdraws -> update wallet card + contribute to unified list
       if (withdrawResponse.status === "fulfilled") {
         const wd = withdrawResponse.value;
         console.log("Withdraw data received:", wd);
@@ -385,6 +407,22 @@ const WalletManagement = () => {
         let totalPendingWithdraw = 0;
         let totalCompletedWithdraw = 0;
 
+        const withdrawTx = (withdraws || []).map((w) => ({
+          id: w.id || w.withdraw_id || w.request_id || w.transaction_id,
+          // Keep raw id for filter
+          userId: w.user_id ?? w.user?.id ?? w.user?.user_id ?? "",
+          // Prefer full name for display
+          userDisplay: resolveUserDisplay(
+            w.user_id ?? w.user?.id ?? w.user?.user_id,
+            w.user
+          ),
+          type: "withdraw",
+          amount: toNumber(w?.amount),
+          status: normalizeStatus(w?.status),
+          timestamp: w.created_at || w.createdAt || w.updated_at || w.updatedAt,
+          description: "Yêu cầu rút tiền",
+        }));
+
         (withdraws || []).forEach((w) => {
           const st = normalizeStatus(w?.status);
           const amt = toNumber(w?.amount);
@@ -421,7 +459,116 @@ const WalletManagement = () => {
           amount: totalPendingWithdraw,
           count: pendingCount,
         });
+
+        unifiedTransactions = [...unifiedTransactions, ...withdrawTx];
       }
+
+      // Orders (purchases)
+      if (ordersResponse && ordersResponse.status === "fulfilled") {
+        let orders = [];
+        const ordersData = ordersResponse.value;
+        if (Array.isArray(ordersData)) orders = ordersData;
+        else if (Array.isArray(ordersData?.orders)) orders = ordersData.orders;
+        else if (Array.isArray(ordersData?.data)) orders = ordersData.data;
+
+        const toNumber = (a) => {
+          if (typeof a === "number") return a;
+          if (a == null) return 0;
+          let s = String(a)
+            .trim()
+            .replace(/[^0-9.,-]/g, "");
+          if (s.includes(",") && s.includes(".")) {
+            const lastComma = s.lastIndexOf(",");
+            const lastDot = s.lastIndexOf(".");
+            const dec = lastComma > lastDot ? "," : ".";
+            if (dec === ",") {
+              s = s.replace(/\./g, "").replace(",", ".");
+            } else {
+              s = s.replace(/,/g, "");
+            }
+          } else if (s.includes(",")) s = s.replace(/,/g, "");
+          const n = parseFloat(s);
+          return Number.isFinite(n) ? n : 0;
+        };
+
+        const normalizeOrderStatus = (raw) => {
+          const s = String(raw || "").toLowerCase();
+          if (
+            [
+              "paid",
+              "completed",
+              "complete",
+              "delivered",
+              "shipped",
+              "success",
+            ].includes(s)
+          )
+            return "completed";
+          if (
+            [
+              "pending",
+              "processing",
+              "in_progress",
+              "created",
+              "ordered",
+            ].includes(s)
+          )
+            return "pending";
+          if (["failed", "rejected", "cancelled", "canceled"].includes(s))
+            return "failed";
+          return "pending";
+        };
+
+        const orderTx = orders.map((order) => ({
+          id: order.id || order.order_id,
+          // Keep raw id for filter
+          userId:
+            order.user_id ?? order.customer_id ?? order.customer?.id ?? "",
+          // Prefer full name for display
+          userDisplay: resolveUserDisplay(
+            order.user_id ?? order.customer_id ?? order.customer?.id,
+            order.customer
+          ),
+          type: "order",
+          amount: toNumber(
+            order.total ?? order.total_price ?? order.totalPrice ?? order.amount
+          ),
+          status: normalizeOrderStatus(order.status || order.payment_status),
+          timestamp:
+            order.created_at ||
+            order.createdAt ||
+            order.updated_at ||
+            order.updatedAt,
+          description: "Mua bánh",
+        }));
+
+        unifiedTransactions = [...unifiedTransactions, ...orderTx];
+      }
+
+      // Apply client-side filters if provided
+      if (
+        appliedFilters &&
+        (appliedFilters.status || appliedFilters.user_id || appliedFilters.type)
+      ) {
+        unifiedTransactions = unifiedTransactions.filter((t) => {
+          let ok = true;
+          if (appliedFilters.status)
+            ok = ok && t.status === appliedFilters.status;
+          if (appliedFilters.user_id)
+            ok =
+              ok && String(t.userId).includes(String(appliedFilters.user_id));
+          if (appliedFilters.type) ok = ok && t.type === appliedFilters.type;
+          return ok;
+        });
+      }
+
+      // Sort by time desc and set to state (always set, even if empty)
+      unifiedTransactions.sort(
+        (a, b) =>
+          new Date(b.timestamp || b.created_at) -
+          new Date(a.timestamp || a.created_at)
+      );
+      setTransactions(unifiedTransactions);
 
       // Keep original admin wallet fetch for accounting
       const response = await getAdminWallet();
@@ -463,52 +610,8 @@ const WalletManagement = () => {
       setLoading(true);
       setError(null); // Reset error state
 
-      // Nếu modal đang mở, chỉ cập nhật dữ liệu trong modal
-      if (showTransactionModal) {
-        const response = await fetchAllDepositsAdmin(filters);
-        console.log("Filtered data response:", response);
-
-        // Kiểm tra response có hợp lệ không
-        if (
-          response &&
-          response.data &&
-          Array.isArray(response.data.deposits)
-        ) {
-          // Transform deposits thành transactions format
-          const transformedTransactions = response.data.deposits.map(
-            (deposit) => ({
-              id: deposit.id,
-              userId:
-                deposit.user?.username ||
-                deposit.user?.full_name ||
-                `user${deposit.user_id}`,
-              type: "deposit",
-              amount: parseFloat(deposit.amount) || 0,
-              status:
-                deposit.status === "completed"
-                  ? "completed"
-                  : deposit.status === "pending"
-                  ? "pending"
-                  : "failed",
-              timestamp: deposit.created_at || deposit.createdAt,
-              description: "Nạp tiền vào ví",
-            })
-          );
-
-          setTransactions(transformedTransactions);
-          console.log(
-            "Filtered and transformed transactions:",
-            transformedTransactions
-          );
-        } else {
-          console.warn("Invalid response structure:", response);
-          // Nếu không có dữ liệu hợp lệ, set empty array
-          setTransactions([]);
-        }
-      } else {
-        // Nếu không có modal, cập nhật toàn bộ
-        await fetchAdminWalletData(filters);
-      }
+      // Luôn cập nhật toàn bộ từ các nguồn (deposit + withdraw + orders)
+      await fetchAdminWalletData(filters);
 
       setShowFilters(false);
     } catch (error) {
@@ -528,7 +631,8 @@ const WalletManagement = () => {
   const handleResetFilters = () => {
     const resetFilters = {
       status: "",
-      user_id: "",
+  user_id: "",
+  type: "",
     };
     setFilters(resetFilters);
     fetchAdminWalletData(resetFilters);
@@ -641,12 +745,14 @@ const WalletManagement = () => {
                 >
                   {getWalletIcon(key)}
                 </div>
-                <button
-                  onClick={() => handleViewTransactions(key)}
-                  className="text-pink-600 hover:text-pink-700 text-sm font-medium"
-                >
-                  Xem chi tiết
-                </button>
+                {(key === "holding" || key === "withdraw") && (
+                  <button
+                    onClick={() => handleViewTransactions(key)}
+                    className="text-pink-600 hover:text-pink-700 text-sm font-medium"
+                  >
+                    Xem chi tiết
+                  </button>
+                )}
               </div>
 
               <h3 className="text-lg font-semibold text-gray-800 mb-2 capitalize">
@@ -702,6 +808,16 @@ const WalletManagement = () => {
             <h2 className="text-2xl font-bold text-gray-800">
               Giao Dịch Gần Đây
             </h2>
+            <button
+              onClick={() => {
+                setSelectedWallet("all");
+                setShowTransactionModal(true);
+                setCurrentPage(1);
+              }}
+              className="text-pink-600 hover:text-pink-700 font-medium"
+            >
+              Xem tất cả
+            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -723,9 +839,9 @@ const WalletManagement = () => {
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">
                     Thời Gian
                   </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                      Chi tiết
-                    </th>
+                  <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    Chi tiết
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -735,7 +851,7 @@ const WalletManagement = () => {
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
                     <td className="py-3 px-4 font-medium text-gray-900">
-                      {transaction.userId}
+                      {transaction.userDisplay || transaction.userId}
                     </td>
                     <td className="py-3 px-4 text-gray-700">
                       {transaction.description}
@@ -757,16 +873,38 @@ const WalletManagement = () => {
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {new Date(transaction.timestamp).toLocaleString("vi-VN")}
                     </td>
-                      <td className="py-3 px-4">
-                        {transaction.type === "deposit" && (
-                          <button
-                            className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
-                            onClick={() => navigate(`/admin/deposits/${transaction.id}`)}
-                          >
-                            Chi tiết
-                          </button>
-                        )}
-                      </td>
+                    <td className="py-3 px-4">
+                      {transaction.type === "deposit" && (
+                        <button
+                          className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
+                          onClick={() =>
+                            navigate(`/admin/deposits/${transaction.id}`)
+                          }
+                        >
+                          Chi tiết
+                        </button>
+                      )}
+                      {transaction.type === "withdraw" && (
+                        <button
+                          className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
+                          onClick={() =>
+                            navigate(
+                              `/admin/withdraw-requests/${transaction.id}`
+                            )
+                          }
+                        >
+                          Chi tiết
+                        </button>
+                      )}
+            {transaction.type === "order" && (
+                        <button
+                          className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
+              onClick={() => navigate(`/admin/order-tracking/${transaction.id}`)}
+                        >
+                          Chi tiết
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -823,7 +961,7 @@ const WalletManagement = () => {
             {/* Filter Panel trong Modal */}
             {showFilters && (
               <div className="bg-gray-50 border rounded-lg p-4 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Status Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -856,6 +994,23 @@ const WalletManagement = () => {
                       placeholder="Nhập User ID"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                     />
+                  </div>
+
+                  {/* Type Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Loại Giao Dịch
+                    </label>
+                    <select
+                      value={filters.type}
+                      onChange={(e) => handleFilterChange("type", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                    >
+                      <option value="">Tất cả</option>
+                      <option value="deposit">Nạp tiền</option>
+                      <option value="withdraw">Rút tiền</option>
+                      <option value="order">Mua bánh</option>
+                    </select>
                   </div>
                 </div>
 
@@ -928,7 +1083,7 @@ const WalletManagement = () => {
                         className="border-b border-gray-100 hover:bg-gray-50"
                       >
                         <td className="py-3 px-4 font-medium text-gray-900">
-                          {transaction.userId}
+                          {transaction.userDisplay || transaction.userId}
                         </td>
                         <td className="py-3 px-4 text-gray-700">
                           {transaction.description}
@@ -959,6 +1114,28 @@ const WalletManagement = () => {
                               onClick={() => {
                                 setShowTransactionModal(false);
                                 navigate(`/admin/deposits/${transaction.id}`);
+                              }}
+                            >
+                              Chi tiết
+                            </button>
+                          )}
+                          {transaction.type === "withdraw" && (
+                            <button
+                              className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
+                              onClick={() => {
+                                setShowTransactionModal(false);
+                                navigate(`/admin/withdraw-requests/${transaction.id}`);
+                              }}
+                            >
+                              Chi tiết
+                            </button>
+                          )}
+                          {transaction.type === "order" && (
+                            <button
+                              className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
+                              onClick={() => {
+                                setShowTransactionModal(false);
+                                navigate(`/admin/order-tracking/${transaction.id}`);
                               }}
                             >
                               Chi tiết

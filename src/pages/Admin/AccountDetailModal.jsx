@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { fetchShopByUserId } from "../../api/axios";
+import { Link } from "react-router-dom";
+import { fetchShopByUserId, deactivateShop } from "../../api/axios";
 
 const AccountDetailModal = ({
   showModal,
@@ -12,6 +13,9 @@ const AccountDetailModal = ({
 }) => {
   const [shopInfo, setShopInfo] = useState(null);
   const [shopLoading, setShopLoading] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
 
   useEffect(() => {
     if (showModal && selectedAccount && getIsBaker(selectedAccount)) {
@@ -215,6 +219,65 @@ const AccountDetailModal = ({
                         {shopInfo.latitude ?? "N/A"}
                       </span>
                     </div>
+
+                    {/* Actions: view shop and deactivate */}
+                    <div className="mt-4 flex items-center justify-end gap-3">
+                      {selectedAccount?.id && (
+                        <Link
+                          to={`/marketplace/shop/${selectedAccount.id}`}
+                          className="inline-flex items-center px-4 py-2 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm font-medium"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Xem shop
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        disabled={deactivating || shopInfo?.is_active === false}
+                        onClick={async () => {
+                          try {
+                            setActionError("");
+                            setActionSuccess("");
+                            setDeactivating(true);
+                            await deactivateShop(selectedAccount.id);
+                            setActionSuccess("Đã vô hiệu hóa cửa hàng");
+                            // Optimistic update
+                            setShopInfo((prev) =>
+                              prev ? { ...prev, is_active: false } : prev
+                            );
+                          } catch (e) {
+                            setActionError(
+                              e?.response?.data?.message ||
+                                e?.message ||
+                                "Không thể vô hiệu hóa cửa hàng"
+                            );
+                          } finally {
+                            setDeactivating(false);
+                          }
+                        }}
+                        className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          shopInfo?.is_active === false
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                            : "bg-red-50 text-red-700 hover:bg-red-100"
+                        }`}
+                      >
+                        {deactivating
+                          ? "Đang vô hiệu hóa..."
+                          : "Vô hiệu hóa shop"}
+                      </button>
+                    </div>
+
+                    {(actionError || actionSuccess) && (
+                      <div className="mt-3 text-sm">
+                        {actionError && (
+                          <div className="text-red-600">{actionError}</div>
+                        )}
+                        {actionSuccess && (
+                          <div className="text-green-600">{actionSuccess}</div>
+                        )}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-center text-gray-400 italic">
