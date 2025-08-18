@@ -79,7 +79,7 @@ export default function EditProfile() {
         avatar: avatarUrl,
         is_Baker: true, // hoặc lấy từ form nếu có checkbox
       });
-      alert("Cập nhật hồ sơ thành công!");
+
       navigate(-1);
     } catch (err) {
       alert("Cập nhật thất bại!");

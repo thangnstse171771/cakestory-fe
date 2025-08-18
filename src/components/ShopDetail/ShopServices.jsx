@@ -407,11 +407,6 @@ const ShopServices = ({
             tiên trên thị trường. Chia sẻ những sáng tạo ngon miệng của bạn với
             khách hàng!
           </p>
-          {isOwner && (
-            <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-8 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-              Tạo Sản Phẩm Đầu Tiên
-            </button>
-          )}
         </div>
       )}
     </div>

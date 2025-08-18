@@ -264,20 +264,33 @@ const ShopDetail = ({ id: propId }) => {
       {/* Shop Analytics Summary Component */}
       {isOwner && (
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-xl text-pink-500">Phân tích Shop</h3>
-            <button
-              onClick={() => navigate("/marketplace/shop-analytics")}
-              className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors shadow-md"
-              style={{ boxShadow: "0 2px 8px 0 #f9a8d4" }}
-            >
-              <span role="img" aria-label="analytics">
-                📊
-              </span>
-              Xem chi tiết phân tích
-            </button>
+          <div className="bg-white rounded-2xl shadow-lg border border-pink-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-xl text-white flex items-center gap-2">
+                    <span>📊</span>
+                    Phân tích Shop
+                  </h3>
+                  <p className="text-pink-100 text-sm mt-1">
+                    Tổng quan hiệu suất cửa hàng của bạn
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/marketplace/shop-analytics")}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors shadow-md backdrop-blur-sm border border-white/30"
+                >
+                  <span role="img" aria-label="analytics">
+                    �
+                  </span>
+                  Xem chi tiết
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <ShopAnalysticSummary />
+            </div>
           </div>
-          <ShopAnalysticSummary />
         </div>
       )}
 

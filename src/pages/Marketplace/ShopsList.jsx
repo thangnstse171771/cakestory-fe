@@ -209,13 +209,7 @@ const ShopsList = () => {
                 {shop.delivery_area}
               </div>
             </div>
-            <div className="flex items-center justify-center space-x-1 mb-3">
-              <Star className="w-4 h-4 text-yellow-400 fill-current" />
-              <span className="text-sm font-medium text-gray-700">
-                {shop.rating}
-              </span>
-              <span className="text-sm text-gray-500">({shop.reviews})</span>
-            </div>
+            <div className="flex items-center justify-center space-x-1 mb-3"></div>
             <button
               className="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition-colors mt-auto font-semibold shadow"
               onClick={() => navigate(`/marketplace/shop/${shop.user_id}`)}
