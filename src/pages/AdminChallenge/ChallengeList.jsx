@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import CreateChallengeModal from "./CreateChallengeModal";
 import ChallengeCard from "./ChallengeCard";
 import { getAllChallenges } from "../../api/challenge";
 import toast from "react-hot-toast";
+import CreateChallenge from "./CreateChallenge";
 
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
@@ -238,7 +238,7 @@ export default function ChallengeList({ onViewDetail, onViewMembers, onEdit }) {
 
       {/* Create Challenge Modal */}
       {showCreateModal && (
-        <CreateChallengeModal
+        <CreateChallenge
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
         />
