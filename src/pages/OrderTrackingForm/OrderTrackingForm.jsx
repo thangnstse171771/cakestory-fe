@@ -202,6 +202,14 @@ export default function OrderTrackingForm({
   const isUserHistoryPage = (location?.pathname || "").startsWith(
     "/order-tracking-user"
   );
+  // Detect admin orders page
+  const isAdminOrdersPage = (location?.pathname || "").startsWith(
+    "/admin/order-tracking"
+  );
+  // Detect shop orders page (default order-tracking page, not user/admin)
+  const isShopOrdersPage =
+    !isUserHistoryPage && !isAdminOrdersPage &&
+    (location?.pathname || "").startsWith("/order-tracking");
 
   // Memoized role and permission calculations
   const { role, isShopActor, inferredUserShopId } = useMemo(() => {
@@ -594,7 +602,14 @@ export default function OrderTrackingForm({
       String(user.email).toLowerCase() ===
         String(orderDetail.customerEmail).toLowerCase()
   );
-  const isOrderOwner = idMatches || emailMatches;
+  const customerNameStr = String(orderDetail?.customerName || "").toLowerCase();
+  const currentUsernameStr = String(
+    user?.username || user?.full_name || user?.name || ""
+  ).toLowerCase();
+  const nameMatches = Boolean(
+    customerNameStr && currentUsernameStr && customerNameStr === currentUsernameStr
+  );
+  const isOrderOwner = idMatches || emailMatches || nameMatches;
 
   const orderShopIdStr = extractShopId(orderDetail, marketplacePost)
     ? String(extractShopId(orderDetail, marketplacePost))
@@ -610,6 +625,15 @@ export default function OrderTrackingForm({
   );
   // On user history page, even if viewer belongs to the shop, do not allow shop transitions
   const canShopControlHere = canShopControl && !isUserHistoryPage;
+
+  // Only customer accounts can perform end-customer actions; however, on the user history route
+  // a dual-role account (also a shop) should still act as a customer.
+  const isCustomerRole =
+    isUserHistoryPage ||
+    role === "customer" ||
+    role === "user" ||
+    Boolean(user?.is_customer);
+  const canOwnerCustomerActions = Boolean(isOrderOwner && isCustomerRole);
 
   const hasComplaint = Boolean(
     orderDetail &&
@@ -713,7 +737,10 @@ export default function OrderTrackingForm({
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        {isOrderOwner && orderDetail.status === "shipped" && !hasComplaint && (
+        {canOwnerCustomerActions &&
+          !isShopOrdersPage &&
+          orderDetail.status === "shipped" &&
+          !hasComplaint && (
           <button
             className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
             onClick={() => setShowComplaintModal(true)}
@@ -762,7 +789,7 @@ export default function OrderTrackingForm({
               Cập nhật trạng thái
             </h3>
             <div className="flex flex-wrap gap-2 mb-4">
-              {isOrderOwner &&
+              {canOwnerCustomerActions &&
                 orderDetail.status === "pending" &&
                 orderDetail.status !== "completed" &&
                 orderDetail.status !== "cancelled" && (
@@ -801,7 +828,8 @@ export default function OrderTrackingForm({
                   </button>
                 )}
 
-              {isOrderOwner &&
+              {canOwnerCustomerActions &&
+                !isShopOrdersPage &&
                 orderDetail.status === "shipped" &&
                 !hasComplaint && (
                   <button

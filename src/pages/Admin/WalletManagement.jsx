@@ -723,6 +723,9 @@ const WalletManagement = () => {
                   <th className="text-left py-3 px-4 font-semibold text-gray-700">
                     Thời Gian
                   </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Chi tiết
+                    </th>
                 </tr>
               </thead>
               <tbody>
@@ -754,6 +757,16 @@ const WalletManagement = () => {
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {new Date(transaction.timestamp).toLocaleString("vi-VN")}
                     </td>
+                      <td className="py-3 px-4">
+                        {transaction.type === "deposit" && (
+                          <button
+                            className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
+                            onClick={() => navigate(`/admin/deposits/${transaction.id}`)}
+                          >
+                            Chi tiết
+                          </button>
+                        )}
+                      </td>
                   </tr>
                 ))}
               </tbody>
@@ -898,6 +911,9 @@ const WalletManagement = () => {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
                       Thời Gian
                     </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Chi tiết
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -934,6 +950,19 @@ const WalletManagement = () => {
                         <td className="py-3 px-4 text-sm text-gray-600">
                           {new Date(transaction.timestamp).toLocaleString(
                             "vi-VN"
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {transaction.type === "deposit" && (
+                            <button
+                              className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
+                              onClick={() => {
+                                setShowTransactionModal(false);
+                                navigate(`/admin/deposits/${transaction.id}`);
+                              }}
+                            >
+                              Chi tiết
+                            </button>
                           )}
                         </td>
                       </tr>
