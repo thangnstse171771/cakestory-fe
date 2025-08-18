@@ -335,6 +335,8 @@ export default function OrderTrackingList({
         orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
         placedDate: data.created_at || data.createdAt,
         status: data.status,
+        customer_user_id:
+          userObj.id || userObj.user_id || data.customer_id || null,
         customerName,
         customerEmail,
         customerPhone,
@@ -633,7 +635,9 @@ export default function OrderTrackingList({
                   <tr className="text-left">
                     <th className="px-4 py-3 font-semibold">#</th>
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
-                    <th className="px-4 py-3 font-semibold">Số SP</th>
+                    <th className="px-4 py-3 font-semibold">
+                      Số SP đi kèm bánh
+                    </th>
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
                     <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
