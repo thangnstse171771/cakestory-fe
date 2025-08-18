@@ -54,6 +54,7 @@ import UserWallet from "./pages/Wallet/UserWallet";
 import WithdrawRequest from "./pages/Wallet/WithdrawRequest";
 import WithdrawHistory from "./pages/Wallet/WithdrawHistory";
 import AllPaymentHistory from "./pages/Wallet/AllPaymentHistory";
+import DepositHistoryDetails from "./pages/Wallet/DepositHistoryDetails";
 import CustomizedOrderDetails from "./pages/CustomizedOrderForm/CustomizedOrderDetails";
 import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
 import "./App.css";
@@ -213,6 +214,10 @@ export default function App() {
             <Route path="withdraw" element={<WithdrawRequest />} />
             <Route path="withdraw-history" element={<WithdrawHistory />} />
             <Route path="all-transactions" element={<AllPaymentHistory />} />
+            <Route
+              path="wallet/deposits/:id"
+              element={<DepositHistoryDetails />}
+            />
             <Route path="suggested-users" element={<SuggestedUsers />} />
             <Route path="album/:id" element={<AlbumDetail />} />
             <Route path="complaints" element={<ComplaintList />} />

@@ -326,7 +326,17 @@ const AllPaymentHistory = () => {
 
         const processedDeposits = deposits.map((deposit) => ({
           ...deposit,
-          type: "deposit",
+          // Ensure a stable id for list dedupe and keys
+          id:
+            deposit.id ||
+            deposit.deposit_id ||
+            deposit.payment_id ||
+            deposit.transaction_id ||
+            deposit.deposit_code ||
+            `dep-${
+              deposit.created_at || deposit.createdAt || Date.now().toString()
+            }`,
+          type: "deposit", // canonical type for filters
           transactionType: "Nạp tiền",
           icon: <ArrowDownLeft className="w-4 h-4 text-green-500" />,
           amountPrefix: "+",
@@ -377,7 +387,18 @@ const AllPaymentHistory = () => {
 
         const processedWithdrawals = withdrawals.map((withdrawal) => ({
           ...withdrawal,
-          type: "withdraw",
+          // Ensure a stable id for list dedupe and keys
+          id:
+            withdrawal.id ||
+            withdrawal.withdraw_id ||
+            withdrawal.transaction_id ||
+            withdrawal.request_id ||
+            `wd-${
+              withdrawal.created_at ||
+              withdrawal.createdAt ||
+              Date.now().toString()
+            }`,
+          type: "withdraw", // canonical type for filters
           transactionType: "Rút tiền",
           icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
           amountPrefix: "-",
@@ -423,9 +444,11 @@ const AllPaymentHistory = () => {
 
         const processedOrders = orders.map((order) => {
           const amount = toNumber(
-            order.total ?? order.total_price ?? order.totalPrice
+            order.total ?? order.total_price ?? order.totalPrice ?? order.amount
           );
-          const rawStatus = (order.status || "").toString().toLowerCase();
+          const rawStatus = (order.status || order.payment_status || "")
+            .toString()
+            .toLowerCase();
           let normalized = rawStatus;
           if (
             [
@@ -453,24 +476,23 @@ const AllPaymentHistory = () => {
           ) {
             normalized = "failed";
           }
+          const createdAtVal =
+            order.created_at ||
+            order.createdAt ||
+            order.updated_at ||
+            order.updatedAt ||
+            order.payment_time ||
+            new Date().toISOString();
           return {
-            id:
-              order.id ??
-              order.order_id ??
-              `order-${Math.random().toString(36).slice(2)}`,
-            type: "purchase",
+            id: order.id || order.order_id || `order-${amount}-${createdAtVal}`,
+            type: "purchase", // canonical type for filters
             transactionType: "Mua bánh",
             icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
             amountPrefix: "-",
             amountColor: "text-red-600",
             amount,
             status: normalized || "pending",
-            created_at:
-              order.created_at ||
-              order.createdAt ||
-              order.updated_at ||
-              order.updatedAt ||
-              new Date().toISOString(),
+            created_at: createdAtVal,
             description:
               order.note ||
               order.size ||
@@ -483,8 +505,37 @@ const AllPaymentHistory = () => {
         allTransactions = [...allTransactions, ...processedOrders];
       }
 
+      // Robust dedupe by stable key
+      const dedupedMap = new Map();
+      const buildKey = (t) => {
+        const type = t.type || "unknown";
+        const idCandidate =
+          t.id ||
+          t.deposit_code ||
+          t.transaction_id ||
+          t.payment_id ||
+          t.request_id ||
+          t.orderRaw?.id ||
+          t.orderRaw?.order_id;
+        if (idCandidate != null) {
+          return `${type}::${String(idCandidate).toLowerCase()}`;
+        }
+        // Fallback: amount + minute bucket + extra marker
+        const amount = toNumber(t.amount);
+        const d = new Date(t.created_at || t.createdAt || Date.now());
+        const minuteBucket = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
+        const extra = String(t.bank_name || t.description || "").toLowerCase();
+        return `${type}::${amount}::${minuteBucket}::${extra}`;
+      };
+
+      for (const t of allTransactions) {
+        const key = buildKey(t);
+        if (!dedupedMap.has(key)) dedupedMap.set(key, t);
+      }
+      const dedupedTransactions = Array.from(dedupedMap.values());
+
       // Sort by date (newest first)
-      allTransactions.sort((a, b) => {
+      dedupedTransactions.sort((a, b) => {
         const dateA = new Date(a.created_at || a.createdAt || 0);
         const dateB = new Date(b.created_at || b.createdAt || 0);
         return dateB - dateA;
@@ -494,8 +545,8 @@ const AllPaymentHistory = () => {
       console.log("Total transactions after sorting:", allTransactions.length);
       console.log("First 3 transactions:", allTransactions.slice(0, 3));
 
-      setTransactions(allTransactions);
-      calculateStats(allTransactions);
+      setTransactions(dedupedTransactions);
+      calculateStats(dedupedTransactions);
     } catch (error) {
       console.error("Error loading transactions:", error);
       setError("Không thể tải lịch sử giao dịch. Vui lòng thử lại.");
@@ -814,10 +865,20 @@ const AllPaymentHistory = () => {
 
   // Update form values (not applied yet)
   const handleFilterFormChange = (field, value) => {
-    setFilterForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    // Update form state
+    setFilterForm((prev) => {
+      const next = { ...prev, [field]: value };
+      return next;
+    });
+
+    // Auto-apply filters so the list updates immediately
+    setAppliedFilters((prev) => {
+      const next = { ...prev, [field]: value };
+      return next;
+    });
+
+    // Reset to first page whenever a filter changes
+    setCurrentPage(1);
   };
 
   if (loading) {
@@ -934,10 +995,10 @@ const AllPaymentHistory = () => {
                 <p className="text-2xl font-bold text-green-600">
                   {stats.completedCount}
                 </p>
-                <div className="flex gap-4 text-xs text-gray-500 mt-2">
+                {/* <div className="flex gap-4 text-xs text-gray-500 mt-2">
                   <span>Chờ: {stats.pendingCount}</span>
                   <span>Lỗi: {stats.failedCount}</span>
-                </div>
+                </div> */}
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -1046,11 +1107,42 @@ const AllPaymentHistory = () => {
               <div className="divide-y divide-gray-200">
                 {currentTransactions.map((transaction, index) => {
                   const statusInfo = getStatusInfo(transaction.status);
+                  const goToDetails = () => {
+                    if (transaction.type === "deposit") {
+                      const depId =
+                        transaction.id ||
+                        transaction.deposit_code ||
+                        transaction.transaction_id;
+                      if (depId) navigate(`/wallet/deposits/${depId}`);
+                      return;
+                    }
+                    if (transaction.type === "withdraw") {
+                      const wdId =
+                        transaction.id ||
+                        transaction.withdraw_id ||
+                        transaction.transaction_id ||
+                        transaction.request_id;
+                      navigate(
+                        wdId ? `/withdraw-history#${wdId}` : `/withdraw-history`
+                      );
+                      return;
+                    }
+                    if (transaction.type === "purchase") {
+                      const orderId =
+                        transaction.orderRaw?.id ||
+                        transaction.orderRaw?.order_id ||
+                        transaction.id;
+                      if (orderId) navigate(`/order-tracking-user/${orderId}`);
+                    }
+                  };
 
                   return (
                     <div
-                      key={transaction.id || index}
-                      className="p-6 hover:bg-gray-50 transition-colors"
+                      key={`${transaction.type}-${transaction.id || index}-${
+                        transaction.created_at || transaction.createdAt || ""
+                      }`}
+                      className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={goToDetails}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
@@ -1061,6 +1153,9 @@ const AllPaymentHistory = () => {
                             <div className="flex items-center gap-3 mb-1">
                               <span className="font-semibold text-gray-800">
                                 {transaction.transactionType}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] uppercase bg-gray-100 text-gray-500">
+                                {transaction.type}
                               </span>
                               <span
                                 className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color}`}
@@ -1097,9 +1192,23 @@ const AllPaymentHistory = () => {
                             {transaction.amountPrefix}
                             {formatAmount(transaction.amount)} đ
                           </div>
-                          <div className="text-xs text-gray-400">
+                          {/* <div className="text-xs text-gray-400">
                             #{transaction.id || startIndex + index + 1}
-                          </div>
+                          </div> */}
+                          {transaction.type !== "deposit" && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToDetails();
+                              }}
+                              className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium text-pink-600 hover:bg-pink-50"
+                              aria-label="Xem chi tiết giao dịch"
+                            >
+                              Xem chi tiết
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
