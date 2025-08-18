@@ -272,9 +272,6 @@ const MyPost = () => {
               />
             </div>
             <div className="flex gap-2">
-              <button className="p-3 bg-pink-500 text-white backdrop-blur-sm border border-white/20 rounded-xl hover:bg-pink-400 transition-all duration-300">
-                <Filter className="w-5 h-5" />
-              </button>
               <div className="flex bg-pink-500 backdrop-blur-sm border border-white/20 rounded-xl overflow-hidden text-white">
                 <button
                   onClick={() => setViewMode("grid")}
