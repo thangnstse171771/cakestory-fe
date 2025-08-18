@@ -165,24 +165,6 @@ const ProductDetail = () => {
               <ArrowLeft className="w-5 h-5" />
               <span className="font-medium">Back</span>
             </button>
-
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsWishlisted(!isWishlisted)}
-                className={`p-2 rounded-full transition-colors ${
-                  isWishlisted
-                    ? "bg-pink-100 text-pink-600"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                <Heart
-                  className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`}
-                />
-              </button>
-              <button className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-                <Share2 className="w-5 h-5" />
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -415,19 +397,6 @@ const ProductDetail = () => {
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">
                     {shop.business_name}
                   </h3>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className="w-4 h-4 text-yellow-400 fill-current"
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      (4.9 • 2.1k reviews)
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -466,16 +435,6 @@ const ProductDetail = () => {
                     <div>
                       <div className="text-sm text-gray-600">Giờ làm việc</div>
                       <div className="font-medium">{shop.business_hours}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Star className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600">Chuyên môn</div>
-                      <div className="font-medium">{shop.specialty}</div>
                     </div>
                   </div>
                 </div>

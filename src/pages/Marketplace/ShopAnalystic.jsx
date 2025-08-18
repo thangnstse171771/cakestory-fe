@@ -18,20 +18,12 @@ import {
   ShoppingCartOutlined,
   ArrowLeftOutlined,
   BarChartOutlined,
-  LineChartOutlined,
   PieChartOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip as RTooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -62,20 +54,11 @@ import {
   fetchShopMonthlyRevenue,
 } from "../../api/shopStats";
 
-// Dữ liệu dự phòng cho biểu đồ (sử dụng khi API lỗi)
-const revenueData = [
-  { month: "T1", revenue: 2000000 },
-  { month: "T2", revenue: 2500000 },
-  { month: "T3", revenue: 1800000 },
-  { month: "T4", revenue: 3000000 },
-  { month: "T5", revenue: 2200000 },
-  { month: "T6", revenue: 2700000 },
-  { month: "T7", revenue: 1200000 },
-];
+// Dữ liệu dự phòng cho biểu đồ đơn hàng (sử dụng khi API lỗi)
 const orderData = [
-  { name: "Đã hoàn thành", value: 220, color: "#52c41a" },
-  { name: "Đang xử lý", value: 70, color: "#1890ff" },
-  { name: "Đã hủy", value: 30, color: "#ff7875" },
+  { name: "Đã hoàn thành", value: 0, color: "#52c41a" },
+  { name: "Đang xử lý", value: 0, color: "#1890ff" },
+  { name: "Đã hủy", value: 0, color: "#ff7875" },
 ];
 const COLORS = [
   "#52c41a",
@@ -111,12 +94,10 @@ const ShopAnalystic = ({ onBack }) => {
     totalOrders: 0,
     totalProducts: 0,
     totalRevenue: 0,
-    rating: 0,
     totalCustomers: 0,
     completionRate: 0,
   });
   const [orderStatsData, setOrderStatsData] = useState([]);
-  const [revenueChartData, setRevenueChartData] = useState([]);
   const [monthlyRevenue, setMonthlyRevenue] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -211,7 +192,6 @@ const ShopAnalystic = ({ onBack }) => {
 
           setMonthlyRevenue({
             current: monthlyTotal,
-            target: 10000000, // Mục tiêu 10 triệu VND
             month:
               monthlyRevenueResponse.data?.month_info?.current_month ||
               "Tháng hiện tại",
@@ -225,21 +205,8 @@ const ShopAnalystic = ({ onBack }) => {
             completionRate: parseFloat(
               orderStatsResponse.data?.completion_rate || 0
             ),
-            rating: 4.5, // TODO: Fetch từ API review nếu có
             totalProducts: 0, // Sẽ fetch từ marketplace posts
           });
-
-          // Tạo dữ liệu cho biểu đồ doanh thu (mock data - có thể thay bằng API thực tế)
-          const revenueChartData = [
-            { month: "T1", revenue: totalRevenue * 0.8 },
-            { month: "T2", revenue: totalRevenue * 0.9 },
-            { month: "T3", revenue: totalRevenue * 0.7 },
-            { month: "T4", revenue: totalRevenue * 1.1 },
-            { month: "T5", revenue: totalRevenue * 0.95 },
-            { month: "T6", revenue: totalRevenue * 1.2 },
-            { month: "T7", revenue: totalRevenue },
-          ];
-          setRevenueChartData(revenueChartData);
         } catch (apiError) {
           console.error("Error fetching shop statistics:", apiError);
           // Fallback với dữ liệu cũ nếu API mới lỗi
@@ -565,14 +532,14 @@ const ShopAnalystic = ({ onBack }) => {
                       size="small"
                       style={{
                         background:
-                          "linear-gradient(135deg, #fefce8 0%, #fef3c7 100%)",
+                          "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
                         border: "1px solid #f59e0b",
                       }}
                     >
                       <Statistic
-                        title="⭐ Đánh giá trung bình"
-                        value={loading ? 0 : shopStats.rating}
-                        suffix="★"
+                        title="📊 Sản phẩm hiện có"
+                        value={loading ? 0 : shopStats.totalProducts}
+                        suffix="sản phẩm"
                         valueStyle={{
                           color: "#d97706",
                           fontSize: "18px",
@@ -588,47 +555,58 @@ const ShopAnalystic = ({ onBack }) => {
                     <Card
                       title={
                         <span>
-                          <LineChartOutlined /> Doanh thu 7 tháng gần nhất
+                          <BarChartOutlined /> Hiệu suất hoạt động
                         </span>
                       }
                       variant={false}
                       style={{ minHeight: 320 }}
                     >
-                      <ResponsiveContainer width="100%" height={220}>
-                        <LineChart
-                          data={
-                            revenueChartData.length > 0
-                              ? revenueChartData
-                              : revenueData
-                          }
-                          margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                        >
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="#f0f0f0"
+                      <div style={{ padding: "20px 0" }}>
+                        <div style={{ marginBottom: 24 }}>
+                          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                            Hiệu quả hoàn thành đơn hàng (
+                            {shopStats.completionRate}%)
+                          </div>
+                          <Progress
+                            percent={shopStats.completionRate}
+                            strokeColor={{
+                              "0%": "#ff7875",
+                              "50%": "#fadb14",
+                              "100%": "#52c41a",
+                            }}
+                            trailColor="#f5f5f5"
                           />
-                          <XAxis dataKey="month" />
-                          <YAxis
-                            tickFormatter={(value) =>
-                              `${(value / 1000000).toFixed(1)}M`
-                            }
+                        </div>
+
+                        <div style={{ marginBottom: 24 }}>
+                          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                            Mức độ phổ biến - Khách hàng (
+                            {shopStats.totalCustomers}/200)
+                          </div>
+                          <Progress
+                            percent={Math.min(
+                              (shopStats.totalCustomers / 200) * 100,
+                              100
+                            )}
+                            strokeColor="#1890ff"
+                            trailColor="#f5f5f5"
                           />
-                          <RTooltip
-                            formatter={(v) => [
-                              `${parseFloat(v).toLocaleString()} VND`,
-                              "Doanh thu",
-                            ]}
+                        </div>
+
+                        <div>
+                          <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                            Đa dạng sản phẩm ({shopStats.totalProducts}/50)
+                          </div>
+                          <Progress
+                            percent={Math.min(
+                              (shopStats.totalProducts / 50) * 100,
+                              100
+                            )}
+                            strokeColor="#722ed1"
+                            trailColor="#f5f5f5"
                           />
-                          <Line
-                            type="monotone"
-                            dataKey="revenue"
-                            stroke="#52c41a"
-                            strokeWidth={3}
-                            dot={{ r: 5, fill: "#52c41a" }}
-                            activeDot={{ r: 8, fill: "#389e0d" }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                        </div>
+                      </div>
                     </Card>
                   </Col>
                   <Col span={12}>
@@ -1102,69 +1080,6 @@ const ShopAnalystic = ({ onBack }) => {
           },
         ]}
       />
-      <div className="shop-progress-section">
-        <Row gutter={24} align="middle">
-          <Col span={18}>
-            <h3 style={{ margin: 0 }}>
-              Tiến độ mục tiêu doanh thu {monthlyRevenue.month || "tháng này"}
-            </h3>
-            <div style={{ marginTop: 8 }}>
-              <Progress
-                percent={Math.min(
-                  Math.round(
-                    (monthlyRevenue.current / monthlyRevenue.target) * 100
-                  ),
-                  100
-                )}
-                status="active"
-                strokeColor={{
-                  "0%": "#52c41a",
-                  "100%": "#73d13d",
-                }}
-                trailColor="#f5f5f5"
-                strokeWidth={8}
-                format={(percent) => `${percent}%`}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginTop: 4,
-                  fontSize: "12px",
-                  color: "#666",
-                }}
-              >
-                <span>
-                  Hiện tại:{" "}
-                  {parseFloat(monthlyRevenue.current || 0).toLocaleString()} VND
-                </span>
-                <span>
-                  Mục tiêu:{" "}
-                  {parseFloat(monthlyRevenue.target || 0).toLocaleString()} VND
-                </span>
-              </div>
-            </div>
-          </Col>
-          <Col span={6}>
-            <Statistic
-              title="Còn lại để đạt mục tiêu"
-              value={Math.max(
-                0,
-                (monthlyRevenue.target || 0) - (monthlyRevenue.current || 0)
-              )}
-              suffix="VND"
-              valueStyle={{
-                color:
-                  (monthlyRevenue.current || 0) >= (monthlyRevenue.target || 0)
-                    ? "#52c41a"
-                    : "#f59e42",
-                fontSize: "16px",
-              }}
-              formatter={(value) => `${parseFloat(value).toLocaleString()}`}
-            />
-          </Col>
-        </Row>
-      </div>
     </div>
   );
 };

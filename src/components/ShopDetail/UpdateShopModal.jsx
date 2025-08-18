@@ -448,69 +448,6 @@ function UpdateShopModal({ open, onClose, shop, userId, onUpdated }) {
                 </div>
               </div>
 
-              {/* Map Section */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
-                <label className="block text-gray-800 font-semibold text-lg mb-4 flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
-                  </div>
-                  Vị trí Shop trên bản đồ
-                </label>
-                <div className="relative">
-                  <div className="w-full h-64 rounded-xl overflow-hidden border-2 border-green-200 relative">
-                    <iframe
-                      title="Google Map"
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      style={{
-                        border: 0,
-                        pointerEvents: "auto",
-                        cursor: "pointer",
-                      }}
-                      src={`https://maps.google.com/maps?q=${
-                        marker?.lat || 21.028511
-                      },${marker?.lng || 105.804817}&z=15&output=embed`}
-                      allowFullScreen
-                      onClick={handleMapClick}
-                    ></iframe>
-                    {marker && (
-                      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-green-700 px-4 py-2 rounded-full text-sm shadow-lg font-medium">
-                        📍 Lat: {marker.lat.toFixed(6)}, Lng:{" "}
-                        {marker.lng.toFixed(6)}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleMapClick}
-                    className="mt-3 bg-green-500 text-white px-6 py-2 rounded-full hover:bg-green-600 transition-colors text-sm font-medium"
-                  >
-                    📍 Nhấn để đặt vị trí
-                  </button>
-                  <p className="text-gray-500 text-sm mt-2">
-                    Nhấn vào nút trên để nhập toạ độ vị trí shop của bạn
-                  </p>
-                </div>
-              </div>
               {/* Form Fields Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* Business Name */}
