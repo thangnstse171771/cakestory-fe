@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createShop, fetchAllShops } from "../../api/axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -6,6 +6,10 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { storage } from "../../firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "../../styles/leaflet-custom.css";
 
 const ShopSchema = Yup.object().shape({
   business_name: Yup.string().required("Tên cửa hàng không được để trống"),
@@ -110,6 +114,53 @@ const deliveryAreaOptions = [
   "Giao hàng toàn quốc qua đơn vị vận chuyển",
 ];
 
+// Fix default marker icon for Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
+
+// Component để xử lý click trên map
+const LocationMarker = ({ position, setPosition, setFieldValue }) => {
+  const map = useMapEvents({
+    click(e) {
+      const { lat, lng } = e.latlng;
+      const newPosition = { lat, lng };
+      setPosition(newPosition);
+
+      // Update form values automatically
+      if (setFieldValue) {
+        setFieldValue("latitude", lat);
+        setFieldValue("longitude", lng);
+      }
+
+      map.flyTo(e.latlng, map.getZoom());
+    },
+  });
+
+  return position === null ? null : (
+    <Marker position={[position.lat, position.lng]} />
+  );
+};
+
+// Component để cập nhật center của map
+const MapUpdater = ({ center }) => {
+  const map = useMapEvents({});
+
+  useEffect(() => {
+    if (center) {
+      map.setView([center.lat, center.lng], map.getZoom());
+    }
+  }, [center, map]);
+
+  return null;
+};
+
 const CreateShop = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -139,6 +190,27 @@ const CreateShop = () => {
     checkUserShop();
   }, []); // Only run once on mount
 
+  // Get user's current location
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setMapCenter({ lat: latitude, lng: longitude });
+        },
+        (error) => {
+          console.log("Geolocation error:", error);
+          // Keep default location (Hanoi) if geolocation fails
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
+        }
+      );
+    }
+  }, []);
+
   // Upload ảnh shop lên Firebase
   const uploadShopImage = async (file, userId, type) => {
     if (!file) return "";
@@ -149,16 +221,6 @@ const CreateShop = () => {
     );
     await uploadBytes(imageRef, file);
     return await getDownloadURL(imageRef);
-  };
-
-  // Cập nhật districts khi chọn province (bỏ logic này vì không cần nữa)
-
-  // Xử lý click trên bản đồ (Google Maps iframe)
-  const handleMapClick = (e) => {
-    // Lấy toạ độ từ sự kiện click trên iframe (dùng window prompt cho demo)
-    const lat = prompt("Nhập vĩ độ (latitude):", mapCenter.lat);
-    const lng = prompt("Nhập kinh độ (longitude):", mapCenter.lng);
-    if (lat && lng) setMarker({ lat: parseFloat(lat), lng: parseFloat(lng) });
   };
 
   return (
@@ -315,11 +377,7 @@ const CreateShop = () => {
                         className="w-full border-2 border-dashed border-gray-300 rounded-xl px-6 py-4 focus:outline-none focus:border-pink-400 bg-gray-50 hover:bg-gray-100 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
                       />
                       {!avatarPreview && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-gray-400">
-                            Chọn ảnh đại diện
-                          </span>
-                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
                       )}
                     </div>
                     {avatarPreview && (
@@ -396,9 +454,7 @@ const CreateShop = () => {
                         className="w-full border-2 border-dashed border-gray-300 rounded-xl px-6 py-4 focus:outline-none focus:border-blue-400 bg-gray-50 hover:bg-gray-100 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       />
                       {!backgroundPreview && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-gray-400">Chọn ảnh nền</span>
-                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none"></div>
                       )}
                     </div>
                     {backgroundPreview && (
@@ -465,39 +521,77 @@ const CreateShop = () => {
                   </label>
                   <div className="relative">
                     <div className="w-full h-64 rounded-xl overflow-hidden border-2 border-green-200 relative">
-                      <iframe
-                        title="Google Map"
-                        width="100%"
-                        height="100%"
-                        frameBorder="0"
-                        style={{
-                          border: 0,
-                          pointerEvents: "auto",
-                          cursor: "pointer",
-                        }}
-                        src={`https://maps.google.com/maps?q=${
-                          marker?.lat || mapCenter.lat
-                        },${marker?.lng || mapCenter.lng}&z=15&output=embed`}
-                        allowFullScreen
-                        onClick={handleMapClick}
-                      ></iframe>
+                      <MapContainer
+                        center={[mapCenter.lat, mapCenter.lng]}
+                        zoom={13}
+                        style={{ height: "100%", width: "100%" }}
+                        className="leaflet-container"
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        />
+                        <MapUpdater center={mapCenter} />
+                        <LocationMarker
+                          position={marker}
+                          setPosition={setMarker}
+                          setFieldValue={setFieldValue}
+                        />
+                      </MapContainer>
                       {marker && (
-                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-green-700 px-4 py-2 rounded-full text-sm shadow-lg font-medium">
+                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-green-700 px-4 py-2 rounded-full text-sm shadow-lg font-medium z-[1000]">
                           📍 Lat: {marker.lat.toFixed(6)}, Lng:{" "}
                           {marker.lng.toFixed(6)}
                         </div>
                       )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleMapClick}
-                      className="mt-3 bg-green-500 text-white px-6 py-2 rounded-full hover:bg-green-600 transition-colors text-sm font-medium"
-                    >
-                      📍 Nhấn để đặt vị trí
-                    </button>
-                    <p className="text-gray-500 text-sm mt-2">
-                      Nhấn vào nút trên để nhập toạ độ vị trí shop của bạn
-                    </p>
+                    <div className="mt-3 text-center">
+                      <p className="text-gray-600 text-sm font-medium mb-2">
+                        💡 Nhấn vào bản đồ để chọn vị trí shop của bạn
+                      </p>
+                      <div className="flex justify-center gap-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (navigator.geolocation) {
+                              navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                  const { latitude, longitude } =
+                                    position.coords;
+                                  setMapCenter({
+                                    lat: latitude,
+                                    lng: longitude,
+                                  });
+                                },
+                                (error) => {
+                                  alert(
+                                    "Không thể lấy vị trí hiện tại. Vui lòng kiểm tra quyền truy cập vị trí."
+                                  );
+                                }
+                              );
+                            } else {
+                              alert("Trình duyệt không hỗ trợ định vị.");
+                            }
+                          }}
+                          className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition-colors text-sm font-medium"
+                        >
+                          📍 Vị trí hiện tại
+                        </button>
+                        {marker && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMarker(null);
+                              setFieldValue("latitude", 0);
+                              setFieldValue("longitude", 0);
+                            }}
+                            className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 transition-colors text-sm font-medium"
+                          >
+                            🗑️ Xóa vị trí
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
