@@ -45,27 +45,24 @@ const ShopAnalysticSummary = () => {
       if (userShop) {
         const currentShopId = userShop.shop_id || userShop.id;
 
-        // Fetch dữ liệu từ các API
+        // Fetch dữ liệu từ các API (đồng bộ logic với trang analytics chi tiết)
         try {
-          // 1. Fetch customer statistics
+          // 1. Khách hàng
           const customerData = await fetchShopCustomers(currentShopId);
           const totalCustomers = customerData.data?.total_unique_customers || 0;
 
-          // 2. Fetch order statistics
+          // 2. Đơn hàng & tỉ lệ hoàn thành (dùng trực tiếp response để tránh lệch cách tính)
           const orderStatsResponse = await fetchShopOrderStats(currentShopId);
           const orderStats = orderStatsResponse.data?.order_statistics || {};
-
-          const totalOrders = Object.values(orderStats).reduce(
-            (sum, count) => sum + (count || 0),
-            0
+          const totalOrders =
+            orderStats.total_orders !== undefined
+              ? orderStats.total_orders
+              : Object.values(orderStats).reduce((sum, v) => sum + (v || 0), 0);
+          const completionRate = parseFloat(
+            orderStatsResponse.data?.completion_rate || 0
           );
-          const completedOrders = orderStats.completed_orders || 0;
-          const completionRate =
-            totalOrders > 0
-              ? Math.round((completedOrders / totalOrders) * 100)
-              : 0;
 
-          // 3. Fetch revenue statistics
+          // 3. Doanh thu tổng
           const revenueResponse = await fetchShopRevenue(currentShopId);
           const financialSummary =
             revenueResponse.data?.financial_summary || {};
@@ -73,15 +70,23 @@ const ShopAnalysticSummary = () => {
             financialSummary.completed_money || 0
           );
 
-          // 4. Fetch monthly revenue
+          // 4. Doanh thu tháng (dùng financial_summary giống trang chính)
           const monthlyRevenueResponse = await fetchShopMonthlyRevenue(
             currentShopId
           );
-          const monthlyData = monthlyRevenueResponse.data || {};
+          const monthlyFinancial =
+            monthlyRevenueResponse.data?.financial_summary || {};
+          const monthlyTotal = parseFloat(
+            monthlyFinancial.completed_money || 0
+          );
+          const monthLabel =
+            monthlyRevenueResponse.data?.month_info?.current_month ||
+            new Date().toLocaleDateString("vi-VN", { month: "long" });
 
-          // 5. Fetch products count
+          // 5. Sản phẩm (chấp nhận cả 2 khóa khác nhau để phòng API khác phiên bản)
           const postsData = await fetchMarketplacePosts();
-          const shopProducts = (postsData.posts || []).filter(
+          const rawPosts = postsData.marketplacePosts || postsData.posts || [];
+          const shopProducts = rawPosts.filter(
             (p) => p.shop_id === currentShopId
           );
           const totalProducts = shopProducts.length;
@@ -95,14 +100,12 @@ const ShopAnalysticSummary = () => {
           });
 
           setMonthlyRevenue({
-            current: parseFloat(monthlyData.total_revenue || 0),
-            month:
-              monthlyData.month ||
-              new Date().toLocaleDateString("vi-VN", { month: "long" }),
+            current: monthlyTotal,
+            month: monthLabel,
           });
         } catch (apiError) {
           console.error("Error fetching shop stats:", apiError);
-          // Keep default values if API fails
+          // Giữ nguyên giá trị mặc định nếu lỗi
         }
       }
     } catch (error) {

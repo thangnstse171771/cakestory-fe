@@ -99,7 +99,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-  await register(formData);
+      await register(formData);
 
       // Reset form sau khi đăng ký thành công
       setFormData({

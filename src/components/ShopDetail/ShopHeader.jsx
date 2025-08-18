@@ -280,14 +280,6 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
             </div>
             <div className="text-gray-800 text-sm">{shop.business_address}</div>
           </div>
-          <div className="bg-pink-200/90 backdrop-blur-sm rounded-xl shadow p-4 flex-1 min-w-[220px] border border-pink-300 hover:shadow-md transition-all duration-300">
-            <div className="text-sm font-semibold mb-1 text-pink-600">
-              Vị Trí
-            </div>
-            <div className="text-gray-800 text-sm">
-              {shop.latitude}, {shop.longitude}
-            </div>
-          </div>
         </div>
       </div>
     </>
