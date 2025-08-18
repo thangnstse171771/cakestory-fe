@@ -44,7 +44,9 @@ const MyAlbum = () => {
         title: album.name,
         description: album.description,
         image:
-          album.AlbumPosts?.[0]?.Post?.media?.[0]?.image_url ||
+          album.AlbumPosts?.flatMap((ap) => ap.Post?.media || []).find(
+            (m) => m.image_url
+          )?.image_url ||
           "https://www.shutterstock.com/image-vector/default-ui-image-placeholder-wireframes-600nw-1037719192.jpg",
         date: new Date(album.created_at).toISOString().split("T")[0],
         category: "default",
@@ -100,7 +102,9 @@ const MyAlbum = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-pink-600 mb-2">Album của tôi</h1>
+          <h1 className="text-3xl font-bold text-pink-600 mb-2">
+            Album của tôi
+          </h1>
           <p className="text-gray-600">
             Lưu trữ ảnh và quản lý album của bạn tại đây.
           </p>

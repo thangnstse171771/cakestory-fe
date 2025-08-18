@@ -319,7 +319,9 @@ const Profile = () => {
         title: album.name,
         description: album.description,
         image:
-          album.AlbumPosts?.[0]?.Post?.media?.[0]?.image_url ||
+          album.AlbumPosts?.flatMap((ap) => ap.Post?.media || []).find(
+            (m) => m.image_url
+          )?.image_url ||
           "https://www.shutterstock.com/image-vector/default-ui-image-placeholder-wireframes-600nw-1037719192.jpg",
         date: album.created_at,
         category: "default",
