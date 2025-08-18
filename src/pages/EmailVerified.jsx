@@ -11,7 +11,6 @@ import {
   Mail,
   AlertCircle,
 } from "lucide-react";
-import { toast } from "react-toastify";
 import { authAPI } from "../api/auth";
 
 const EmailVerified = () => {
@@ -35,16 +34,6 @@ const EmailVerified = () => {
     // Mark as successful since we reached this page after verification
     setVerificationSuccess(true);
     setIsVerifying(false);
-
-    // Show success message
-    toast.success("🎉 Email đã được xác thực thành công!", {
-      position: "top-right",
-      autoClose: 4000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: false,
-      draggable: true,
-    });
 
     // Start redirect countdown
     setIsRedirecting(true);
