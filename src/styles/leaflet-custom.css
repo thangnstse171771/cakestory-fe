@@ -1,0 +1,49 @@
+/* Custom styles for Leaflet maps */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: #10b981 !important;
+  color: white !important;
+  border: none !important;
+  font-weight: bold;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: #059669 !important;
+}
+
+.leaflet-control-attribution {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border-radius: 6px !important;
+  font-size: 10px !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-popup-tip {
+  background: white !important;
+}
+
+/* Ensure marker icons work properly */
+.leaflet-marker-icon {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Custom marker style */
+.custom-marker {
+  background-color: #10b981;
+  border: 3px solid white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
