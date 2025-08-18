@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { toast } from "react-toastify";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -100,19 +99,7 @@ const Signup = () => {
 
     setLoading(true);
     try {
-      await register(formData);
-      // Hiển thị toast thành công với emoji và animation đẹp
-      toast.success(
-        "🎉 Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.",
-        {
-          position: "top-right",
-          autoClose: 4000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        }
-      );
+  await register(formData);
 
       // Reset form sau khi đăng ký thành công
       setFormData({
@@ -133,15 +120,6 @@ const Signup = () => {
       const errorMessage =
         err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.";
       setError(errorMessage);
-      // Hiển thị toast lỗi với style đẹp
-      toast.error(`❌ ${errorMessage}`, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-      });
     } finally {
       setLoading(false);
     }

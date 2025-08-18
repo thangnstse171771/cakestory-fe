@@ -19,7 +19,6 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { toast } from "react-toastify";
 import { authAPI } from "../api/auth";
 import { getAuth, applyActionCode } from "firebase/auth";
 
@@ -70,18 +69,6 @@ const VerifyEmail = () => {
               if (response.verified) {
                 setVerificationSuccess(true);
 
-                // Show success message
-                toast.success(
-                  "🎉 Email đã được xác thực và tài khoản đã được kích hoạt!",
-                  {
-                    position: "top-right",
-                    autoClose: 4000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: false,
-                    draggable: true,
-                  }
-                );
               } else {
                 throw new Error("Backend verification failed");
               }
@@ -90,27 +77,10 @@ const VerifyEmail = () => {
               // Still mark as success since Firebase verification worked
               setVerificationSuccess(true);
 
-              toast.success("🎉 Email đã được xác thực thành công!", {
-                position: "top-right",
-                autoClose: 4000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: false,
-                draggable: true,
-              });
             }
           } else {
             setVerificationSuccess(true);
 
-            // Show success message
-            toast.success("🎉 Email đã được xác thực thành công!", {
-              position: "top-right",
-              autoClose: 4000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: false,
-              draggable: true,
-            });
           }
 
           // Start redirect countdown
@@ -137,14 +107,6 @@ const VerifyEmail = () => {
 
           setVerificationError(errorMessage);
 
-          toast.error(`❌ ${errorMessage}`, {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: true,
-          });
         } finally {
           setIsVerifying(false);
         }
@@ -183,10 +145,6 @@ const VerifyEmail = () => {
     try {
       await authAPI.resendVerificationEmail(email);
 
-      toast.success("🎉 Email xác thực đã được gửi lại!", {
-        position: "top-right",
-        autoClose: 3000,
-      });
 
       setCountdown(60);
       setCanResend(false);
@@ -196,10 +154,6 @@ const VerifyEmail = () => {
         error.response?.data?.message ||
         "Không thể gửi lại email. Vui lòng thử lại sau.";
 
-      toast.error(`❌ ${errorMessage}`, {
-        position: "top-right",
-        autoClose: 3000,
-      });
     } finally {
       setIsResending(false);
     }

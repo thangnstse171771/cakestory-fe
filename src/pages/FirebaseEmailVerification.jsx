@@ -11,7 +11,6 @@ import {
   Mail,
   AlertCircle,
 } from "lucide-react";
-import { toast } from "react-toastify";
 import { getAuth, applyActionCode } from "firebase/auth";
 
 const FirebaseEmailVerification = () => {
@@ -50,16 +49,6 @@ const FirebaseEmailVerification = () => {
 
         setVerificationSuccess(true);
 
-        // Show success message
-        toast.success("🎉 Email đã được xác thực thành công!", {
-          position: "top-right",
-          autoClose: 4000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
-
         // Start redirect countdown
         setIsRedirecting(true);
         const redirectTimer = setTimeout(() => {
@@ -87,15 +76,6 @@ const FirebaseEmailVerification = () => {
         }
 
         setVerificationError(errorMessage);
-
-        toast.error(`❌ ${errorMessage}`, {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-        });
       } finally {
         setIsVerifying(false);
       }
