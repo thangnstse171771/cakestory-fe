@@ -13,8 +13,12 @@ const CreateAlbumPostSchema = Yup.object().shape({
   title: Yup.string()
     .required("Hãy nhập tên bài viết.")
     .max(100, "Tên không được vượt quá 100 ký tự."),
-  description: Yup.string().max(1000, "Mô tả không được vượt quá 1000 ký tự."),
-  media: Yup.array().min(1, "Hãy chọn ít nhất một tệp."),
+  description: Yup.string()
+    .required("Hãy nhập câu chuyện.")
+    .max(1000, "Mô tả không được vượt quá 1000 ký tự."),
+  media: Yup.array()
+    .min(1, "Hãy chọn ít nhất một tệp.")
+    .max(10, "Tối đa 10 tệp."),
 });
 
 const CreateAlbumPost = ({ isOpen, onClose, onCreate, albumId }) => {
