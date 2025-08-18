@@ -125,18 +125,26 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-// Component để xử lý click trên map
-const LocationMarker = ({ position, setPosition, setFieldValue }) => {
+// Component xử lý click trên map và gọi reverse geocode
+const LocationMarker = ({
+  position,
+  setPosition,
+  setFieldValue,
+  onLocationSelected,
+}) => {
   const map = useMapEvents({
     click(e) {
       const { lat, lng } = e.latlng;
       const newPosition = { lat, lng };
       setPosition(newPosition);
 
-      // Update form values automatically
       if (setFieldValue) {
         setFieldValue("latitude", lat);
         setFieldValue("longitude", lng);
+      }
+
+      if (onLocationSelected) {
+        onLocationSelected(lat, lng);
       }
 
       map.flyTo(e.latlng, map.getZoom());
@@ -177,6 +185,13 @@ const CreateShop = () => {
   const [marker, setMarker] = useState(null);
   const [selectedProvince, setSelectedProvince] = useState("");
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState("");
+  const [autoAddress, setAutoAddress] = useState({
+    province: "",
+    ward: "",
+    detail: "",
+  });
 
   useEffect(() => {
     const checkUserShop = async () => {
@@ -334,7 +349,7 @@ const CreateShop = () => {
               }
             }}
           >
-            {({ isSubmitting, setFieldValue }) => (
+            {({ isSubmitting, setFieldValue, values }) => (
               <Form className="p-8 space-y-8">
                 {/* Upload Images Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -536,12 +551,110 @@ const CreateShop = () => {
                           position={marker}
                           setPosition={setMarker}
                           setFieldValue={setFieldValue}
+                          onLocationSelected={async (lat, lng) => {
+                            // Reverse geocode when user picks location
+                            setAddressError("");
+                            setAddressLoading(true);
+                            try {
+                              const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=vi`;
+                              const res = await fetch(url, {
+                                headers: {
+                                  // Some browsers ignore this but it's polite per Nominatim policy
+                                  "User-Agent":
+                                    "CakeStoryApp/1.0 (reverse geocode)",
+                                },
+                              });
+                              if (!res.ok)
+                                throw new Error("Reverse geocode failed");
+                              const data = await res.json();
+                              const addr = data.address || {};
+                              // Province / City
+                              const provinceCandidate =
+                                addr.city ||
+                                addr.town ||
+                                addr.state ||
+                                addr.province ||
+                                addr.county ||
+                                "";
+                              // Ward / Commune
+                              const wardCandidate =
+                                addr.suburb ||
+                                addr.village ||
+                                addr.hamlet ||
+                                addr.neighbourhood ||
+                                addr.quarter ||
+                                addr.town ||
+                                "";
+                              // Detail address: house number + road
+                              const detailCandidate = [
+                                addr.house_number,
+                                addr.road,
+                              ]
+                                .filter(Boolean)
+                                .join(" ");
+
+                              if (provinceCandidate) {
+                                setFieldValue("province", provinceCandidate);
+                                setSelectedProvince(provinceCandidate);
+                              }
+                              if (wardCandidate) {
+                                setFieldValue("ward", wardCandidate);
+                              }
+                              if (detailCandidate) {
+                                setFieldValue(
+                                  "detail_address",
+                                  detailCandidate
+                                );
+                              }
+
+                              setAutoAddress({
+                                province: provinceCandidate,
+                                ward: wardCandidate,
+                                detail: detailCandidate,
+                              });
+                            } catch (err) {
+                              console.error(err);
+                              setAddressError(
+                                "Không tự động lấy được địa chỉ. Bạn nhập thủ công nhé."
+                              );
+                            } finally {
+                              setAddressLoading(false);
+                            }
+                          }}
                         />
                       </MapContainer>
                       {marker && (
                         <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur text-green-700 px-4 py-2 rounded-full text-sm shadow-lg font-medium z-[1000]">
                           📍 Lat: {marker.lat.toFixed(6)}, Lng:{" "}
                           {marker.lng.toFixed(6)}
+                          {addressLoading && (
+                            <div className="mt-1 text-xs text-blue-600 animate-pulse">
+                              Đang tự động lấy địa chỉ...
+                            </div>
+                          )}
+                          {!addressLoading && autoAddress.province && (
+                            <div className="mt-1 text-[10px] leading-tight text-gray-600 max-w-[220px]">
+                              {autoAddress.detail && (
+                                <span className="block">
+                                  {autoAddress.detail}
+                                </span>
+                              )}
+                              {(autoAddress.ward || autoAddress.province) && (
+                                <span className="block">
+                                  {autoAddress.ward}
+                                  {autoAddress.ward && autoAddress.province
+                                    ? ", "
+                                    : ""}
+                                  {autoAddress.province}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {addressError && !addressLoading && (
+                            <div className="mt-1 text-[10px] text-red-600 max-w-[220px]">
+                              {addressError}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

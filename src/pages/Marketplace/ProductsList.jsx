@@ -222,7 +222,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                     </span>
                     {hasMultipleSizes && (
                       <span className="text-xs text-gray-500 mt-1">
-                        Bắt đầu từ ({cakeSizes.length} kích cỡ có sẵn)
+                        {cakeSizes.length} kích cỡ có sẵn
                       </span>
                     )}
                     {!hasMultipleSizes && cakeSizes.length === 1 && (

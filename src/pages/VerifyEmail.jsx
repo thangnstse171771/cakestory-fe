@@ -68,7 +68,6 @@ const VerifyEmail = () => {
 
               if (response.verified) {
                 setVerificationSuccess(true);
-
               } else {
                 throw new Error("Backend verification failed");
               }
@@ -76,11 +75,9 @@ const VerifyEmail = () => {
               console.error("Backend verification failed:", backendError);
               // Still mark as success since Firebase verification worked
               setVerificationSuccess(true);
-
             }
           } else {
             setVerificationSuccess(true);
-
           }
 
           // Start redirect countdown
@@ -106,7 +103,6 @@ const VerifyEmail = () => {
           }
 
           setVerificationError(errorMessage);
-
         } finally {
           setIsVerifying(false);
         }
@@ -145,7 +141,6 @@ const VerifyEmail = () => {
     try {
       await authAPI.resendVerificationEmail(email);
 
-
       setCountdown(60);
       setCanResend(false);
     } catch (error) {
@@ -153,7 +148,6 @@ const VerifyEmail = () => {
       const errorMessage =
         error.response?.data?.message ||
         "Không thể gửi lại email. Vui lòng thử lại sau.";
-
     } finally {
       setIsResending(false);
     }
