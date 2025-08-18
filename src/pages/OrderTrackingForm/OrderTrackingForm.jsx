@@ -208,7 +208,8 @@ export default function OrderTrackingForm({
   );
   // Detect shop orders page (default order-tracking page, not user/admin)
   const isShopOrdersPage =
-    !isUserHistoryPage && !isAdminOrdersPage &&
+    !isUserHistoryPage &&
+    !isAdminOrdersPage &&
     (location?.pathname || "").startsWith("/order-tracking");
 
   // Memoized role and permission calculations
@@ -607,7 +608,9 @@ export default function OrderTrackingForm({
     user?.username || user?.full_name || user?.name || ""
   ).toLowerCase();
   const nameMatches = Boolean(
-    customerNameStr && currentUsernameStr && customerNameStr === currentUsernameStr
+    customerNameStr &&
+      currentUsernameStr &&
+      customerNameStr === currentUsernameStr
   );
   const isOrderOwner = idMatches || emailMatches || nameMatches;
 
@@ -741,13 +744,13 @@ export default function OrderTrackingForm({
           !isShopOrdersPage &&
           orderDetail.status === "shipped" &&
           !hasComplaint && (
-          <button
-            className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-            onClick={() => setShowComplaintModal(true)}
-          >
-            Tạo khiếu nại
-          </button>
-        )}
+            <button
+              className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+              onClick={() => setShowComplaintModal(true)}
+            >
+              Tạo khiếu nại
+            </button>
+          )}
 
         <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
           {/* Progress Bar */}

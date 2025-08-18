@@ -221,6 +221,9 @@ const AdminDashboard = () => {
             handleToggleRestriction={handleToggleRestriction}
             handleRemoveAccount={handleRemoveAccount}
             removeLoading={deleteLoading}
+            onShopRemoved={(userId) =>
+              setAccounts((prev) => prev.filter((a) => a.id !== userId))
+            }
           />
 
           {/* Pagination controls */}
