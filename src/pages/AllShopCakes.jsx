@@ -220,16 +220,6 @@ const AllShopCakes = () => {
                   <h1 className="text-2xl font-bold text-gray-800">
                     {shopInfo.name}
                   </h1>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span>{shopInfo.rating}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4 text-rose-500" />
-                      <span>{shopInfo.followers} người theo dõi</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

@@ -67,15 +67,15 @@ const IngredientModal = ({ open, onClose, onAdded, initialData, isEdit }) => {
   if (!open) return null;
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-8 py-6">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative overflow-hidden max-h-[90vh] min-h-[50vh] flex flex-col">
+        {/* Header - Fixed */}
+        <div className="bg-gradient-to-r from-pink-500 to-rose-500 px-6 sm:px-8 py-4 sm:py-6 flex-shrink-0">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
                 {isEdit ? "Chỉnh sửa Topping" : "Thêm Topping Mới"}
               </h2>
-              <p className="text-pink-100 text-sm mt-1">
+              <p className="text-pink-100 text-xs sm:text-sm mt-1">
                 {isEdit
                   ? "Cập nhật thông tin topping"
                   : "Thêm nguyên liệu cho cửa hàng"}
@@ -88,7 +88,7 @@ const IngredientModal = ({ open, onClose, onAdded, initialData, isEdit }) => {
               disabled={loading}
             >
               <svg
-                className="w-6 h-6 text-white"
+                className="w-5 h-5 sm:w-6 sm:h-6 text-white"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -104,11 +104,14 @@ const IngredientModal = ({ open, onClose, onAdded, initialData, isEdit }) => {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Content - Scrollable */}
+        <div className="px-6 sm:px-8 py-4 sm:py-8 overflow-y-auto flex-1 custom-scrollbar relative">
+          {/* Scroll indicator */}
+          <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-gray-300 rounded-full opacity-50 z-10"></div>
+
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 pt-4">
             <div>
-              <label className="block text-lg font-semibold text-gray-800 mb-2">
+              <label className="block text-base sm:text-lg font-semibold text-gray-800 mb-2">
                 Tên topping
               </label>
               <input
@@ -117,12 +120,12 @@ const IngredientModal = ({ open, onClose, onAdded, initialData, isEdit }) => {
                 onChange={(e) => setName(e.target.value)}
                 required
                 placeholder="Ví dụ: Kem phô mai, Trái cây..."
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                className="w-full border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 text-sm sm:text-base"
               />
             </div>
 
             <div>
-              <label className="block text-lg font-semibold text-gray-800 mb-2">
+              <label className="block text-base sm:text-lg font-semibold text-gray-800 mb-2">
                 Giá topping (VND)
               </label>
               <input
@@ -133,70 +136,70 @@ const IngredientModal = ({ open, onClose, onAdded, initialData, isEdit }) => {
                 onChange={(e) => setPrice(e.target.value)}
                 required
                 placeholder="Nhập giá bằng số nguyên"
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                className="w-full border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 text-sm sm:text-base"
               />
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 💡 Giá chỉ nhận số nguyên (không có số thập phân)
               </p>
+            </div>
 
-              <div>
-                <label className="block text-lg font-semibold text-gray-800 mb-2">
-                  Mô tả topping
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Mô tả chi tiết về topping này..."
-                  className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 resize-none"
+            <div>
+              <label className="block text-base sm:text-lg font-semibold text-gray-800 mb-2">
+                Mô tả topping
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="Mô tả chi tiết về topping này..."
+                className="w-full border-2 border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 resize-none text-sm sm:text-base"
+              />
+            </div>
+
+            <div>
+              <label className="block text-base sm:text-lg font-semibold text-gray-800 mb-2">
+                Hình ảnh topping
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="topping-image"
                 />
-              </div>
-
-              <div>
-                <label className="block text-lg font-semibold text-gray-800 mb-2">
-                  Hình ảnh topping
-                </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                    id="topping-image"
-                  />
-                  <label
-                    htmlFor="topping-image"
-                    className="w-full border-2 border-dashed border-gray-300 rounded-xl px-4 py-6 hover:border-pink-400 transition-colors duration-300 cursor-pointer flex flex-col items-center justify-center"
+                <label
+                  htmlFor="topping-image"
+                  className="w-full border-2 border-dashed border-gray-300 rounded-xl px-4 py-4 sm:py-6 hover:border-pink-400 transition-colors duration-300 cursor-pointer flex flex-col items-center justify-center"
+                >
+                  <svg
+                    className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg
-                      className="w-8 h-8 text-gray-400 mb-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                      />
-                    </svg>
-                    <span className="text-gray-600 text-sm font-medium">
-                      Nhấn để chọn ảnh
-                    </span>
-                  </label>
-                </div>
-                {imagePreview && (
-                  <div className="mt-4 relative group">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-40 object-cover rounded-xl border-2 border-gray-200 shadow-lg"
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                     />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-xl"></div>
-                  </div>
-                )}
+                  </svg>
+                  <span className="text-gray-600 text-xs sm:text-sm font-medium">
+                    Nhấn để chọn ảnh
+                  </span>
+                </label>
               </div>
+              {imagePreview && (
+                <div className="mt-4 relative group">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-32 sm:h-40 object-cover rounded-xl border-2 border-gray-200 shadow-lg"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 rounded-xl"></div>
+                </div>
+              )}
             </div>
 
             {error && (
@@ -219,52 +222,56 @@ const IngredientModal = ({ open, onClose, onAdded, initialData, isEdit }) => {
                 </div>
               </div>
             )}
-
-            <div className="flex gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-300"
-                disabled={loading}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold hover:from-pink-600 hover:to-rose-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl"
-              >
-                {loading ? (
-                  <div className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {isEdit ? "Đang lưu..." : "Đang thêm..."}
-                  </div>
-                ) : isEdit ? (
-                  "💾 Lưu thay đổi"
-                ) : (
-                  "✨ Thêm topping"
-                )}
-              </button>
-            </div>
           </form>
+        </div>
+
+        {/* Footer - Fixed */}
+        <div className="bg-gray-50 px-6 sm:px-8 py-3 sm:py-4 flex-shrink-0 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-300 text-sm sm:text-base"
+              disabled={loading}
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              onClick={handleSubmit}
+              className="flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-semibold hover:from-pink-600 hover:to-rose-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl text-sm sm:text-base"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  {isEdit ? "Đang lưu..." : "Đang thêm..."}
+                </div>
+              ) : isEdit ? (
+                "💾 Lưu thay đổi"
+              ) : (
+                "✨ Thêm topping"
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

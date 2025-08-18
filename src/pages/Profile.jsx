@@ -387,9 +387,6 @@ const Profile = () => {
                 alt="Profile"
                 className="w-40 h-40 rounded-full object-cover border-4 border-pink-100"
               />
-              <button className="absolute bottom-0 right-0 bg-pink-400 text-white p-3 rounded-full hover:bg-pink-500 transition-colors shadow-lg">
-                <Camera className="w-5 h-5" />
-              </button>
             </div>
 
             <div className="flex-1">
