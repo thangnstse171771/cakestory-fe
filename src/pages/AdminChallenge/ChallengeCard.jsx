@@ -315,36 +315,39 @@ export default function ChallengeCard({
           >
             👁️ Xem
           </button>
-          <button
-            style={{
-              padding: "6px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-              fontSize: "12px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              background: "white",
-              color: "#374151",
-            }}
-            onClick={() => {
-              console.log("🔧 ChallengeCard: Edit button clicked", challenge);
-              if (typeof onEdit === "function") {
-                onEdit(challenge);
-              } else {
-                console.error("🔧 ChallengeCard: onEdit is not a function");
-              }
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = "#8b5cf6";
-              e.target.style.color = "#8b5cf6";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db";
-              e.target.style.color = "#374151";
-            }}
-          >
-            ✏️ Sửa
-          </button>
+          {challenge.adminStatus !== "Đã kết thúc" && (
+            <button
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                fontSize: "12px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                background: "white",
+                color: "#374151",
+              }}
+              onClick={() => {
+                console.log("🔧 ChallengeCard: Edit button clicked", challenge);
+                if (typeof onEdit === "function") {
+                  onEdit(challenge);
+                } else {
+                  console.error("🔧 ChallengeCard: onEdit is not a function");
+                }
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = "#8b5cf6";
+                e.target.style.color = "#8b5cf6";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = "#d1d5db";
+                e.target.style.color = "#374151";
+              }}
+            >
+              ✏️ Sửa
+            </button>
+          )}
+
           <button
             style={{
               padding: "6px 12px",

@@ -5,7 +5,8 @@ import ChallengeList from "./ChallengeList";
 import ChallengeDetail from "./ChallengeDetail";
 import MembersList from "./MembersList";
 import AnalyticsTab from "./AnalyticsTab";
-import ChallengeModal from "./ChallengeModal";
+// import ChallengeModal from "./ChallengeModal";
+import UpdateChallenge from "./UpdateChallenge";
 
 export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState("dashboard");
@@ -161,7 +162,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Edit Challenge Modal */}
-      <ChallengeModal
+      {/* <ChallengeModal
         isOpen={showEditModal}
         onClose={() => {
           setShowEditModal(false);
@@ -170,6 +171,15 @@ export default function AdminDashboard() {
         onSuccess={handleEditSuccess}
         editChallenge={editingChallenge}
         mode="edit"
+      /> */}
+      <UpdateChallenge
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingChallenge(null);
+        }}
+        // onSuccess={handleEditSuccess}
+        challenge={editingChallenge}
       />
     </div>
   );

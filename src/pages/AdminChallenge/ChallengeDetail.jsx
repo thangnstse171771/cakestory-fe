@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { getChallengeParticipantCount } from "../../api/challenge";
-import ChallengeModal from "./ChallengeModal";
+// import ChallengeModal from "./ChallengeModal";
+import UpdateChallenge from "./UpdateChallenge";
 
 export default function ChallengeDetail({
   challenge,
@@ -126,7 +127,7 @@ export default function ChallengeDetail({
             }}
           >
             <img
-              src={challenge.image || "/placeholder.svg"}
+              src={challenge.avatar || "/placeholder.svg"}
               alt={challenge.title}
               style={{ width: "100%", height: "320px", objectFit: "cover" }}
             />
@@ -166,17 +167,6 @@ export default function ChallengeDetail({
                   }}
                 >
                   {challenge.adminStatus}
-                </span>
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                    ...getDifficultyStyle(challenge.difficulty),
-                  }}
-                >
-                  {challenge.difficulty}
                 </span>
               </div>
               <h1
@@ -429,18 +419,6 @@ export default function ChallengeDetail({
                       >
                         {challenge.host.name}
                       </p>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
-                      >
-                        <span style={{ color: "#fbbf24" }}>⭐⭐⭐⭐⭐</span>
-                        <span style={{ fontSize: "14px", color: "#6b7280" }}>
-                          Master Chef
-                        </span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -718,33 +696,36 @@ export default function ChallengeDetail({
                 >
                   👥 Xem thành viên ({loadingCount ? "..." : participantCount})
                 </button>
-                <button
-                  onClick={() => {
-                    console.log("🔧 Edit button clicked!");
-                    console.log("Challenge data:", challenge);
-                    setShowEditModal(true);
-                    console.log("showEditModal set to true");
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 16px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontWeight: "500",
-                    cursor: "pointer",
-                    transition: "all 0.2s",
-                    background: "white",
-                    color: "#374151",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.target.style.backgroundColor = "#f9fafb")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.target.style.backgroundColor = "white")
-                  }
-                >
-                  ✏️ Chỉnh sửa
-                </button>
+                {challenge.adminStatus !== "Đã kết thúc" && (
+                  <button
+                    onClick={() => {
+                      console.log("🔧 Edit button clicked!");
+                      console.log("Challenge data:", challenge);
+                      setShowEditModal(true);
+                      console.log("showEditModal set to true");
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "10px 16px",
+                      border: "1px solid #d1d5db",
+                      borderRadius: "6px",
+                      fontWeight: "500",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                      background: "white",
+                      color: "#374151",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.target.style.backgroundColor = "#f9fafb")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.target.style.backgroundColor = "white")
+                    }
+                  >
+                    ✏️ Chỉnh sửa
+                  </button>
+                )}
+
                 {challenge.adminStatus === "Chờ duyệt" && (
                   <>
                     <button
@@ -1093,7 +1074,7 @@ export default function ChallengeDetail({
 
       {/* Edit Challenge Modal */}
       {console.log("🎯 Rendering modal with showEditModal:", showEditModal)}
-      <ChallengeModal
+      {/* <ChallengeModal
         isOpen={showEditModal}
         onClose={() => {
           console.log("🚪 Modal close clicked");
@@ -1102,6 +1083,14 @@ export default function ChallengeDetail({
         onSuccess={handleChallengeUpdateSuccess}
         editChallenge={challenge}
         mode="edit"
+      /> */}
+      <UpdateChallenge
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+        }}
+        // onSuccess={handleEditSuccess}
+        challenge={challenge}
       />
     </div>
   );

@@ -99,6 +99,7 @@ export default function ChallengeList({ onViewDetail, onViewMembers, onEdit }) {
                 ? [challenge.hashtag]
                 : [],
               image: challenge.image_url || challenge.image || IMAGE_URL,
+              avatar: challenge.avatar || IMAGE_URL,
               host: {
                 name: challenge.host_name || challenge.host?.name || "Admin",
                 avatar:

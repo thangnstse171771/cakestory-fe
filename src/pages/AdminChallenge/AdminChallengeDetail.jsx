@@ -71,6 +71,7 @@ export default function AdminChallengeDetail() {
             ? [c.hashtag]
             : [],
           image: c.image_url || "",
+          avatar: c.avatar || "", 
           host: {
             name: c.host_name || "Admin",
             avatar: c.host_avatar || "",
