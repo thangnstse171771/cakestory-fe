@@ -71,6 +71,7 @@ export default function AdminChallengeDetail() {
             ? [c.hashtag]
             : [],
           image: c.image_url || "",
+          avatar: c.avatar || "", 
           host: {
             name: c.host_name || "Admin",
             avatar: c.host_avatar || "",
@@ -137,7 +138,7 @@ export default function AdminChallengeDetail() {
       challenge={challenge}
       onBack={handleBackToDashboard}
       onViewMembers={handleViewMembers}
-      onChallengeUpdated={handleChallengeUpdated}
+      fetchChallenge={fetchChallenge}
     />
   );
 }
