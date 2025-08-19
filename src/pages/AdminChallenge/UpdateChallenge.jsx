@@ -54,7 +54,7 @@ const UpdateChallengeSchema = Yup.object().shape({
   avatar: Yup.string().required("Hãy chọn ảnh đại diện."),
 });
 
-const UpdateChallenge = ({ isOpen, onClose, challenge }) => {
+const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -122,7 +122,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge }) => {
 
                 const payload = { ...values, avatar: avatarUrl };
                 await updateChallenge(challenge.id, payload);
-                // if (onUpdate) await onUpdate();
+                if (onUpdate) await onUpdate();
                 toast.success("Cập nhật thử thách thành công!");
                 onClose();
               } catch (err) {

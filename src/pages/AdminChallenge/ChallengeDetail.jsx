@@ -9,7 +9,7 @@ export default function ChallengeDetail({
   challenge,
   onBack,
   onViewMembers,
-  onChallengeUpdated,
+  fetchChallenge,
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -68,17 +68,6 @@ export default function ChallengeDetail({
         return { background: "#fee2e2", color: "#991b1b" };
       default:
         return { background: "#f3f4f6", color: "#374151" };
-    }
-  };
-
-  // Handle challenge update success
-  const handleChallengeUpdateSuccess = (updatedChallenge) => {
-    console.log("Challenge updated successfully:", updatedChallenge);
-    setShowEditModal(false);
-
-    // Notify parent component about the update
-    if (onChallengeUpdated) {
-      onChallengeUpdated(updatedChallenge);
     }
   };
 
@@ -1091,6 +1080,7 @@ export default function ChallengeDetail({
         }}
         // onSuccess={handleEditSuccess}
         challenge={challenge}
+        onUpdate={fetchChallenge}
       />
     </div>
   );

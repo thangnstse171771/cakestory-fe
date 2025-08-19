@@ -138,7 +138,7 @@ export default function AdminChallengeDetail() {
       challenge={challenge}
       onBack={handleBackToDashboard}
       onViewMembers={handleViewMembers}
-      onChallengeUpdated={handleChallengeUpdated}
+      fetchChallenge={fetchChallenge}
     />
   );
 }

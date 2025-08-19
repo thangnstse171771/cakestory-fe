@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { getChallengeParticipantCount } from "../../api/challenge";
+import UpdateChallenge from "./UpdateChallenge";
+import { se } from "date-fns/locale";
 
 export default function ChallengeCard({
   challenge,
   onViewDetail,
   onViewMembers,
-  onEdit,
+  fetchChallenges
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [participantCount, setParticipantCount] = useState(0);
+  const [isUpdateChallenge, setIsUpdateChallenge] = useState(false);
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
 
   // Fetch participant count when component mounts
   useEffect(() => {
@@ -328,12 +332,8 @@ export default function ChallengeCard({
                 color: "#374151",
               }}
               onClick={() => {
-                console.log("🔧 ChallengeCard: Edit button clicked", challenge);
-                if (typeof onEdit === "function") {
-                  onEdit(challenge);
-                } else {
-                  console.error("🔧 ChallengeCard: onEdit is not a function");
-                }
+                setIsUpdateChallenge(true);
+                setSelectedChallenge(challenge);
               }}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = "#8b5cf6";
@@ -612,6 +612,14 @@ export default function ChallengeCard({
           </div>
         </div>
       )}
+      <UpdateChallenge
+        isOpen={isUpdateChallenge}
+        onClose={() => {
+          setIsUpdateChallenge(false);
+        }}
+        challenge={selectedChallenge}
+        onUpdate={fetchChallenges}
+      />
     </div>
   );
 }
