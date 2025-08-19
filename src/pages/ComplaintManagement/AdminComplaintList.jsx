@@ -9,12 +9,11 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchComplaintsByShop, fetchShopByUserId } from "../../api/axios";
 import { fetchAllComplaints } from "../../api/axios";
 
 export default function ComplaintList({
   complaints: initialComplaints,
-  shopId: propShopId,
+  shopId: _propShopId,
 }) {
   // Local state
   const [complaints, setComplaints] = useState(initialComplaints || []);
@@ -23,8 +22,7 @@ export default function ComplaintList({
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [shopId, setShopId] = useState(propShopId || null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  // Unified view: admin and staff both see all complaints
   const navigate = useNavigate();
 
   // Status map (UI)
@@ -54,63 +52,102 @@ export default function ComplaintList({
     return "pending";
   };
 
-  // Fetch shopId if not provided (derive from current user => fetch shop)
+  // Load all complaints for both admin and staff
   useEffect(() => {
-    // detect admin role from localStorage user
-    try {
-      const user = JSON.parse(localStorage.getItem("user"));
-      const role = user?.role || user?.user_role || user?.userRole;
-      if (
-        role &&
-        ["admin", "administrator", "superadmin"].includes(role.toLowerCase())
-      ) {
-        setIsAdmin(true);
-      }
-    } catch (e) {
-      console.warn("[ComplaintList] Cannot parse user for role", e);
-    }
-    const deriveShopId = async () => {
-      if (isAdmin) return; // admin lấy tất cả, không cần shopId
-      if (shopId) return;
-      try {
-        const user = JSON.parse(localStorage.getItem("user"));
-        console.log("[ComplaintList] Loaded user from localStorage:", user);
-        if (!user?.id) return;
-        const shopResp = await fetchShopByUserId(user.id);
-        console.log("[ComplaintList] fetchShopByUserId response:", shopResp);
-        // Try multiple possible shapes
-        const possibleIds = [
-          shopResp?.shop?.shop_id, // primary shape {shop:{shop_id}}
-          shopResp?.shop_id,
-          shopResp?.id,
-          shopResp?.data?.id,
-          shopResp?.data?.shop_id,
-        ].filter(Boolean);
-        const sId = possibleIds[0];
-        if (sId) {
-          console.log("[ComplaintList] Derived shopId:", sId);
-          setShopId(sId);
-        } else {
-          console.warn("[ComplaintList] Could not derive shopId from response");
-        }
-      } catch (e) {
-        console.warn("[ComplaintList] Cannot derive shopId:", e);
-      }
-    };
-    deriveShopId();
-  }, [shopId]);
-
-  // Fetch complaints for shop
-  const loadComplaints = async (sid = shopId) => {
-    if (!isAdmin && !sid) return;
-    try {
+    const loadAll = async () => {
       setLoading(true);
       setError(null);
-      const data = isAdmin
-        ? await fetchAllComplaints()
-        : await fetchComplaintsByShop(sid);
-      console.log("[ComplaintList] Raw complaints response:", data);
-      // unify list
+      try {
+        const data = await fetchAllComplaints();
+        console.log("[ComplaintList] Raw complaints response:", data);
+        // unify list
+        let listRaw = [];
+        if (Array.isArray(data)) listRaw = data;
+        else if (Array.isArray(data?.data)) listRaw = data.data;
+        else if (Array.isArray(data?.complaints)) listRaw = data.complaints;
+        else if (Array.isArray(data?.data?.complaints))
+          listRaw = data.data.complaints;
+        else if (data && typeof data === "object") listRaw = [data];
+
+        const mapped = listRaw.map((c, idx) => {
+          // parse create date robustly
+          const createdStr =
+            c.created_at ||
+            c.createdAt ||
+            c.created_on ||
+            c.created ||
+            c.timestamp;
+          let dt = createdStr ? new Date(createdStr) : null;
+          if (!dt || isNaN(dt.getTime())) dt = new Date();
+          // gather images like detail page
+          const evidenceImages = [];
+          if (c.evidence_images) {
+            if (Array.isArray(c.evidence_images))
+              evidenceImages.push(...c.evidence_images);
+            else if (typeof c.evidence_images === "string")
+              evidenceImages.push(...c.evidence_images.split(","));
+          }
+          if (c.image_url) evidenceImages.push(c.image_url);
+          if (c.image) evidenceImages.push(c.image);
+          const uniqueImages = [
+            ...new Set(
+              evidenceImages.map((i) => i && i.trim()).filter(Boolean)
+            ),
+          ];
+          const status = normalizeStatus(
+            c.status || c.complaint_status || c.state
+          );
+          return {
+            id: c.id || c.complaint_id || idx,
+            orderId:
+              c.order_id || c.orderId || c.order?.id || c.order?.order_id || "",
+            orderNumber:
+              c.order_code ||
+              c.order?.order_code ||
+              c.order?.id ||
+              c.order_id ||
+              c.orderId ||
+              "N/A",
+            customerName:
+              c.customer_name ||
+              c.customerName ||
+              c.customer?.full_name ||
+              "Khách hàng",
+            subject:
+              c.subject ||
+              c.title ||
+              `Khiếu nại đơn hàng ${c.order_code || c.order_id || ""}`,
+            description: c.description || c.content || c.reason || "",
+            status,
+            date: dt.toLocaleDateString("vi-VN"),
+            time: dt.toLocaleTimeString("vi-VN", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            imageUrl: uniqueImages[0] || null,
+            images: uniqueImages,
+            raw: c,
+          };
+        });
+        setComplaints(mapped);
+        console.log("[ComplaintList] Normalized complaints mapped:", mapped);
+      } catch (e) {
+        console.error("[ComplaintList] Load complaints failed:", e);
+        setError(e.message || "Không tải được khiếu nại");
+        setComplaints([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAll();
+  }, []);
+
+  const loadComplaints = async () => {
+    // kept for refresh; simply re-run loadAll via fetchAllComplaints
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchAllComplaints();
       let listRaw = [];
       if (Array.isArray(data)) listRaw = data;
       else if (Array.isArray(data?.data)) listRaw = data.data;
@@ -118,81 +155,56 @@ export default function ComplaintList({
       else if (Array.isArray(data?.data?.complaints))
         listRaw = data.data.complaints;
       else if (data && typeof data === "object") listRaw = [data];
-
-      const mapped = listRaw.map((c, idx) => {
-        // parse create date robustly
-        const createdStr =
-          c.created_at ||
-          c.createdAt ||
-          c.created_on ||
-          c.created ||
-          c.timestamp;
-        let dt = createdStr ? new Date(createdStr) : null;
-        if (!dt || isNaN(dt.getTime())) dt = new Date();
-        // gather images like detail page
-        const evidenceImages = [];
-        if (c.evidence_images) {
-          if (Array.isArray(c.evidence_images))
-            evidenceImages.push(...c.evidence_images);
-          else if (typeof c.evidence_images === "string")
-            evidenceImages.push(...c.evidence_images.split(","));
-        }
-        if (c.image_url) evidenceImages.push(c.image_url);
-        if (c.image) evidenceImages.push(c.image);
-        const uniqueImages = [
-          ...new Set(evidenceImages.map((i) => i && i.trim()).filter(Boolean)),
-        ];
-        const status = normalizeStatus(
-          c.status || c.complaint_status || c.state
-        );
-        return {
-          id: c.id || c.complaint_id || idx,
-          orderId:
-            c.order_id || c.orderId || c.order?.id || c.order?.order_id || "",
-          orderNumber:
-            c.order_code ||
-            c.order?.order_code ||
-            c.order?.id ||
-            c.order_id ||
-            c.orderId ||
-            "N/A",
-          customerName:
-            c.customer_name ||
-            c.customerName ||
-            c.customer?.full_name ||
-            "Khách hàng",
-          subject:
-            c.subject ||
-            c.title ||
-            `Khiếu nại đơn hàng ${c.order_code || c.order_id || ""}`,
-          description: c.description || c.content || c.reason || "",
-          status,
-          date: dt.toLocaleDateString("vi-VN"),
-          time: dt.toLocaleTimeString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          imageUrl: uniqueImages[0] || null,
-          images: uniqueImages,
-          raw: c,
-        };
-      });
+      const mapped = listRaw.map((c, idx) => ({
+        id: c.id || c.complaint_id || idx,
+        orderId:
+          c.order_id || c.orderId || c.order?.id || c.order?.order_id || "",
+        orderNumber:
+          c.order_code ||
+          c.order?.order_code ||
+          c.order?.id ||
+          c.order_id ||
+          c.orderId ||
+          "N/A",
+        customerName:
+          c.customer_name ||
+          c.customerName ||
+          c.customer?.full_name ||
+          "Khách hàng",
+        subject:
+          c.subject ||
+          c.title ||
+          `Khiếu nại đơn hàng ${c.order_code || c.order_id || ""}`,
+        description: c.description || c.content || c.reason || "",
+        status: normalizeStatus(c.status || c.complaint_status || c.state),
+        date: new Date(
+          (c.created_at ||
+            c.createdAt ||
+            c.created_on ||
+            c.created ||
+            c.timestamp) ??
+            new Date()
+        ).toLocaleDateString("vi-VN"),
+        time: new Date(
+          (c.created_at ||
+            c.createdAt ||
+            c.created_on ||
+            c.created ||
+            c.timestamp) ??
+            new Date()
+        ).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+        imageUrl: c.image_url || c.image || null,
+        images: [],
+        raw: c,
+      }));
       setComplaints(mapped);
-      console.log("[ComplaintList] Normalized complaints mapped:", mapped);
     } catch (e) {
-      console.error("[ComplaintList] Load complaints failed:", e);
       setError(e.message || "Không tải được khiếu nại");
       setComplaints([]);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (isAdmin) loadComplaints();
-    else if (shopId) loadComplaints(shopId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shopId, isAdmin]);
 
   const handleRefresh = () => {
     if (isAdmin) loadComplaints();
@@ -262,11 +274,7 @@ export default function ComplaintList({
   }, [filteredComplaints]);
 
   const handleViewDetails = (complaint) =>
-    navigate(
-      isAdmin
-        ? `/admin/complaints/${complaint.id}`
-        : `/complaints/${complaint.id}`
-    );
+    navigate(`/admin/complaints/${complaint.id}`);
 
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
@@ -274,16 +282,13 @@ export default function ComplaintList({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <h2 className="text-3xl font-bold text-red-700 flex items-center gap-3">
             <MessageSquareWarning className="h-7 w-7" />
-            {isAdmin
-              ? "Tất cả Khiếu nại"
-              : `Khiếu nại của Shop ${shopId ? `#${shopId}` : ""}`}{" "}
-            ({filteredComplaints.length})
+            {"Tất cả Khiếu nại"} ({filteredComplaints.length})
           </h2>
           <div className="flex items-center gap-3">
             {error && <span className="text-sm text-red-600">{error}</span>}
             <button
               onClick={handleRefresh}
-              disabled={loading || (!shopId && !isAdmin)}
+              disabled={loading}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-red-200 rounded-lg text-red-600 font-medium hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               <RefreshCw
