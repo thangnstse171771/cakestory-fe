@@ -277,18 +277,18 @@ export default function ComplaintDetails({ complaint, onBack }) {
   const complaintStatusMap = {
     pending: {
       label: "Chờ xử lý",
-  // Stronger contrast for visibility on gradient header
-  color: "bg-yellow-200 text-yellow-900 border-yellow-300",
+      // Stronger contrast for visibility on gradient header
+      color: "bg-yellow-200 text-yellow-900 border-yellow-300",
       icon: Clock,
     },
     complete: {
       label: "Đã hoàn tiền",
-  color: "bg-green-200 text-green-900 border-green-300",
+      color: "bg-green-200 text-green-900 border-green-300",
       icon: CheckCircle,
     },
     rejected: {
       label: "Đã từ chối",
-  color: "bg-gray-200 text-gray-900 border-gray-300",
+      color: "bg-gray-200 text-gray-900 border-gray-300",
       icon: XCircle,
     },
   };
