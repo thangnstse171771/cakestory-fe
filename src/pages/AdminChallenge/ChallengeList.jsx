@@ -22,7 +22,7 @@ function getStatusFromDates(startDate, endDate) {
 function translateStatus(status) {
   const statusMap = {
     notStart: "Sắp diễn ra",
-    ongoing: "Đang diễn ra",
+    onGoing: "Đang diễn ra",
     ended: "Đã kết thúc",
     pending: "Chờ duyệt",
     approved: "Đã duyệt",

@@ -689,12 +689,8 @@ export default function ChallengeDetailsPage() {
                   </>
                 ) : challenge.status === "Đang diễn ra" ||
                   challenge.status === "onGoing" ? (
-                  <button
-                    className="w-full bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={handleJoin}
-                    disabled={isJoining || isLoadingCount}
-                  >
-                    {isJoining ? "Đang tham gia..." : "Tham gia ngay"}
+                  <button className="w-full bg-pink-400 text-white py-3 rounded-lg cursor-not-allowed">
+                    Challenge đang diễn ra
                   </button>
                 ) : challenge.status === "Sắp diễn ra" ||
                   challenge.status === "notStart" ? (
