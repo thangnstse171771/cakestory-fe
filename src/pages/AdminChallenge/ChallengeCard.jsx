@@ -1,21 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getChallengeParticipantCount } from "../../api/challenge";
+import {
+  deleteChallenge,
+  getChallengeParticipantCount,
+} from "../../api/challenge";
 import UpdateChallenge from "./UpdateChallenge";
 import { se } from "date-fns/locale";
+import { Delete } from "lucide-react";
+import DeleteChallengePopup from "./DeleteChallenge";
 
 export default function ChallengeCard({
   challenge,
   onViewDetail,
   onViewMembers,
-  fetchChallenges
+  fetchChallenges,
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [participantCount, setParticipantCount] = useState(0);
   const [isUpdateChallenge, setIsUpdateChallenge] = useState(false);
+  const [isDeleteChallenge, setIsDeleteChallenge] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Fetch participant count when component mounts
   useEffect(() => {
@@ -38,6 +45,22 @@ export default function ChallengeCard({
 
     fetchCount();
   }, [challenge?.id]);
+
+  const handleDeleteChallenge = async () => {
+    if (!selectedChallenge) return;
+    setLoading(true);
+    try {
+      await deleteChallenge(selectedChallenge.id);
+      setIsDeleteChallenge(false);
+      setSelectedChallenge(null);
+      fetchChallenges();
+    } catch (error) {
+      console.error("Delete post failed:", error);
+      toast.error("Xóa bài viết thất bại.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -443,6 +466,10 @@ export default function ChallengeCard({
                 background: "white",
                 color: "#374151",
               }}
+              onClick={() => {
+                setIsDeleteChallenge(true);
+                setSelectedChallenge(challenge);
+              }}
               onMouseEnter={(e) => {
                 e.target.style.background = "#ef4444";
                 e.target.style.color = "white";
@@ -619,6 +646,14 @@ export default function ChallengeCard({
         }}
         challenge={selectedChallenge}
         onUpdate={fetchChallenges}
+      />
+      <DeleteChallengePopup
+        isOpen={isDeleteChallenge}
+        onClose={() => {
+          setIsDeleteChallenge(false);
+        }}
+        loading={loading}
+        onDelete={handleDeleteChallenge}
       />
     </div>
   );
