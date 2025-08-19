@@ -696,7 +696,7 @@ export default function ChallengeDetail({
                 >
                   👥 Xem thành viên ({loadingCount ? "..." : participantCount})
                 </button>
-                {challenge.adminStatus !== "Đã kết thúc" && (
+                {challenge.adminStatus === "Sắp diễn ra" && (
                   <button
                     onClick={() => {
                       console.log("🔧 Edit button clicked!");

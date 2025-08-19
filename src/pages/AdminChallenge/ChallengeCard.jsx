@@ -315,7 +315,7 @@ export default function ChallengeCard({
           >
             👁️ Xem
           </button>
-          {challenge.adminStatus !== "Đã kết thúc" && (
+          {challenge.adminStatus === "Sắp diễn ra" && (
             <button
               style={{
                 padding: "6px 12px",
@@ -431,30 +431,32 @@ export default function ChallengeCard({
             </>
           )}
 
-          <button
-            style={{
-              padding: "6px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-              fontSize: "12px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              background: "white",
-              color: "#374151",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = "#ef4444";
-              e.target.style.color = "white";
-              e.target.style.borderColor = "#ef4444";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = "white";
-              e.target.style.color = "#374151";
-              e.target.style.borderColor = "#d1d5db";
-            }}
-          >
-            🗑️ Xóa
-          </button>
+          {challenge.adminStatus === "Sắp diễn ra" && (
+            <button
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                fontSize: "12px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                background: "white",
+                color: "#374151",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = "#ef4444";
+                e.target.style.color = "white";
+                e.target.style.borderColor = "#ef4444";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = "white";
+                e.target.style.color = "#374151";
+                e.target.style.borderColor = "#d1d5db";
+              }}
+            >
+              🗑️ Xóa
+            </button>
+          )}
         </div>
       </div>
 
