@@ -50,8 +50,8 @@ const WalletManagement = () => {
   // Filter states
   const [filters, setFilters] = useState({
     status: "",
-  user_id: "",
-  type: "",
+    user_id: "",
+    type: "",
   });
   const [showFilters, setShowFilters] = useState(false);
 
@@ -184,7 +184,10 @@ const WalletManagement = () => {
             id: deposit.id,
             // Keep numeric/string ID for filtering
             userId:
-              deposit.user_id ?? deposit.user?.id ?? deposit.user?.user_id ?? "",
+              deposit.user_id ??
+              deposit.user?.id ??
+              deposit.user?.user_id ??
+              "",
             // Prefer full name for display
             userDisplay: resolveUserDisplay(
               deposit.user_id ?? deposit.user?.id ?? deposit.user?.user_id,
@@ -204,8 +207,8 @@ const WalletManagement = () => {
 
           unifiedTransactions = [...unifiedTransactions, ...depositTx];
           console.log("Deposit transactions prepared:", depositTx.length);
-  }
-  }
+        }
+      }
       // Update floating wallet với AI revenue data thật
       if (aiRevenueResponse.status === "fulfilled") {
         const aiRevenueData = aiRevenueResponse.value;
@@ -631,8 +634,8 @@ const WalletManagement = () => {
   const handleResetFilters = () => {
     const resetFilters = {
       status: "",
-  user_id: "",
-  type: "",
+      user_id: "",
+      type: "",
     };
     setFilters(resetFilters);
     fetchAdminWalletData(resetFilters);
@@ -896,10 +899,12 @@ const WalletManagement = () => {
                           Chi tiết
                         </button>
                       )}
-            {transaction.type === "order" && (
+                      {transaction.type === "order" && (
                         <button
                           className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
-              onClick={() => navigate(`/admin/order-tracking/${transaction.id}`)}
+                          onClick={() =>
+                            navigate(`/admin/order-tracking/${transaction.id}`)
+                          }
                         >
                           Chi tiết
                         </button>
@@ -1003,7 +1008,9 @@ const WalletManagement = () => {
                     </label>
                     <select
                       value={filters.type}
-                      onChange={(e) => handleFilterChange("type", e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange("type", e.target.value)
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                     >
                       <option value="">Tất cả</option>
@@ -1124,7 +1131,9 @@ const WalletManagement = () => {
                               className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
                               onClick={() => {
                                 setShowTransactionModal(false);
-                                navigate(`/admin/withdraw-requests/${transaction.id}`);
+                                navigate(
+                                  `/admin/withdraw-requests/${transaction.id}`
+                                );
                               }}
                             >
                               Chi tiết
@@ -1135,7 +1144,9 @@ const WalletManagement = () => {
                               className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
                               onClick={() => {
                                 setShowTransactionModal(false);
-                                navigate(`/admin/order-tracking/${transaction.id}`);
+                                navigate(
+                                  `/admin/order-tracking/${transaction.id}`
+                                );
                               }}
                             >
                               Chi tiết
