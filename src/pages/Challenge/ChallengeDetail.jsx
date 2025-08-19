@@ -16,7 +16,7 @@ const countParticipants = (entries, challengeId) => {
 function translateStatus(status) {
   const statusMap = {
     notStart: "Sắp diễn ra",
-    ongoing: "Đang diễn ra",
+    onGoing: "Đang diễn ra",
     ended: "Đã kết thúc",
     pending: "Chờ duyệt",
     approved: "Đã duyệt",
@@ -274,7 +274,7 @@ export default function ChallengeDetailsPage() {
   const getStatusColor = (status) => {
     switch (status) {
       case "Đang diễn ra":
-      case "ongoing":
+      case "onGoing":
         return "bg-green-50 text-green-700 border-green-200";
       case "Sắp diễn ra":
       case "notStart":
@@ -688,7 +688,7 @@ export default function ChallengeDetailsPage() {
                     </button>
                   </>
                 ) : challenge.status === "Đang diễn ra" ||
-                  challenge.status === "ongoing" ? (
+                  challenge.status === "onGoing" ? (
                   <button
                     className="w-full bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleJoin}
