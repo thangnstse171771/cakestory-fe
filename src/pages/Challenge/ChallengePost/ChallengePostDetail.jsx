@@ -171,9 +171,6 @@ const ChallengePostDetail = ({
                 </div>
               </div>
             </div>
-            <button className="text-gray-400 hover:text-gray-600">
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
           </div>
 
           <h2 className="text-lg md:text-2xl font-bold text-pink-600 mb-2">
