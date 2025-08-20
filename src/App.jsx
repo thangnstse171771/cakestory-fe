@@ -281,19 +281,7 @@ export default function App() {
         </Routes>
 
         {/* Toast Container */}
-        <ToastContainer
-          position="top-right"
-          autoClose={4000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss={false}
-          draggable
-          pauseOnHover={false}
-          theme="colored"
-          style={{ zIndex: 9999 }}
-        />
+        <ToastContainer position="bottom-right" />
       </Router>
     </AuthProvider>
   );
