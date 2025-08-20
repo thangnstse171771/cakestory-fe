@@ -45,26 +45,27 @@ const LandingPage = () => {
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
+              {/* These links are now always navigable; protected actions inside pages should self-guard */}
               <Link
-                to={authed ? "/marketplace" : "/login"}
+                to="/marketplace"
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
                 Khu Mua Sắm
               </Link>
               <Link
-                to={authed ? "/challenge" : "/login"}
+                to="/challenge"
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
                 Thử Thách
               </Link>
               <Link
-                to={authed ? "/cake-design" : "/login"}
+                to="/cake-design"
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
                 Thiết Kế
               </Link>
               <Link
-                to={authed ? "/home" : "/login"}
+                to="/home"
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
                 Cộng Đồng
@@ -167,7 +168,7 @@ const LandingPage = () => {
                 tín
               </p>
               <Link
-                to="/login"
+                to="/marketplace"
                 className="inline-block mt-4 text-pink-600 font-semibold hover:text-pink-700"
               >
                 Khám phá →
@@ -186,7 +187,7 @@ const LandingPage = () => {
                 độc đáo
               </p>
               <Link
-                to="/login"
+                to="/cake-design"
                 className="inline-block mt-4 text-orange-600 font-semibold hover:text-orange-700"
               >
                 Thử ngay →
@@ -204,7 +205,7 @@ const LandingPage = () => {
                 Tham gia các cuộc thi làm bánh và thể hiện tài năng của bạn
               </p>
               <Link
-                to="/login"
+                to="/challenge"
                 className="inline-block mt-4 text-purple-600 font-semibold hover:text-purple-700"
               >
                 Tham gia →
@@ -223,7 +224,7 @@ const LandingPage = () => {
                 hỏi
               </p>
               <Link
-                to="/login"
+                to={authed ? "/home" : "/login"}
                 className="inline-block mt-4 text-green-600 font-semibold hover:text-green-700"
               >
                 Kết nối →
@@ -257,7 +258,7 @@ const LandingPage = () => {
                 đều có tại đây.
               </p>
               <Link
-                to="/login"
+                to="/marketplace"
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-orange-600 transition-all"
               >
                 Khám Phá Ngay
@@ -292,7 +293,7 @@ const LandingPage = () => {
                 mẫu bánh độc đáo và ấn tượng chỉ với vài thao tác đơn giản.
               </p>
               <Link
-                to="/login"
+                to="/cake-design"
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transition-all"
               >
                 Thử Thiết Kế

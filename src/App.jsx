@@ -86,7 +86,8 @@ function ProtectedRoute({ children }) {
     return <div>Loading...</div>;
   }
   if (!isAuthenticated()) {
-    return <Navigate to="/" replace />;
+    // Redirect unauthenticated users to login for clarity
+    return <Navigate to="/login" replace />;
   }
   return children;
 }
