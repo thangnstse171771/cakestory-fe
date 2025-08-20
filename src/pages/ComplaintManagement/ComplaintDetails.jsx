@@ -689,7 +689,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
               </div>
               <div className="p-4 rounded-lg bg-indigo-50 border border-indigo-100">
                 <p className="text-xs uppercase tracking-wide text-indigo-600 font-semibold mb-1">
-                  Tổng NL
+                  Tổng nguyên liệu
                 </p>
                 <p className="text-sm font-bold text-indigo-800">
                   {formatVND(ingredientsTotal)}
@@ -1037,14 +1037,14 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   )}
 
                   {/* Special Instructions */}
-                  {specialInstructions && (
+                  {/* {specialInstructions && (
                     <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
                       <p className="text-gray-600 mb-2">Hướng dẫn đặc biệt</p>
                       <p className="font-medium text-gray-800 whitespace-pre-line">
                         {specialInstructions}
                       </p>
                     </div>
-                  )}
+                  )} */}
 
                   {/* Order Details Table */}
                   {orderDetails.length > 0 && (
