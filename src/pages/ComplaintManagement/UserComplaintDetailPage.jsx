@@ -1,6 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { fetchComplaintById, fetchOrderById } from "../../api/axios"; // added fetchOrderById
+import {
+  fetchComplaintById,
+  fetchOrderById,
+  fetchMarketplacePostById,
+} from "../../api/axios";
 import ComplaintDetails from "./ComplaintDetails";
 
 export default function UserComplaintDetailPage() {
@@ -94,126 +98,149 @@ export default function UserComplaintDetailPage() {
           images: uniqueImages,
           raw: data,
         };
-
-        // Always fetch full order detail if we have an orderId (avoid stale / partial embedded order)
-        const orderIdToFetch = mapped.orderId;
-        if (orderIdToFetch) {
+        // Use complaint.order as source; fetch order if missing key fields (size/base/ingredient totals/total) or for marketplace
+        let workingOrder = data?.order || undefined;
+        const orderIdToFetch =
+          mapped.orderId || data?.order_id || data?.order?.id;
+        const hasSize = !!(workingOrder && workingOrder.size);
+        const hasBase = !!(
+          workingOrder &&
+          (workingOrder.base_price != null || workingOrder.basePrice != null)
+        );
+        const hasIngTotal = !!(
+          workingOrder &&
+          (workingOrder.ingredient_total != null ||
+            workingOrder.ingredientTotal != null)
+        );
+        const hasTotal = !!(
+          workingOrder &&
+          (workingOrder.total_price != null || workingOrder.totalPrice != null)
+        );
+        const hasOrderDetails = !!(
+          workingOrder &&
+          (Array.isArray(workingOrder.orderDetails) ||
+            Array.isArray(workingOrder.order_details))
+        );
+        const needsMarketplace = !(
+          workingOrder?.marketplace_post || workingOrder?.marketplace_post_id
+        );
+        const needsOrderFetch =
+          !!orderIdToFetch &&
+          (needsMarketplace ||
+            !(
+              hasSize &&
+              hasBase &&
+              hasIngTotal &&
+              hasTotal &&
+              hasOrderDetails
+            ));
+        if (needsOrderFetch) {
           try {
-            console.log(
-              "[ComplaintDetailPage] Fetching full order detail for orderId=",
-              orderIdToFetch
-            );
             const orderResp = await fetchOrderById(orderIdToFetch);
-            let orderObj = orderResp;
-            if (orderResp?.data && !Array.isArray(orderResp.data))
-              orderObj = orderResp.data; // normalize typical {data: {...}}
-            // If order has marketplace_post_id but no embedded marketplace_post, fetch it
-            const mpId =
-              orderObj.marketplace_post_id || orderObj.marketplace_postId;
-            if (mpId && !orderObj.marketplace_post) {
-              try {
-                const mpResp = await import("../../api/axios").then((m) =>
-                  m.fetchMarketplacePostById(mpId)
-                );
-                const mpPost = mpResp.post || mpResp.data || mpResp;
-                orderObj.marketplace_post = mpPost;
-                console.log(
-                  "[ComplaintDetailPage] Fetched marketplace post:",
-                  mpPost
-                );
-              } catch (mpErr) {
-                console.warn(
-                  "[ComplaintDetailPage] Fetch marketplace post failed",
-                  mpErr
-                );
-              }
+            let orderObj =
+              orderResp?.data && !Array.isArray(orderResp.data)
+                ? orderResp.data
+                : orderResp;
+            // Merge only needed fields without overwriting existing complaint.order values
+            const merged = { ...(workingOrder || {}) };
+            if (!hasSize && orderObj?.size != null) merged.size = orderObj.size;
+            if (!hasBase) {
+              if (orderObj?.base_price != null)
+                merged.base_price = orderObj.base_price;
+              else if (orderObj?.basePrice != null)
+                merged.base_price = orderObj.basePrice;
             }
-            // Merge embedded order (if any) with fetched (fetched overrides)
-            const embedded = data?.order || {};
-            const mergedOrder = { ...embedded, ...orderObj };
-            mapped.raw = { ...mapped.raw, order: mergedOrder };
-            mapped.order = mergedOrder;
-            const orderDetailsArray =
-              mergedOrder.orderDetails ||
-              mergedOrder.orderdetails ||
-              mergedOrder.order_details ||
-              [];
-            mapped.orderDetails = orderDetailsArray; // capture camelCase
-            console.log(
-              "[ComplaintDetailPage] Order detail response (raw):",
-              orderObj
-            );
-            console.log(
-              "[ComplaintDetailPage] Merged order object:",
-              mergedOrder
-            );
-            console.log(
-              "[ComplaintDetailPage] Extracted orderDetails length=",
-              orderDetailsArray.length,
-              orderDetailsArray
-            );
-            // --- Detailed ingredient style logging ---
-            const candidateArrays = {
-              orderdetails: mergedOrder.orderdetails,
-              order_details: mergedOrder.order_details,
-              ingredients: mergedOrder.ingredients,
-              order_ingredients: mergedOrder.order_ingredients,
-              items: mergedOrder.items,
-              cake_ingredients: mergedOrder.cake_ingredients,
-              details: mergedOrder.details,
-            };
-            Object.entries(candidateArrays).forEach(([key, val]) => {
-              if (Array.isArray(val)) {
-                console.log(
-                  `[ComplaintDetailPage] Found potential ingredients array '${key}' length=${val.length}:`,
-                  val
-                );
+            if (!hasTotal) {
+              if (orderObj?.total_price != null)
+                merged.total_price = orderObj.total_price;
+              else if (orderObj?.totalPrice != null)
+                merged.total_price = orderObj.totalPrice;
+              else if (orderObj?.price != null)
+                merged.total_price = orderObj.price;
+            }
+            if (!hasIngTotal) {
+              if (orderObj?.ingredient_total != null)
+                merged.ingredient_total = orderObj.ingredient_total;
+              else if (orderObj?.ingredientTotal != null)
+                merged.ingredient_total = orderObj.ingredientTotal;
+            }
+            if (!hasOrderDetails) {
+              const details =
+                (Array.isArray(orderObj?.orderDetails) &&
+                  orderObj.orderDetails) ||
+                (Array.isArray(orderObj?.order_details) &&
+                  orderObj.order_details) ||
+                (Array.isArray(orderObj?.items) && orderObj.items) ||
+                undefined;
+              if (details) merged.orderDetails = details;
+            }
+            workingOrder = Object.keys(merged).length ? merged : workingOrder;
+            // Prefer embedded marketplace_post from order if available
+            const embeddedPost =
+              orderObj?.marketplace_post || orderObj?.marketplacePost;
+            if (embeddedPost) {
+              if (workingOrder) {
+                workingOrder = {
+                  ...workingOrder,
+                  marketplace_post: embeddedPost,
+                  marketplace_post_id:
+                    workingOrder.marketplace_post_id ||
+                    orderObj?.marketplace_post_id ||
+                    orderObj?.marketplace_postId,
+                };
+              } else {
+                workingOrder = {
+                  marketplace_post: embeddedPost,
+                  marketplace_post_id:
+                    orderObj?.marketplace_post_id ||
+                    orderObj?.marketplace_postId,
+                };
               }
-            });
-            const firstNonEmpty =
-              Object.values(candidateArrays).find(
-                (v) => Array.isArray(v) && v.length > 0
-              ) || [];
-            if (firstNonEmpty.length === 0) {
-              console.warn(
-                "[ComplaintDetailPage] No ingredient-like arrays found in order."
-              );
             } else {
-              const normalizedIngredients = firstNonEmpty.map((it, idx) => ({
-                idx,
-                id: it.id || it.ingredient_id || it.item_id || it.code || idx,
-                name:
-                  it.name ||
-                  it.ingredient_name ||
-                  it.title ||
-                  it.label ||
-                  "(no name)",
-                quantity: it.quantity || it.qty || 1,
-                price: it.price || it.unit_price || it.cost || 0,
-                raw: it,
-              }));
-              console.log(
-                "[ComplaintDetailPage] Normalized ingredient candidates:",
-                normalizedIngredients
-              );
-              mapped.orderIngredientPreview = normalizedIngredients;
+              // If API returns marketplace_post_id, fetch the marketplace post to get media/image_url
+              const mpId =
+                orderObj?.marketplace_post_id || orderObj?.marketplace_postId;
+              if (mpId) {
+                try {
+                  const mpResp = await fetchMarketplacePostById(mpId);
+                  // Normalize: merge top-level media onto post object so extractor can find image
+                  const mpPost =
+                    mpResp?.post && typeof mpResp.post === "object"
+                      ? { ...mpResp.post }
+                      : mpResp?.data || mpResp || {};
+                  if (Array.isArray(mpResp?.media)) mpPost.media = mpResp.media;
+                  // Attach only marketplace_post to workingOrder without overriding other fields
+                  if (workingOrder) {
+                    workingOrder = {
+                      ...workingOrder,
+                      marketplace_post: mpPost,
+                      marketplace_post_id:
+                        workingOrder.marketplace_post_id || mpId,
+                    };
+                  } else {
+                    workingOrder = {
+                      marketplace_post: mpPost,
+                      marketplace_post_id: mpId,
+                    };
+                  }
+                } catch {}
+              }
             }
-            // --- end ingredient logging ---
-          } catch (orderErr) {
-            console.warn(
-              "[ComplaintDetailPage] Cannot fetch order detail:",
-              orderErr
-            );
-            // fallback: use embedded order if exists
-            if (data?.order) {
-              mapped.order = data.order;
-              mapped.orderDetails =
-                data.order.orderdetails || data.order.order_details || [];
-            }
+            // Do not spread all orderObj fields; complaint.order remains the main source
+          } catch {
+            // ignore; fall back to embedded order
+            workingOrder = data?.order || workingOrder;
           }
         }
-        console.log("[ComplaintDetailPage] raw complaint:", data);
-        console.log("[ComplaintDetailPage] mapped complaint (final):", mapped);
+        if (workingOrder) {
+          mapped.order = workingOrder;
+          mapped.raw = { ...mapped.raw, order: workingOrder };
+          mapped.orderDetails =
+            workingOrder.orderDetails ||
+            workingOrder.orderdetails ||
+            workingOrder.order_details ||
+            [];
+        }
         setComplaint(mapped);
       } catch (e) {
         setError(e.message || "Không tải được khiếu nại");

@@ -124,13 +124,10 @@ export default function ComplaintList({ userId }) {
             raw: c,
           };
         });
-        console.log("[UserComplaint] Raw API data:", data);
-        console.log("[UserComplaint] Mapped complaints:", mapped);
         setComplaints(mapped);
       } catch (e) {
         setError(e.message || "Lỗi tải dữ liệu");
         setComplaints([]);
-        console.error("[UserComplaint] Fetch error:", e);
       } finally {
         setLoading(false);
       }
@@ -173,7 +170,6 @@ export default function ComplaintList({ userId }) {
   });
 
   const handleViewDetails = (complaint) => {
-    console.log("[UserComplaint] View details complaint:", complaint);
     setSelectedComplaint(complaint);
   };
 
