@@ -145,12 +145,12 @@ const Sidebar = () => {
                 submenu: [
                   {
                     icon: ListOrdered,
-                    label: "Đơn hàng của shop",
+                    label: "Đơn hàng",
                     path: "/order-tracking",
                   },
                   {
                     icon: MessageSquareWarning,
-                    label: "Khiếu nại của shop",
+                    label: "Khiếu nại khách hàng",
                     path: "/complaints",
                   },
                 ],
