@@ -86,7 +86,8 @@ function ProtectedRoute({ children }) {
     return <div>Loading...</div>;
   }
   if (!isAuthenticated()) {
-    return <Navigate to="/" replace />;
+    // Redirect unauthenticated users to login for clarity
+    return <Navigate to="/login" replace />;
   }
   return children;
 }
@@ -280,19 +281,7 @@ export default function App() {
         </Routes>
 
         {/* Toast Container */}
-        <ToastContainer
-          position="top-right"
-          autoClose={4000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss={false}
-          draggable
-          pauseOnHover={false}
-          theme="colored"
-          style={{ zIndex: 9999 }}
-        />
+        <ToastContainer position="bottom-right" />
       </Router>
     </AuthProvider>
   );
