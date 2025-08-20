@@ -407,7 +407,7 @@ const Sidebar = () => {
       {/* Logo & Home button */}
       <div className="p-6 border-b border-pink-200 flex-shrink-0 bg-gradient-to-r from-pink-50 to-white">
         <button
-          onClick={() => navigate("/home")}
+          onClick={() => navigate("/landing")}
           className="flex items-center justify-center lg:justify-start lg:space-x-3 w-full hover:opacity-90 transition-all duration-200 group"
         >
           <div className="bg-gradient-to-br from-pink-500 to-pink-600 p-2.5 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-200">

@@ -19,9 +19,18 @@ import {
   Star,
   BadgeCheck,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const LandingPage = () => {
+  const { isAuthenticated, logout } = useAuth();
+  const authed = isAuthenticated();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 to-orange-50">
       {/* Navigation */}
@@ -37,44 +46,56 @@ const LandingPage = () => {
 
             <div className="hidden md:flex items-center gap-8">
               <Link
-                to="/login"
+                to={authed ? "/marketplace" : "/login"}
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
                 Khu Mua Sắm
               </Link>
               <Link
-                to="/login"
+                to={authed ? "/challenge" : "/login"}
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
                 Thử Thách
               </Link>
               <Link
-                to="/login"
+                to={authed ? "/cake-design" : "/login"}
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
                 Thiết Kế
               </Link>
               <Link
-                to="/login"
+                to={authed ? "/home" : "/login"}
                 className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
               >
-                Sự Kiện
+                Cộng Đồng
               </Link>
             </div>
 
             <div className="flex items-center gap-4">
-              <Link
-                to="/login"
-                className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
-              >
-                Đăng Nhập
-              </Link>
-              <Link
-                to="/signup"
-                className="bg-gradient-to-r from-pink-500 to-orange-500 text-white px-6 py-2 rounded-full font-semibold hover:from-pink-600 hover:to-orange-600 transition-all transform hover:scale-105"
-              >
-                Đăng Ký
-              </Link>
+              {!authed && (
+                <>
+                  <Link
+                    to="/login"
+                    className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
+                  >
+                    Đăng Nhập
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="bg-gradient-to-r from-pink-500 to-orange-500 text-white px-6 py-2 rounded-full font-semibold hover:from-pink-600 hover:to-orange-600 transition-all transform hover:scale-105"
+                  >
+                    Đăng Ký
+                  </Link>
+                </>
+              )}
+              {authed && (
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-600 hover:text-pink-600 font-medium transition-colors"
+                >
+                  Đăng Xuất
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -102,17 +123,19 @@ const LandingPage = () => {
             </p>
             <div className="flex gap-4 justify-center">
               <Link
-                to="/login"
+                to={authed ? "/home" : "/login"}
                 className="bg-white text-pink-600 px-8 py-4 rounded-full font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg"
               >
-                Khám Phá Ngay
+                {authed ? "Vào Trang Chủ" : "Khám Phá Ngay"}
               </Link>
-              <Link
-                to="/signup"
-                className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold hover:bg-white hover:text-pink-600 transition-all shadow-lg"
-              >
-                Đăng Ký Miễn Phí
-              </Link>
+              {!authed && (
+                <Link
+                  to="/signup"
+                  className="border-2 border-white text-white px-8 py-4 rounded-full font-semibold hover:bg-white hover:text-pink-600 transition-all shadow-lg"
+                >
+                  Đăng Ký Miễn Phí
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -409,12 +432,14 @@ const LandingPage = () => {
                 <p className="text-white/90 mb-4">
                   Hàng ngàn người yêu thích làm bánh đang chờ đón bạn
                 </p>
-                <Link
-                  to="/signup"
-                  className="bg-white text-pink-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition-all inline-block"
-                >
-                  Tham Gia Ngay
-                </Link>
+                {!authed && (
+                  <Link
+                    to="/signup"
+                    className="bg-white text-pink-600 px-6 py-2 rounded-full font-semibold hover:bg-gray-100 transition-all inline-block"
+                  >
+                    Tham Gia Ngay
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -433,18 +458,38 @@ const LandingPage = () => {
             ở đây!
           </p>
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link
-              to="/signup"
-              className="bg-white text-pink-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg"
-            >
-              Đăng Ký Miễn Phí
-            </Link>
-            <Link
-              to="/login"
-              className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-pink-600 transition-all shadow-lg"
-            >
-              Đăng Nhập
-            </Link>
+            {!authed && (
+              <>
+                <Link
+                  to="/signup"
+                  className="bg-white text-pink-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg"
+                >
+                  Đăng Ký Miễn Phí
+                </Link>
+                <Link
+                  to="/login"
+                  className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-pink-600 transition-all shadow-lg"
+                >
+                  Đăng Nhập
+                </Link>
+              </>
+            )}
+            {authed && (
+              <>
+                <Link
+                  to="/marketplace"
+                  className="bg-white text-pink-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg"
+                >
+                  Khám Phá Marketplace
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="border-2 border-white text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-pink-600 transition-all shadow-lg"
+                >
+                  Đăng Xuất
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
