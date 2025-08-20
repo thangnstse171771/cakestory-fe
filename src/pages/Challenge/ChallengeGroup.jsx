@@ -133,7 +133,11 @@ export default function ChallengeGroup() {
           const totalLikes = res.total_likes || data.length;
           const liked = data.some((like) => like.user_id === currentUserId);
 
-          initialLikes[post.post_id] = { liked, count: totalLikes, liking: false };
+          initialLikes[post.post_id] = {
+            liked,
+            count: totalLikes,
+            liking: false,
+          };
         } catch (error) {
           console.error("Failed to fetch likes for post", post.post_id, error);
           initialLikes[post.post_id] = {
@@ -152,6 +156,9 @@ export default function ChallengeGroup() {
   }, [posts]);
 
   const handleLike = async (postId) => {
+    if (challengeInfo?.status !== "onGoing") {
+      return;
+    }
     try {
       // set loading = true for this post
       setLikesData((prev) => ({
@@ -746,8 +753,16 @@ export default function ChallengeGroup() {
                     <div className="flex items-center w-full">
                       <button
                         onClick={() => handleLike(challPost.post_id)}
-                        disabled={likesData[challPost.post_id]?.liking}
-                        className="flex-1 flex items-center justify-center space-x-2 text-gray-600 hover:text-pink-500"
+                        disabled={
+                          likesData[challPost.post_id]?.liking ||
+                          challengeInfo?.status !== "onGoing" // ✅ only allow likes if ongoing
+                        }
+                        className={`flex-1 flex items-center justify-center space-x-2 
+                                    ${
+                                      challengeInfo?.status !== "onGoing"
+                                        ? "cursor-not-allowed opacity-50"
+                                        : "text-gray-600 hover:text-pink-500"
+                                    }`}
                       >
                         <Heart
                           className={`w-6 h-6 ${
@@ -761,7 +776,6 @@ export default function ChallengeGroup() {
                             challPost.post.total_likes}
                         </span>
                       </button>
-
                       <button
                         onClick={() => {
                           setSelectedPost(challPost);
@@ -813,6 +827,7 @@ export default function ChallengeGroup() {
         likesData={likesData}
         handleLike={handleLike}
         onClose={() => setIsPostDetailOpen(false)}
+        challInfo={challengeInfo}
       />
     </div>
   );
