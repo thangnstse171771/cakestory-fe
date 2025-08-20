@@ -105,7 +105,8 @@ export default function ShopComplaintDetailPage() {
           if (normalized.total_price == null) {
             if (normalized.totalPrice != null)
               normalized.total_price = normalized.totalPrice;
-            else if (normalized.price != null) normalized.total_price = normalized.price;
+            else if (normalized.price != null)
+              normalized.total_price = normalized.price;
           }
           if (
             normalized.ingredient_total == null &&

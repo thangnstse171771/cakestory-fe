@@ -322,7 +322,8 @@ export default function ComplaintDetails({ complaint, onBack }) {
     }
     return sum + (isNaN(lineTotal) ? 0 : lineTotal);
   }, 0);
-  const ingredientsTotal = getNumber(ingredientTotalTop) || ingredientsTotalComputed;
+  const ingredientsTotal =
+    getNumber(ingredientTotalTop) || ingredientsTotalComputed;
 
   const basePrice = getNumber(order?.base_price || 0);
 
@@ -996,7 +997,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
                               {!isNoteLocked && (
                                 <button
                                   type="button"
-                                  disabled={savingNote || !(adminNote || "").trim()}
+                                  disabled={
+                                    savingNote || !(adminNote || "").trim()
+                                  }
                                   onClick={handleSaveAdminNote}
                                   className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
                                 >
