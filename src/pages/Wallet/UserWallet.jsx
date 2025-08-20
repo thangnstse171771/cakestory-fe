@@ -84,6 +84,7 @@ export default function UserWallet() {
   // Lock to prevent duplicate clicks and a small cooldown between attempts
   const depositLockRef = useRef(false);
   const [cooldown, setCooldown] = useState(0);
+  const [cooldownUntil, setCooldownUntil] = useState(0); // absolute epoch ms
 
   const MAX_AMOUNT = 20000000;
   const MIN_AMOUNT = 10000;
@@ -149,6 +150,7 @@ export default function UserWallet() {
       const untilRaw = localStorage.getItem(COOLDOWN_KEY);
       const until = untilRaw ? parseInt(untilRaw, 10) : 0;
       if (until && until > Date.now()) {
+        setCooldownUntil(until);
         const remain = Math.ceil((until - Date.now()) / 1000);
         setCooldown(remain > 0 ? remain : 0);
       }
@@ -157,18 +159,25 @@ export default function UserWallet() {
 
   // Cooldown ticker to avoid button spamming
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    if (!cooldownUntil) return;
+    const tick = () => {
+      const remain = Math.ceil((cooldownUntil - Date.now()) / 1000);
+      setCooldown(remain > 0 ? remain : 0);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [cooldown]);
+  }, [cooldownUntil]);
 
-  // Cleanup cooldown key when finished
+  // Cleanup cooldown key only when the stored timestamp has actually expired
   useEffect(() => {
-    if (cooldown <= 0) {
-      try {
+    try {
+      const untilRaw = localStorage.getItem(COOLDOWN_KEY);
+      const until = untilRaw ? parseInt(untilRaw, 10) : 0;
+      if (until && until <= Date.now()) {
         localStorage.removeItem(COOLDOWN_KEY);
-      } catch {}
-    }
+      }
+    } catch {}
   }, [cooldown]);
 
   // Timer countdown
@@ -386,6 +395,7 @@ export default function UserWallet() {
       const untilRaw = localStorage.getItem(COOLDOWN_KEY);
       const until = untilRaw ? parseInt(untilRaw, 10) : 0;
       if (until && until > Date.now()) {
+        setCooldownUntil(until);
         const remain = Math.ceil((until - Date.now()) / 1000);
         setCooldown(remain > 0 ? remain : 0);
         setError(`Vui lòng đợi ${remain}s trước khi thử lại.`);
@@ -485,12 +495,11 @@ export default function UserWallet() {
       setLoading(false);
       depositLockRef.current = false; // release lock
       // Set fixed cooldown and persist until timestamp so reloads can't bypass
+      const until = Date.now() + COOLDOWN_SECONDS * 1000;
+      setCooldownUntil(until);
       setCooldown(COOLDOWN_SECONDS);
       try {
-        localStorage.setItem(
-          COOLDOWN_KEY,
-          String(Date.now() + COOLDOWN_SECONDS * 1000)
-        );
+        localStorage.setItem(COOLDOWN_KEY, String(until));
       } catch {}
     }
   };
