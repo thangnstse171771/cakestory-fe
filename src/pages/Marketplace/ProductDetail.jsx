@@ -253,7 +253,7 @@ const ProductDetail = () => {
               )}
               {sortedCakeSizes.length > 1 && (
                 <div className="text-sm text-gray-500 mt-1">
-                  {getMinPrice(sortedCakeSizes).toLocaleString()} VND
+                  Bắt Đầu Từ {getMinPrice(sortedCakeSizes).toLocaleString()} VND
                 </div>
               )}
             </div>
