@@ -58,10 +58,8 @@ export default function ComplaintList({
       if (shopId) return;
       try {
         const user = JSON.parse(localStorage.getItem("user"));
-        console.log("[ComplaintList] Loaded user from localStorage:", user);
         if (!user?.id) return;
         const shopResp = await fetchShopByUserId(user.id);
-        console.log("[ComplaintList] fetchShopByUserId response:", shopResp);
         // Try multiple possible shapes
         const possibleIds = [
           shopResp?.shop?.shop_id, // primary shape {shop:{shop_id}}
@@ -72,13 +70,10 @@ export default function ComplaintList({
         ].filter(Boolean);
         const sId = possibleIds[0];
         if (sId) {
-          console.log("[ComplaintList] Derived shopId:", sId);
           setShopId(sId);
-        } else {
-          console.warn("[ComplaintList] Could not derive shopId from response");
         }
       } catch (e) {
-        console.warn("[ComplaintList] Cannot derive shopId:", e);
+        // ignore
       }
     };
     deriveShopId();
@@ -91,7 +86,7 @@ export default function ComplaintList({
       setLoading(true);
       setError(null);
       const data = await fetchComplaintsByShop(sid);
-      console.log("[ComplaintList] Raw complaints response:", data);
+
       // unify list
       let listRaw = [];
       if (Array.isArray(data)) listRaw = data;
@@ -127,6 +122,13 @@ export default function ComplaintList({
         const status = normalizeStatus(
           c.status || c.complaint_status || c.state
         );
+        const user = c.order?.User || c.user || c.User || c.order?.user || null;
+        const customerName =
+          user?.full_name ||
+          user?.username ||
+          c.customer_name ||
+          c.customerName ||
+          "Khách hàng";
         return {
           id: c.id || c.complaint_id || idx,
           orderId:
@@ -138,11 +140,7 @@ export default function ComplaintList({
             c.order_id ||
             c.orderId ||
             "N/A",
-          customerName:
-            c.customer_name ||
-            c.customerName ||
-            c.customer?.full_name ||
-            "Khách hàng",
+          customerName,
           subject:
             c.subject ||
             c.title ||
@@ -160,9 +158,7 @@ export default function ComplaintList({
         };
       });
       setComplaints(mapped);
-      console.log("[ComplaintList] Normalized complaints mapped:", mapped);
     } catch (e) {
-      console.error("[ComplaintList] Load complaints failed:", e);
       setError(e.message || "Không tải được khiếu nại");
       setComplaints([]);
     } finally {

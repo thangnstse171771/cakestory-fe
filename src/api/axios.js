@@ -480,13 +480,9 @@ export const joinChallenge = async (challengeId) => {
 // Admin: Lấy tổng doanh thu từ AI Generation
 export const fetchTotalAmountAiGenerate = async () => {
   try {
-    console.log("Gọi API fetchTotalAmountAiGenerate...");
     const response = await axiosInstance.get("/ai/totalAmountAiGenerate");
-    console.log("Total AI revenue response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Lỗi khi gọi fetchTotalAmountAiGenerate:", error);
-    console.error("Error response:", error.response?.data);
     throw error;
   }
 };
@@ -494,13 +490,9 @@ export const fetchTotalAmountAiGenerate = async () => {
 // Lấy chi tiết order theo ID
 export const fetchOrderById = async (orderId) => {
   try {
-    console.log("Gọi API fetchOrderById với orderId:", orderId);
     const response = await axiosInstance.get(`/cake-orders/${orderId}`);
-    console.log("Order detail response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Lỗi khi gọi fetchOrderById:", error);
-    console.error("Error response:", error.response?.data);
     throw error;
   }
 };
@@ -508,13 +500,9 @@ export const fetchOrderById = async (orderId) => {
 // Lấy danh sách orders của shop
 export const fetchShopOrders = async (shopId) => {
   try {
-    console.log("Gọi API fetchShopOrders với shopId:", shopId);
     const response = await axiosInstance.get(`/cake-orders/shop/${shopId}`);
-    console.log("Shop orders response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Lỗi khi gọi fetchShopOrders:", error);
-    console.error("Error response:", error.response?.data);
     throw error;
   }
 };
@@ -557,7 +545,6 @@ export const fetchOrdersByShopId = async (shopId) => {
 // Cập nhật trạng thái order
 export const updateOrderStatus = async (orderId, status) => {
   try {
-    console.log("Cập nhật trạng thái order:", { orderId, status });
     let endpoint = "";
     switch (status) {
       case "ordered":
@@ -580,11 +567,8 @@ export const updateOrderStatus = async (orderId, status) => {
         throw new Error("Trạng thái không hợp lệ");
     }
     const response = await axiosInstance.put(endpoint, {});
-    console.log("Update order status response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Lỗi khi cập nhật trạng thái order:", error);
-    console.error("Error response:", error.response?.data);
     throw error;
   }
 };
@@ -592,13 +576,9 @@ export const updateOrderStatus = async (orderId, status) => {
 // Tạo complaint mới
 export const createComplaint = async (complaintData) => {
   try {
-    console.log("Tạo complaint:", complaintData);
     const response = await axiosInstance.post("/complaints", complaintData);
-    console.log("Create complaint response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Lỗi khi tạo complaint:", error);
-    console.error("Error response:", error.response?.data);
     throw error;
   }
 };
@@ -610,7 +590,6 @@ export const fetchComplaintsByShop = async (shopId) => {
     const res = await axiosInstance.get(`/complaints/shop/${shopId}`);
     return res.data;
   } catch (error) {
-    console.error("Lỗi khi lấy complaints theo shop:", error);
     throw error;
   }
 };
@@ -628,7 +607,6 @@ export const fetchComplaintsByCustomer = async (customerId) => {
     if (error.response?.status === 404) {
       return [];
     }
-    console.error("Lỗi khi lấy complaints theo customer:", error);
     throw error;
   }
 };
@@ -639,11 +617,6 @@ export const fetchComplaintById = async (complaintId) => {
     const res = await axiosInstance.get(`/complaints/${complaintId}`);
     return res.data;
   } catch (error) {
-    console.warn(
-      "fetchComplaintById thất bại:",
-      complaintId,
-      error.response?.status
-    );
     throw error;
   }
 };
@@ -654,7 +627,6 @@ export const fetchAllComplaints = async () => {
     const res = await axiosInstance.get(`/complaints`);
     return res.data;
   } catch (error) {
-    console.error("Lỗi khi lấy tất cả complaints:", error);
     throw error;
   }
 };
@@ -666,7 +638,6 @@ export const fetchComplaintIngredientsByShop = async (shopId) => {
     const res = await axiosInstance.get(`/ingredients?shop_id=${shopId}`);
     return res.data;
   } catch (error) {
-    console.error("Lỗi khi lấy ingredients shop:", error);
     throw error;
   }
 };
@@ -674,14 +645,9 @@ export const fetchComplaintIngredientsByShop = async (shopId) => {
 export const fetchMarketplacePostById = async (postId) => {
   try {
     if (!postId) throw new Error("Thiếu postId");
-    console.log("Gọi API fetchMarketplacePostById với postId:", postId);
     const res = await axiosInstance.get(`/marketplace-posts/${postId}`);
     return res.data; // expects { message, post }
   } catch (error) {
-    console.error(
-      "Lỗi khi fetchMarketplacePostById:",
-      error.response?.data || error.message
-    );
     throw error;
   }
 };
@@ -690,14 +656,9 @@ export const fetchMarketplacePostById = async (postId) => {
 export const approveComplaint = async (complaintId) => {
   try {
     if (!complaintId) throw new Error("Thiếu complaintId");
-    console.log("Approve complaint:", complaintId);
     const res = await axiosInstance.put(`/complaints/${complaintId}/approve`);
     return res.data;
   } catch (error) {
-    console.error(
-      "Lỗi approve complaint:",
-      error.response?.data || error.message
-    );
     throw error;
   }
 };
@@ -706,14 +667,9 @@ export const approveComplaint = async (complaintId) => {
 export const rejectComplaint = async (complaintId) => {
   try {
     if (!complaintId) throw new Error("Thiếu complaintId");
-    console.log("Reject complaint:", complaintId);
     const res = await axiosInstance.put(`/complaints/${complaintId}/reject`);
     return res.data;
   } catch (error) {
-    console.error(
-      "Lỗi reject complaint:",
-      error.response?.data || error.message
-    );
     throw error;
   }
 };
