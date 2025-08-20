@@ -17,6 +17,55 @@ import { useAuth } from "../../contexts/AuthContext";
 import { createWithdrawRequest, fetchWalletBalance } from "../../api/axios";
 import { useNavigate } from "react-router-dom";
 
+// Map server errors to Vietnamese messages for better UX
+const humanizeWithdrawError = (err) => {
+  try {
+    const status = err?.response?.status;
+    const raw = err?.response?.data?.message || err?.message || "";
+    const msg = (raw || "").toString().toLowerCase();
+
+    // Insufficient balance pattern with amounts
+    if (msg.includes("insufficient balance")) {
+      const currMatch = (raw || "").match(/current balance:\s*([0-9,.\s]+)/i);
+      const reqMatch = (raw || "").match(/requested amount:\s*([0-9,.\s]+)/i);
+      const parseNum = (s) => {
+        if (!s) return null;
+        const n = Number(String(s).replace(/[^0-9]/g, ""));
+        return Number.isFinite(n) ? n : null;
+      };
+      const curr = parseNum(currMatch?.[1]);
+      const req = parseNum(reqMatch?.[1]);
+      const fmt = (n) =>
+        Number.isFinite(n) ? n.toLocaleString("vi-VN") + " VND" : "-";
+      return `Số dư không đủ. Số dư hiện tại: ${fmt(
+        curr
+      )}, Số tiền yêu cầu: ${fmt(req)}`;
+    }
+
+    // Common validation messages
+    if (msg.includes("invalid") && msg.includes("account"))
+      return "Số tài khoản không hợp lệ. Vui lòng kiểm tra lại.";
+    if (msg.includes("invalid") && msg.includes("bank"))
+      return "Ngân hàng không hợp lệ. Vui lòng chọn lại.";
+    if (msg.includes("minimum") || msg.includes("at least"))
+      return "Số tiền rút thấp hơn mức tối thiểu cho phép.";
+    if (msg.includes("maximum") || msg.includes("exceed"))
+      return "Số tiền rút vượt quá mức tối đa cho phép.";
+
+    // Network/timeouts/overload
+    if (!err?.response)
+      return "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại.";
+    if (status === 429) return "Hệ thống đang bận. Vui lòng thử lại sau.";
+    if (status >= 500) return "Máy chủ gặp sự cố. Vui lòng thử lại sau.";
+
+    // Generic client errors
+    if (status === 400) return raw || "Yêu cầu không hợp lệ.";
+    if (status === 403) return "Bạn không có quyền thực hiện thao tác này.";
+    if (status === 404) return "Không tìm thấy tài nguyên.";
+  } catch {}
+  return "Có lỗi xảy ra khi tạo yêu cầu rút tiền. Vui lòng thử lại.";
+};
+
 const SUPPORTED_BANKS = [
   {
     code: "VCB",
@@ -351,10 +400,7 @@ export default function WithdrawRequest() {
       await fetchBalance();
     } catch (error) {
       console.error("Withdraw request error:", error);
-      setError(
-        error?.response?.data?.message ||
-          "Có lỗi xảy ra khi tạo yêu cầu rút tiền. Vui lòng thử lại."
-      );
+      setError(humanizeWithdrawError(error));
     } finally {
       setLoading(false);
     }
