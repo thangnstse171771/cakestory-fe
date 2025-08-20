@@ -391,11 +391,15 @@ const WalletManagement = () => {
               if (shop && shop[1]) parts.push(`Cửa hàng nhận ${shop[1]}`);
               if (admin && admin[1]) parts.push(`Admin nhận ${admin[1]}`);
               if (parts.length) extra = ". " + parts.join(", ");
-              return `Giải ngân thanh toán cho đơn #${orderId ?? ""}${extra}`.trim();
+              return `Giải ngân thanh toán cho đơn #${
+                orderId ?? ""
+              }${extra}`.trim();
             }
             // Held in escrow or pending -> (đang giữ tạm)
             if (lower.includes("held in escrow") || normStatus === "pending") {
-              return `Thanh toán đơn hàng #${orderId ?? ""} (đang giữ tạm)`.trim();
+              return `Thanh toán đơn hàng #${
+                orderId ?? ""
+              } (đang giữ tạm)`.trim();
             }
             // Generic VN
             if (orderId) return `Thanh toán đơn hàng #${orderId}`;
