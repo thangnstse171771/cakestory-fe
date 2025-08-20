@@ -1,6 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { fetchComplaintById, fetchOrderById } from "../../api/axios";
+import {
+  fetchComplaintById,
+  fetchOrderById,
+  fetchMarketplacePostById,
+} from "../../api/axios";
 import ComplaintDetails from "./ComplaintDetails";
 import { useLocation } from "react-router-dom";
 
@@ -92,29 +96,164 @@ export default function ShopComplaintDetailPage() {
           images: uniqueImages,
           raw: data,
         };
-        if (mapped.orderId) {
-          try {
-            const orderResp = await fetchOrderById(mapped.orderId);
-            let orderObj = orderResp;
-            if (orderResp?.data && !Array.isArray(orderResp.data))
-              orderObj = orderResp.data;
-            const embedded = data?.order || {};
-            const mergedOrder = { ...embedded, ...orderObj };
-            mapped.raw = { ...mapped.raw, order: mergedOrder };
-            mapped.order = mergedOrder;
-            const orderDetailsArray =
-              mergedOrder.orderDetails ||
-              mergedOrder.orderdetails ||
-              mergedOrder.order_details ||
-              [];
-            mapped.orderDetails = orderDetailsArray;
-          } catch (orderErr) {
-            if (data?.order) {
-              mapped.order = data.order;
-              mapped.orderDetails =
-                data.order.orderdetails || data.order.order_details || [];
-            }
+        // Use complaint.order as source of truth; normalize canonical keys, then enrich minimal fields and attach marketplace_post for image
+        let workingOrder = data?.order || undefined;
+        if (workingOrder && typeof workingOrder === "object") {
+          const normalized = { ...workingOrder };
+          if (normalized.base_price == null && normalized.basePrice != null)
+            normalized.base_price = normalized.basePrice;
+          if (normalized.total_price == null) {
+            if (normalized.totalPrice != null)
+              normalized.total_price = normalized.totalPrice;
+            else if (normalized.price != null) normalized.total_price = normalized.price;
           }
+          if (
+            normalized.ingredient_total == null &&
+            normalized.ingredientTotal != null
+          )
+            normalized.ingredient_total = normalized.ingredientTotal;
+          if (!Array.isArray(normalized.orderDetails)) {
+            if (Array.isArray(normalized.order_details))
+              normalized.orderDetails = normalized.order_details;
+            else if (Array.isArray(normalized.items))
+              normalized.orderDetails = normalized.items;
+          }
+          workingOrder = normalized;
+        }
+        const orderIdToFetch =
+          mapped.orderId || data?.order_id || data?.order?.id;
+        const hasSize = !!(workingOrder && workingOrder.size);
+        const hasBase = !!(
+          workingOrder &&
+          (workingOrder.base_price != null || workingOrder.basePrice != null)
+        );
+        const hasIngTotal = !!(
+          workingOrder &&
+          (workingOrder.ingredient_total != null ||
+            workingOrder.ingredientTotal != null)
+        );
+        const hasTotal = !!(
+          workingOrder &&
+          (workingOrder.total_price != null || workingOrder.totalPrice != null)
+        );
+        const hasOrderDetails = !!(
+          workingOrder &&
+          (Array.isArray(workingOrder.orderDetails) ||
+            Array.isArray(workingOrder.order_details))
+        );
+        const needsMarketplace = !(
+          workingOrder?.marketplace_post || workingOrder?.marketplace_post_id
+        );
+        const needsOrderFetch =
+          !!orderIdToFetch &&
+          (needsMarketplace ||
+            !(
+              hasSize &&
+              hasBase &&
+              hasIngTotal &&
+              hasTotal &&
+              hasOrderDetails
+            ));
+        if (needsOrderFetch) {
+          try {
+            const orderResp = await fetchOrderById(orderIdToFetch);
+            let orderObj =
+              orderResp?.data && !Array.isArray(orderResp.data)
+                ? orderResp.data
+                : orderResp;
+            // Merge only needed fields without overriding existing complaint.order values
+            const merged = { ...(workingOrder || {}) };
+            if (!hasSize && orderObj?.size != null) merged.size = orderObj.size;
+            if (!hasBase) {
+              if (orderObj?.base_price != null)
+                merged.base_price = orderObj.base_price;
+              else if (orderObj?.basePrice != null)
+                merged.base_price = orderObj.basePrice;
+            }
+            if (!hasTotal) {
+              if (orderObj?.total_price != null)
+                merged.total_price = orderObj.total_price;
+              else if (orderObj?.totalPrice != null)
+                merged.total_price = orderObj.totalPrice;
+              else if (orderObj?.price != null)
+                merged.total_price = orderObj.price;
+            }
+            if (!hasIngTotal) {
+              if (orderObj?.ingredient_total != null)
+                merged.ingredient_total = orderObj.ingredient_total;
+              else if (orderObj?.ingredientTotal != null)
+                merged.ingredient_total = orderObj.ingredientTotal;
+            }
+            if (!hasOrderDetails) {
+              const details =
+                (Array.isArray(orderObj?.orderDetails) &&
+                  orderObj.orderDetails) ||
+                (Array.isArray(orderObj?.order_details) &&
+                  orderObj.order_details) ||
+                (Array.isArray(orderObj?.items) && orderObj.items) ||
+                undefined;
+              if (details) merged.orderDetails = details;
+            }
+            workingOrder = Object.keys(merged).length ? merged : workingOrder;
+            // Prefer embedded marketplace_post from order if present
+            const embeddedPost =
+              orderObj?.marketplace_post || orderObj?.marketplacePost;
+            if (embeddedPost) {
+              if (workingOrder) {
+                workingOrder = {
+                  ...workingOrder,
+                  marketplace_post: embeddedPost,
+                  marketplace_post_id:
+                    workingOrder.marketplace_post_id ||
+                    orderObj?.marketplace_post_id ||
+                    orderObj?.marketplace_postId,
+                };
+              } else {
+                workingOrder = {
+                  marketplace_post: embeddedPost,
+                  marketplace_post_id:
+                    orderObj?.marketplace_post_id ||
+                    orderObj?.marketplace_postId,
+                };
+              }
+            } else {
+              const mpId =
+                orderObj?.marketplace_post_id || orderObj?.marketplace_postId;
+              if (mpId) {
+                try {
+                  const mpResp = await fetchMarketplacePostById(mpId);
+                  const mpPost =
+                    mpResp?.post && typeof mpResp.post === "object"
+                      ? { ...mpResp.post }
+                      : mpResp?.data || mpResp || {};
+                  if (Array.isArray(mpResp?.media)) mpPost.media = mpResp.media;
+                  if (workingOrder) {
+                    workingOrder = {
+                      ...workingOrder,
+                      marketplace_post: mpPost,
+                      marketplace_post_id:
+                        workingOrder.marketplace_post_id || mpId,
+                    };
+                  } else {
+                    workingOrder = {
+                      marketplace_post: mpPost,
+                      marketplace_post_id: mpId,
+                    };
+                  }
+                } catch {}
+              }
+            }
+            // keep complaint.order as main source; do not spread full orderObj
+          } catch {
+            workingOrder = data?.order || workingOrder;
+          }
+        }
+        if (workingOrder) {
+          mapped.order = workingOrder;
+          mapped.raw = { ...mapped.raw, order: workingOrder };
+          mapped.orderDetails = Array.isArray(workingOrder.orderDetails)
+            ? workingOrder.orderDetails
+            : [];
         }
         setComplaint(mapped);
       } catch (err) {

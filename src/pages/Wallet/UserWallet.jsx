@@ -24,6 +24,41 @@ const popularAmounts = [
 ];
 const popularLabels = [50000, 100000, 200000];
 
+// Map API/network errors to friendly, banking-style messages
+const humanizePaymentError = (err) => {
+  try {
+    const status = err?.response?.status;
+    const rawMsg = err?.response?.data?.message || err?.message || "";
+    const msg = (rawMsg || "").toString().toLowerCase();
+
+    // Server overloaded / internal errors
+    if ((status && status >= 500) || status === 429) {
+      return (
+        "Hệ thống thanh toán đang bận hoặc gặp sự cố. Quá trình xử lý đang diễn ra, vui lòng thử lại sau 1-2 phút. " +
+        "Nếu tiền đã trừ, số dư sẽ tự động cập nhật khi giao dịch hoàn tất."
+      );
+    }
+    // Gateway timeout / timeouts
+    if (
+      status === 504 ||
+      msg.includes("timeout") ||
+      msg.includes("timed out")
+    ) {
+      return (
+        "Kết nối tới cổng thanh toán bị chậm. Vui lòng thử lại sau ít phút. " +
+        "Không thao tác quá nhanh để tránh tạo nhiều giao dịch."
+      );
+    }
+    // Network unreachable
+    if (!err?.response) {
+      return "Không thể kết nối máy chủ thanh toán. Vui lòng kiểm tra mạng và thử lại.";
+    }
+    // Validation or client errors with server message
+    if (rawMsg) return rawMsg;
+  } catch {}
+  return "Có lỗi xảy ra trong quá trình xử lý. Vui lòng thử lại sau.";
+};
+
 export default function UserWallet() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +79,9 @@ export default function UserWallet() {
 
   const timerRef = useRef(null);
   const statusCheckRef = useRef(null);
+  // Lock to prevent duplicate clicks and a small cooldown between attempts
+  const depositLockRef = useRef(false);
+  const [cooldown, setCooldown] = useState(0);
 
   const MAX_AMOUNT = 20000000;
   const MIN_AMOUNT = 10000;
@@ -105,6 +143,13 @@ export default function UserWallet() {
     };
     fetchBalance();
   }, [user]);
+
+  // Cooldown ticker to avoid button spamming
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
 
   // Timer countdown
   useEffect(() => {
@@ -316,10 +361,23 @@ export default function UserWallet() {
   };
 
   const handleDeposit = async () => {
+    // Block when a pending transaction is already open
+    if (showModal && paymentStatus === "pending") {
+      setError(
+        "Bạn đang có một giao dịch nạp tiền đang chờ. Vui lòng hoàn tất hoặc đóng trước khi tạo giao dịch mới."
+      );
+      return;
+    }
+
+    // Race-safe double-click guard
+    if (depositLockRef.current) return;
+    depositLockRef.current = true;
+
     const amount = getAmount();
 
     if (amount === 0) {
       setError("Vui lòng chọn hoặc nhập số tiền cần nạp.");
+      depositLockRef.current = false;
       return;
     }
 
@@ -327,6 +385,7 @@ export default function UserWallet() {
       setError(
         `Số tiền nạp phải từ ${MIN_AMOUNT.toLocaleString()} đến ${MAX_AMOUNT.toLocaleString()} VND và chỉ được nhập số.`
       );
+      depositLockRef.current = false;
       return;
     }
 
@@ -390,11 +449,11 @@ export default function UserWallet() {
       }
     } catch (e) {
       console.error("Deposit error:", e);
-      setError(
-        e?.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại."
-      );
+      setError(humanizePaymentError(e));
     } finally {
       setLoading(false);
+      depositLockRef.current = false; // release lock
+      setCooldown(15); // 15s cooldown per transaction (Fleen processing window)
     }
   };
 
@@ -778,9 +837,18 @@ export default function UserWallet() {
           <button
             className="mt-4 w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 rounded-xl text-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             onClick={handleDeposit}
-            disabled={loading || !isAmountValid()}
+            disabled={
+              loading ||
+              !isAmountValid() ||
+              cooldown > 0 ||
+              (showModal && paymentStatus === "pending")
+            }
           >
-            {loading ? "Đang tạo link..." : "+ Nạp Tiền Ngay"}
+            {loading
+              ? "Đang tạo link..."
+              : cooldown > 0
+              ? `Vui lòng đợi ${cooldown}s`
+              : "+ Nạp Tiền Ngay"}
           </button>
           <div className="text-xs text-gray-400 text-center mt-2">
             Bằng cách nhấn "Nạp Tiền Ngay", bạn đồng ý với{" "}

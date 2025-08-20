@@ -59,7 +59,7 @@ export default function ComplaintList({
       setError(null);
       try {
         const data = await fetchAllComplaints();
-        console.log("[ComplaintList] Raw complaints response:", data);
+
         // unify list
         let listRaw = [];
         if (Array.isArray(data)) listRaw = data;
@@ -130,9 +130,7 @@ export default function ComplaintList({
           };
         });
         setComplaints(mapped);
-        console.log("[ComplaintList] Normalized complaints mapped:", mapped);
       } catch (e) {
-        console.error("[ComplaintList] Load complaints failed:", e);
         setError(e.message || "Không tải được khiếu nại");
         setComplaints([]);
       } finally {

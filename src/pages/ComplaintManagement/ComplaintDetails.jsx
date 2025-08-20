@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { fetchComplaintIngredientsByShop } from "../../api/axios";
 import { fetchIngredients } from "../../api/ingredients";
-import { fetchMarketplacePostById } from "../../api/axios";
+// no extra marketplace fetch; rely on embedded data in complaint.order
 import { approveComplaint, rejectComplaint } from "../../api/axios";
 import { updateComplaintAdminNote } from "../../api/axios";
 
@@ -97,10 +97,10 @@ export default function ComplaintDetails({ complaint, onBack }) {
   const [marketplaceImage, setMarketplaceImage] = useState(null);
   const [isLoadingMarketplace, setIsLoadingMarketplace] = useState(false);
 
-  // Helper to extract image URL from marketplace post (enhanced)
+  // Helper to extract image URL from marketplace post (enhanced, supports arrays and many keys)
   const extractImageFromMarketplacePost = (mp) => {
     if (!mp) return null;
-    const imageFields = [
+    const singleFields = [
       "image_url",
       "image",
       "photo_url",
@@ -108,41 +108,66 @@ export default function ComplaintDetails({ complaint, onBack }) {
       "thumbnail",
       "thumb",
       "url",
+      "cover",
+      "cover_url",
+    ];
+    const listFields = [
+      "images",
+      "image_urls",
+      "imageUrls",
+      "photos",
+      "gallery",
+      "pictures",
+      "imgs",
+      "media",
+      "media_urls",
+      "mediaUrls",
     ];
     const isStr = (v) => typeof v === "string" && v.trim();
-    const pickFrom = (obj) => {
-      if (!obj || typeof obj !== "object") return null;
-      for (const f of imageFields) if (isStr(obj[f])) return obj[f].trim();
-      return null;
-    };
-    // 1. Direct
-    const direct = pickFrom(mp);
-    if (direct) return direct;
-    // 2. Common nested containers
-    const containers = [mp.post, mp.data];
-    for (const c of containers) {
-      const val = pickFrom(c);
-      if (val) return val;
-    }
-    // 3. Media arrays at several levels
-    const mediaArrays = [mp.media, mp.post?.media, mp.data?.media];
-    for (const arr of mediaArrays) {
-      if (Array.isArray(arr)) {
-        for (const item of arr) {
-          const val =
-            pickFrom(item) || pickFrom(item?.image) || pickFrom(item?.data);
-          if (val) return val;
+    const firstFromList = (val) => {
+      if (Array.isArray(val)) {
+        // pick first non-empty string or object with singleFields
+        for (const it of val) {
+          if (isStr(it)) return it.trim();
+          if (it && typeof it === "object") {
+            for (const f of singleFields) if (isStr(it[f])) return it[f].trim();
+            // nested common wrappers
+            if (it.image && typeof it.image === "object") {
+              for (const f of singleFields)
+                if (isStr(it.image[f])) return it.image[f].trim();
+            }
+          }
         }
       }
+      if (isStr(val)) return val.trim();
+      return null;
+    };
+    const pickFromObject = (obj) => {
+      if (!obj || typeof obj !== "object") return null;
+      for (const f of singleFields) if (isStr(obj[f])) return obj[f].trim();
+      for (const lf of listFields) {
+        const cand = firstFromList(obj[lf]);
+        if (cand) return cand;
+      }
+      return null;
+    };
+    // 1) Direct on root
+    const direct = pickFromObject(mp);
+    if (direct) return direct;
+    // 2) Common nested containers
+    const containers = [mp.post, mp.data, mp.item, mp.content];
+    for (const c of containers) {
+      const val = pickFromObject(c);
+      if (val) return val;
     }
-    // 4. Deep recursive scan (last resort)
+    // 3) Deep recursive scan (last resort)
     const seen = new Set();
     const stack = [mp];
     while (stack.length) {
       const node = stack.pop();
       if (!node || typeof node !== "object" || seen.has(node)) continue;
       seen.add(node);
-      const picked = pickFrom(node);
+      const picked = pickFromObject(node);
       if (picked) return picked;
       if (Array.isArray(node)) {
         for (const el of node) stack.push(el);
@@ -159,95 +184,38 @@ export default function ComplaintDetails({ complaint, onBack }) {
       const img = extractImageFromMarketplacePost(marketplacePost);
       if (img) {
         setMarketplaceImage(img);
-        console.log(
-          "[ComplaintDetails] Extracted marketplace image via fallback effect:",
-          img
-        );
       }
     }
   }, [marketplacePost, marketplaceImage]);
 
-  // Effect to handle marketplace post fetching (revised to avoid loop)
-  const hasFetchedMarketplaceRef = useRef(false);
+  // Use only embedded marketplace post (no external fetch)
+  // Attempt extraction from several known locations in complaint/order
   useEffect(() => {
-    const embeddedPost = order?.marketplace_post;
-    const marketplacePostId =
-      order?.marketplace_post_id || order?.marketplace_postId;
-
-    // If we already have a marketplace image, stop.
     if (marketplaceImage) return;
-
-    // If we have embedded post and haven't set it yet
-    if (!marketplacePost && embeddedPost && Object.keys(embeddedPost).length) {
-      setMarketplacePost(embeddedPost);
-      const img = extractImageFromMarketplacePost(embeddedPost);
-      if (img) {
-        setMarketplaceImage(img);
-        console.log(
-          "[ComplaintDetails] Using embedded marketplace image:",
-          img
-        );
-        return;
+    const candidates = [
+      order?.marketplace_post,
+      order?.marketplacePost,
+      order?.post, // some APIs embed post directly
+      complaint?.raw?.marketplace_post,
+      complaint?.raw?.marketplacePost,
+      complaint?.raw?.post,
+    ];
+    for (const p of candidates) {
+      if (p && typeof p === "object" && Object.keys(p).length) {
+        setMarketplacePost(p);
+        const img = extractImageFromMarketplacePost(p);
+        if (img) {
+          setMarketplaceImage(img);
+          break;
+        }
       }
     }
-
-    // Guard: only fetch once when we have an ID and no image yet
-    if (
-      !hasFetchedMarketplaceRef.current &&
-      marketplacePostId &&
-      !marketplaceImage &&
-      !marketplacePost &&
-      !isLoadingMarketplace
-    ) {
-      hasFetchedMarketplaceRef.current = true; // mark immediately to avoid race
-      setIsLoadingMarketplace(true);
-      (async () => {
-        try {
-          console.log(
-            "[ComplaintDetails] Fetching marketplace post by ID:",
-            marketplacePostId
-          );
-          const response = await fetchMarketplacePostById(marketplacePostId);
-          console.log("[ComplaintDetails] Fetch response:", response);
-          let postData = response?.post || response?.data || response;
-          if (postData) {
-            setMarketplacePost(postData);
-            const image = extractImageFromMarketplacePost(postData);
-            if (image) {
-              setMarketplaceImage(image);
-              console.log(
-                "[ComplaintDetails] Using fetched marketplace image:",
-                image
-              );
-            } else {
-              console.warn(
-                "[ComplaintDetails] No image found in fetched marketplace post:",
-                postData
-              );
-            }
-          } else {
-            console.warn(
-              "[ComplaintDetails] Invalid marketplace post response:",
-              response
-            );
-          }
-        } catch (error) {
-          console.error(
-            "[ComplaintDetails] Failed to fetch marketplace post:",
-            error
-          );
-          hasFetchedMarketplaceRef.current = false; // allow retry on failure
-        } finally {
-          setIsLoadingMarketplace(false);
-        }
-      })();
-    }
   }, [
-    order?.marketplace_post_id,
     order?.marketplace_post,
+    order?.post,
+    complaint?.raw,
     marketplacePost,
     marketplaceImage,
-    isLoadingMarketplace,
   ]);
 
   // Replace raw status state with normalized status
@@ -299,13 +267,11 @@ export default function ComplaintDetails({ complaint, onBack }) {
     if (!shopId) return;
 
     setLoadingIngredients(true);
-    console.log("[ComplaintDetails] Fetch ingredients for shopId=", shopId);
 
     const loadIngredients = async () => {
       try {
         let data = await fetchIngredients(shopId);
         if (!data) data = await fetchComplaintIngredientsByShop(shopId);
-        console.log("[ComplaintDetails] Raw ingredients response:", data);
 
         let listRaw = [];
         if (Array.isArray(data)) listRaw = data;
@@ -325,9 +291,8 @@ export default function ComplaintDetails({ complaint, onBack }) {
         const mapObj = Object.fromEntries(mappedIngs.map((i) => [i.id, i]));
         setIngredients(mappedIngs);
         setIngredientsMap(mapObj);
-        console.log("[ComplaintDetails] Mapped ingredients:", mappedIngs);
       } catch (err) {
-        console.warn("[ComplaintDetails] Load ingredients failed:", err);
+        // ignore load ingredients error
       } finally {
         setLoadingIngredients(false);
       }
@@ -336,28 +301,52 @@ export default function ComplaintDetails({ complaint, onBack }) {
     loadIngredients();
   }, [order?.shop_id, order?.shopId]);
 
-  // Get order details and calculate totals
-  const orderDetails =
-    complaint?.orderDetails ||
-    order?.orderDetails ||
-    order?.orderdetails ||
-    order?.order_details ||
-    [];
+  // Get order details and calculate totals (canonical fields only)
+  const orderDetails = order?.orderDetails || [];
+  const orderDetailsArray = Array.isArray(orderDetails) ? orderDetails : [];
 
-  const orderDetailsArray = orderDetails || [];
-  const ingredientsTotal = orderDetailsArray.reduce((sum, d) => {
-    const lineTotal = Number(d.total_price || d.totalPrice || d.price || 0);
+  const getNumber = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  // Prefer backend-provided aggregate if available
+  const ingredientTotalTop = order?.ingredient_total;
+  const ingredientsTotalComputed = orderDetailsArray.reduce((sum, d) => {
+    const qty = getNumber(d.quantity || 0) || 0;
+    const totalCandidate = d.total_price;
+    let lineTotal = getNumber(totalCandidate);
+    if (!lineTotal) {
+      const unit = getNumber(d.unit_price || 0);
+      lineTotal = unit * (qty || 1);
+    }
     return sum + (isNaN(lineTotal) ? 0 : lineTotal);
   }, 0);
+  const ingredientsTotal = getNumber(ingredientTotalTop) || ingredientsTotalComputed;
 
-  const basePrice = Number(
-    order?.base_price || order?.basePrice || order?.price || 0
-  );
-  const totalPrice = basePrice;
+  const basePrice = getNumber(order?.base_price || 0);
+
+  const totalTopLevel = order?.total_price;
+
+  let totalPrice = getNumber(totalTopLevel);
+  if (!totalPrice) {
+    const sumLines = orderDetailsArray.reduce((s, d) => {
+      const qty = getNumber(d.quantity || 0) || 0;
+      const totalCandidate = d.total_price;
+      let lineTotal = getNumber(totalCandidate);
+      if (!lineTotal) {
+        const unit = getNumber(d.unit_price || 0);
+        lineTotal = unit * (qty || 1);
+      }
+      return s + (isNaN(lineTotal) ? 0 : lineTotal);
+    }, 0);
+    const composed = getNumber(basePrice) + getNumber(sumLines);
+    totalPrice = composed || getNumber(sumLines) || getNumber(basePrice) || 0;
+  }
 
   // Get other order data
   const evidenceImages = (() => {
-    const ev = order?.evidence_images || order?.evidenceImages;
+    const ev = order?.evidence_images;
     if (!ev) return [];
     if (Array.isArray(ev)) return ev.filter(Boolean);
     if (typeof ev === "string")
@@ -368,8 +357,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
     return [];
   })();
 
-  const specialInstructions =
-    order?.special_instructions || order?.specialInstructions || "";
+  const specialInstructions = order?.special_instructions || "";
 
   if (!complaint) {
     return (
@@ -456,20 +444,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
 
       // Deduplicate
       const unique = Array.from(new Set(results));
-      if (unique.length) {
-        console.log(
-          "[ComplaintDetails] Extracted complaint report images:",
-          unique
-        );
-      } else {
-        console.log(
-          "[ComplaintDetails] No complaint report images found in provided sources",
-          possibleSources
-        );
-      }
       return unique;
     } catch (err) {
-      console.warn("[ComplaintDetails] getComplaintReportImages failed:", err);
+      // ignore extract images error
       return [];
     }
   };
@@ -500,6 +477,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
       return false;
     }
   })();
+  // Anyone whose role is not exactly 'user' can edit admin notes
+  const roleLower = (user?.role || "").toLowerCase();
+  const isPrivilegedEditor = !!roleLower && roleLower !== "user";
 
   const handleUpdateStatus = async (newStatus) => {
     if (!complaint?.id) return;
@@ -516,18 +496,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
           await updateComplaintAdminNote(complaint.id, adminNote.trim());
           setIsNoteLocked(true);
         } catch (e) {
-          console.warn(
-            "Lưu ghi chú thất bại nhưng vẫn tiếp tục cập nhật trạng thái",
-            e
-          );
+          // ignore note save error but continue updating status
         }
       }
-      console.log(
-        "[ComplaintDetails] Update status action=",
-        newStatus,
-        "complaintId=",
-        complaint.id
-      );
       if (newStatus === "complete") {
         await approveComplaint(complaint.id);
       } else if (newStatus === "rejected") {
@@ -548,7 +519,6 @@ export default function ComplaintDetails({ complaint, onBack }) {
         } catch {}
       }, 400);
     } catch (err) {
-      console.error("Update complaint status failed", err);
       setActionMessage(
         err?.response?.data?.message || "Lỗi cập nhật trạng thái"
       );
@@ -565,44 +535,114 @@ export default function ComplaintDetails({ complaint, onBack }) {
       setIsNoteLocked(true);
       setActionMessage("Đã lưu ghi chú xử lý");
     } catch (err) {
-      console.error("Save admin note failed", err);
       setActionMessage(err?.response?.data?.message || "Lỗi lưu ghi chú");
     } finally {
       setSavingNote(false);
     }
   };
 
-  // Derive customer info from complaint/order API data (remove fake placeholders)
+  // Derive customer info from complaint/order API data (prefer complaint.user from new API)
+  const coalesce = (...vals) => {
+    // return first non-empty value, ignoring common placeholder strings
+    for (let v of vals) {
+      if (v === null || v === undefined) continue;
+      if (typeof v === "number" && !isNaN(v)) return String(v);
+      if (typeof v === "string") {
+        const s = v.trim();
+        if (!s) continue;
+        const lowered = s.toLowerCase();
+        if (["null", "undefined", "n/a", "na", "-"].includes(lowered)) continue;
+        return s;
+      }
+    }
+    return undefined;
+  };
+
+  const userObj = (() => {
+    try {
+      const candidates = [
+        complaint?.user,
+        complaint?.raw?.user,
+        complaint?.raw?.User,
+        order?.user,
+        order?.User, // Some APIs return capitalized User
+        order?.customer,
+        order?.customer_info,
+        order?.customerInfo,
+        complaint?.raw?.order?.user,
+        complaint?.raw?.order?.User,
+        complaint?.raw?.order?.customer,
+      ];
+      for (const u of candidates) if (u && typeof u === "object") return u;
+      return {};
+    } catch {
+      return {};
+    }
+  })();
+
+  const composeFullName = (u) => {
+    const first = coalesce(u?.first_name, u?.firstName, u?.firstname);
+    const last = coalesce(u?.last_name, u?.lastName, u?.lastname);
+    const combined = [first, last].filter(Boolean).join(" ").trim();
+    return combined || undefined;
+  };
+
   const customerInfo = {
     name:
-      complaint.customerName ||
-      complaint?.raw?.customer_name ||
-      complaint?.raw?.customerName ||
-      complaint?.raw?.user?.full_name ||
-      complaint?.raw?.user?.name ||
-      order?.customer_name ||
-      order?.user?.full_name ||
-      "-",
+      coalesce(
+        userObj.full_name,
+        userObj.fullName,
+        userObj.fullname,
+        composeFullName(userObj),
+        userObj.name,
+        userObj.username,
+        complaint?.raw?.customer_name,
+        order?.customer_name,
+        order?.customer?.name
+      ) || "Khách hàng",
     phone:
-      complaint?.raw?.customer_phone ||
-      complaint?.raw?.phone ||
-      complaint?.raw?.user?.phone ||
-      order?.customer_phone ||
-      order?.user?.phone ||
-      "-",
+      coalesce(
+        userObj.phone_number,
+        userObj.phoneNumber,
+        userObj.phone,
+        userObj.mobile,
+        userObj.mobile_number,
+        userObj.telephone,
+        userObj.tel,
+        complaint?.raw?.customer_phone,
+        complaint?.raw?.phone,
+        order?.customer_phone,
+        order?.phone,
+        order?.user?.phone_number,
+        order?.User?.phone_number,
+        order?.customer?.phone
+      ) || "Chưa cập nhật",
     email:
-      complaint?.raw?.customer_email ||
-      complaint?.raw?.email ||
-      complaint?.raw?.user?.email ||
-      order?.customer_email ||
-      order?.user?.email ||
-      "-",
+      coalesce(
+        userObj.email,
+        complaint?.raw?.customer_email,
+        complaint?.raw?.email,
+        order?.customer_email,
+        order?.email,
+        order?.user?.email,
+        order?.User?.email,
+        order?.customer?.email
+      ) || "-",
     address:
-      complaint?.raw?.customer_address ||
-      order?.shipping_address ||
-      order?.address ||
-      order?.user?.address ||
-      "-",
+      coalesce(
+        userObj.address,
+        userObj.address_line,
+        userObj.address1,
+        userObj.address2,
+        userObj.location,
+        complaint?.raw?.customer_address,
+        order?.shipping_address,
+        order?.shippingAddress,
+        order?.address,
+        order?.user?.address,
+        order?.User?.address,
+        order?.customer?.address
+      ) || "-",
   };
 
   return (
@@ -735,21 +775,16 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       <ImageIcon className="h-5 w-5 text-blue-600" />
                       Ảnh bánh (từ bài đăng bán SP)
                     </h3>
-                    {order?.marketplace_post_id && (
+                    {(order?.marketplace_post || order?.post) && (
                       <button
                         type="button"
                         onClick={() => {
-                          if (!order?.marketplace_post_id) return;
-                          console.log(
-                            "[ComplaintDetails] Manual retry fetch marketplace post"
-                          );
-                          hasFetchedMarketplaceRef.current = false;
                           setMarketplacePost(null);
                           setMarketplaceImage(null);
                         }}
                         className="text-xs px-2 py-1 rounded border border-blue-500 text-blue-600 hover:bg-blue-50"
                       >
-                        Tải lại ảnh
+                        Thử lại trích xuất
                       </button>
                     )}
                   </div>
@@ -773,10 +808,6 @@ export default function ComplaintDetails({ complaint, onBack }) {
                           alt="Ảnh bánh (marketplace)"
                           className="w-full h-48 object-cover rounded-lg border border-gray-200 group-hover:shadow-lg transition-shadow"
                           onError={(e) => {
-                            console.error(
-                              "Failed to load marketplace image:",
-                              marketplaceImage
-                            );
                             e.target.style.display = "none";
                           }}
                         />
@@ -791,16 +822,27 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg border border-gray-200">
                       <div className="text-center text-gray-500">
                         <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">
-                          {order?.marketplace_post_id
-                            ? "Không tìm thấy ảnh từ marketplace post"
-                            : "Không có marketplace post ID"}
-                        </p>
-                        {order?.marketplace_post_id && (
-                          <p className="text-xs mt-1">
-                            ID: {order.marketplace_post_id}
-                          </p>
-                        )}
+                        {(() => {
+                          const possibleId =
+                            order?.marketplace_post_id ||
+                            order?.marketplace_postId ||
+                            order?.post_id ||
+                            order?.postId ||
+                            complaint?.raw?.marketplace_post_id ||
+                            complaint?.raw?.post_id;
+                          return (
+                            <>
+                              <p className="text-sm">
+                                {possibleId
+                                  ? "Không tìm thấy ảnh từ marketplace post"
+                                  : "Không có dữ liệu bài post"}
+                              </p>
+                              {possibleId && (
+                                <p className="text-xs mt-1">ID: {possibleId}</p>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
@@ -821,10 +863,6 @@ export default function ComplaintDetails({ complaint, onBack }) {
                             alt={`Báo cáo ${idx + 1}`}
                             className="w-full h-48 object-cover rounded-lg border border-gray-200 group-hover:shadow-lg transition-shadow"
                             onError={(e) => {
-                              console.error(
-                                "Failed to load complaint image:",
-                                img
-                              );
                               e.target.style.display = "none";
                             }}
                           />
@@ -890,7 +928,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     <div>
                       <label className="text-sm text-gray-600">Họ tên:</label>
                       <p className="font-medium text-gray-800">
-                        {customerInfo.name}
+                        {customerInfo.fullname || customerInfo.name}
                       </p>
                     </div>
                     <div>
@@ -913,13 +951,13 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       <label className="text-sm text-gray-600">Địa chỉ:</label>
                       <p className="font-medium text-gray-800 flex items-center gap-2">
                         <MapPin className="h-4 w-4" />
-                        {customerInfo.address}
+                        {customerInfo.address || "Chưa cập nhật"}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Processing Actions */}
+                {/* Admin note / processing note */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4">
                     Xử lý khiếu nại
@@ -938,33 +976,41 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       <label className="block text-sm text-gray-600 mb-1">
                         Ghi chú:
                       </label>
-                      <textarea
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
-                        rows="4"
-                        placeholder="Nhập ghi chú xử lý..."
-                        value={adminNote}
-                        disabled={isNoteLocked}
-                        onChange={(e) => setAdminNote(e.target.value)}
-                      />
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-500">
-                          {isNoteLocked
-                            ? "Ghi chú đã được lưu (không thể sửa)."
-                            : "Ghi chú sẽ được lưu lại để tham chiếu sau."}
-                        </span>
-                        <div className="flex gap-2">
-                          {isAdmin && !isNoteLocked && (
-                            <button
-                              type="button"
-                              disabled={savingNote || !(adminNote || "").trim()}
-                              onClick={handleSaveAdminNote}
-                              className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
-                            >
-                              {savingNote ? "Đang lưu..." : "Gửi ghi chú"}
-                            </button>
-                          )}
+                      {isPrivilegedEditor ? (
+                        <>
+                          <textarea
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
+                            rows="4"
+                            placeholder="Nhập ghi chú xử lý..."
+                            value={adminNote}
+                            disabled={isNoteLocked}
+                            onChange={(e) => setAdminNote(e.target.value)}
+                          />
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-500">
+                              {isNoteLocked
+                                ? "Ghi chú đã được lưu (không thể sửa)."
+                                : "Ghi chú sẽ được lưu lại để tham chiếu sau."}
+                            </span>
+                            <div className="flex gap-2">
+                              {!isNoteLocked && (
+                                <button
+                                  type="button"
+                                  disabled={savingNote || !(adminNote || "").trim()}
+                                  onClick={handleSaveAdminNote}
+                                  className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                                >
+                                  {savingNote ? "Đang lưu..." : "Gửi ghi chú"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-gray-700 bg-white border border-gray-200 rounded-lg p-3">
+                          {(adminNote && adminNote.trim()) || "Chưa có ghi chú"}
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1024,10 +1070,6 @@ export default function ComplaintDetails({ complaint, onBack }) {
                             alt={`evidence-${i}`}
                             className="w-full h-40 object-cover rounded-lg border"
                             onError={(e) => {
-                              console.error(
-                                "Failed to load evidence image:",
-                                img
-                              );
                               e.target.style.display = "none";
                             }}
                           />
