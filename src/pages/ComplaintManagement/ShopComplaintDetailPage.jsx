@@ -96,8 +96,30 @@ export default function ShopComplaintDetailPage() {
           images: uniqueImages,
           raw: data,
         };
-        // Use complaint.order as source of truth; enrich minimal fields and attach marketplace_post for image
+        // Use complaint.order as source of truth; normalize canonical keys, then enrich minimal fields and attach marketplace_post for image
         let workingOrder = data?.order || undefined;
+        if (workingOrder && typeof workingOrder === "object") {
+          const normalized = { ...workingOrder };
+          if (normalized.base_price == null && normalized.basePrice != null)
+            normalized.base_price = normalized.basePrice;
+          if (normalized.total_price == null) {
+            if (normalized.totalPrice != null)
+              normalized.total_price = normalized.totalPrice;
+            else if (normalized.price != null) normalized.total_price = normalized.price;
+          }
+          if (
+            normalized.ingredient_total == null &&
+            normalized.ingredientTotal != null
+          )
+            normalized.ingredient_total = normalized.ingredientTotal;
+          if (!Array.isArray(normalized.orderDetails)) {
+            if (Array.isArray(normalized.order_details))
+              normalized.orderDetails = normalized.order_details;
+            else if (Array.isArray(normalized.items))
+              normalized.orderDetails = normalized.items;
+          }
+          workingOrder = normalized;
+        }
         const orderIdToFetch =
           mapped.orderId || data?.order_id || data?.order?.id;
         const hasSize = !!(workingOrder && workingOrder.size);
@@ -229,11 +251,9 @@ export default function ShopComplaintDetailPage() {
         if (workingOrder) {
           mapped.order = workingOrder;
           mapped.raw = { ...mapped.raw, order: workingOrder };
-          mapped.orderDetails =
-            workingOrder.orderDetails ||
-            workingOrder.orderdetails ||
-            workingOrder.order_details ||
-            [];
+          mapped.orderDetails = Array.isArray(workingOrder.orderDetails)
+            ? workingOrder.orderDetails
+            : [];
         }
         setComplaint(mapped);
       } catch (err) {
