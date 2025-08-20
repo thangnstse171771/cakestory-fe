@@ -10,7 +10,7 @@ dayjs.extend(relativeTime);
 import DeleteCommentPopup from "./DeleteCommentPopup";
 import { toast } from "react-toastify";
 
-const CommentsSection = ({ postId }) => {
+const CommentsSection = ({ postId, challengeStatus }) => {
   const { user } = useAuth();
   const currentUserId = user?.id;
   const [comments, setComments] = useState([]);
@@ -177,7 +177,14 @@ const CommentsSection = ({ postId }) => {
                       <>
                         <button
                           onClick={() => handleEditClick(comment)}
-                          className="hover:underline cursor-pointer"
+                          className={`${
+                            challengeStatus && challengeStatus !== "onGoing"
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "hover:underline cursor-pointer"
+                          }`}
+                          disabled={
+                            challengeStatus && challengeStatus !== "onGoing"
+                          }
                         >
                           Chỉnh sửa
                         </button>
@@ -186,7 +193,14 @@ const CommentsSection = ({ postId }) => {
                             setCommentIdToDelete(comment.id);
                             setIsPopupOpen(true);
                           }}
-                          className="hover:underline cursor-pointer text-red-500"
+                          className={`${
+                            challengeStatus && challengeStatus !== "onGoing"
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "hover:underline text-red-500 cursor-pointer"
+                          }`}
+                          disabled={
+                            challengeStatus && challengeStatus !== "onGoing"
+                          }
                         >
                           Xóa
                         </button>
@@ -211,6 +225,7 @@ const CommentsSection = ({ postId }) => {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Hãy viết gì đó..."
+            disabled={challengeStatus && challengeStatus !== "onGoing"}
             maxLength={MAX_COMMENT_LENGTH}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
@@ -228,7 +243,9 @@ const CommentsSection = ({ postId }) => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={
+              loading || (challengeStatus && challengeStatus !== "onGoing")
+            }
             className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
           >
             {loading ? "Đang tải..." : "Đăng"}

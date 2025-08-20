@@ -18,6 +18,7 @@ const ChallengePostDetail = ({
   likesData,
   handleLike,
   onClose,
+  challInfo,
 }) => {
   const [postDetail, setPostDetail] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -182,12 +183,20 @@ const ChallengePostDetail = ({
 
           <div className="flex items-center gap-4 mb-4">
             <div
-              className="flex items-center gap-1 text-pink-500 cursor-pointer"
+              className={`flex items-center gap-1 ${
+                challInfo?.status !== "onGoing"
+                  ? "cursor-not-allowed"
+                  : "text-gray-600 hover:text-pink-500 cursor-pointer"
+              }`}
               onClick={() => handleLike(post.id)}
-              disabled={likesData[post.id]?.liking}
+              disabled={
+                likesData[post.id]?.liking || challInfo?.status !== "onGoing"
+              }
             >
               <Heart
-                className={`w-5 h-5 ${likeInfo.liked ? "fill-pink-500" : ""}`}
+                className={`w-5 h-5 ${
+                  likeInfo.liked ? "fill-pink-500 text-pink-500" : ""
+                }`}
               />
               <span className="font-semibold">{likeInfo.count}</span>
             </div>
@@ -205,7 +214,10 @@ const ChallengePostDetail = ({
 
           {/* 🗨 Comments Section */}
           {/* 🗨 Scrollable Comments Section */}
-          <CommentsSection postId={post.id} />
+          <CommentsSection
+            postId={post.id}
+            challengeStatus={challInfo?.status}
+          />
         </div>
       </div>
     </div>
