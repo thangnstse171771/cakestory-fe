@@ -301,27 +301,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
     loadIngredients();
   }, [order?.shop_id, order?.shopId]);
 
-  // Get order details and calculate totals (robust mapping)
-  const coerceArray = (v) =>
-    Array.isArray(v) ? v : v && typeof v === "object" ? [v] : [];
-
-  const orderDetails =
-    complaint?.orderDetails ||
-    complaint?.raw?.orderDetails ||
-    complaint?.raw?.order_details ||
-    order?.orderDetails ||
-    order?.orderdetails ||
-    order?.order_details ||
-    order?.orderItems ||
-    order?.order_items ||
-    order?.items ||
-    order?.details ||
-    order?.detail ||
-    [];
-
-  const orderDetailsArray = Array.isArray(orderDetails)
-    ? orderDetails
-    : coerceArray(orderDetails);
+  // Get order details and calculate totals (canonical fields only)
+  const orderDetails = order?.orderDetails || [];
+  const orderDetailsArray = Array.isArray(orderDetails) ? orderDetails : [];
 
   const getNumber = (v) => {
     const n = Number(v);
@@ -329,74 +311,31 @@ export default function ComplaintDetails({ complaint, onBack }) {
   };
 
   // Prefer backend-provided aggregate if available
-  const ingredientTotalTop =
-    order?.ingredient_total ??
-    order?.ingredientTotal ??
-    order?.ingredients_total ??
-    order?.ingredientsTotal;
+  const ingredientTotalTop = order?.ingredient_total;
   const ingredientsTotalComputed = orderDetailsArray.reduce((sum, d) => {
-    const qty = getNumber(d.quantity ?? d.qty ?? 0) || 0;
-    const totalCandidate =
-      d.total_price ??
-      d.totalPrice ??
-      d.price_total ??
-      d.subtotal ??
-      d.total ??
-      d.amount ??
-      d.line_total;
+    const qty = getNumber(d.quantity || 0) || 0;
+    const totalCandidate = d.total_price;
     let lineTotal = getNumber(totalCandidate);
     if (!lineTotal) {
-      const unit = getNumber(
-        d.unit_price ?? d.unitPrice ?? d.price ?? d.unit ?? 0
-      );
+      const unit = getNumber(d.unit_price || 0);
       lineTotal = unit * (qty || 1);
     }
     return sum + (isNaN(lineTotal) ? 0 : lineTotal);
   }, 0);
-  const ingredientsTotal =
-    getNumber(ingredientTotalTop) || ingredientsTotalComputed;
+  const ingredientsTotal = getNumber(ingredientTotalTop) || ingredientsTotalComputed;
 
-  const basePrice = getNumber(
-    order?.base_price ??
-      order?.basePrice ??
-      order?.base_amount ??
-      order?.baseAmount ??
-      order?.base_cost ??
-      order?.baseCost ??
-      order?.base ??
-      0
-  );
+  const basePrice = getNumber(order?.base_price || 0);
 
-  const totalTopLevel =
-    order?.total_price ??
-    order?.totalPrice ??
-    order?.final_price ??
-    order?.finalPrice ??
-    order?.grand_total ??
-    order?.grandTotal ??
-    order?.total_amount ??
-    order?.totalAmount ??
-    order?.total ??
-    order?.amount ??
-    order?.price; // sometimes "price" is the total
+  const totalTopLevel = order?.total_price;
 
   let totalPrice = getNumber(totalTopLevel);
   if (!totalPrice) {
     const sumLines = orderDetailsArray.reduce((s, d) => {
-      const qty = getNumber(d.quantity ?? d.qty ?? 0) || 0;
-      const totalCandidate =
-        d.total_price ??
-        d.totalPrice ??
-        d.price_total ??
-        d.subtotal ??
-        d.total ??
-        d.amount ??
-        d.line_total;
+      const qty = getNumber(d.quantity || 0) || 0;
+      const totalCandidate = d.total_price;
       let lineTotal = getNumber(totalCandidate);
       if (!lineTotal) {
-        const unit = getNumber(
-          d.unit_price ?? d.unitPrice ?? d.price ?? d.unit ?? 0
-        );
+        const unit = getNumber(d.unit_price || 0);
         lineTotal = unit * (qty || 1);
       }
       return s + (isNaN(lineTotal) ? 0 : lineTotal);
@@ -407,7 +346,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
 
   // Get other order data
   const evidenceImages = (() => {
-    const ev = order?.evidence_images || order?.evidenceImages;
+    const ev = order?.evidence_images;
     if (!ev) return [];
     if (Array.isArray(ev)) return ev.filter(Boolean);
     if (typeof ev === "string")
@@ -418,12 +357,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
     return [];
   })();
 
-  const specialInstructions =
-    order?.special_instructions ||
-    order?.specialInstructions ||
-    order?.notes ||
-    order?.note ||
-    "";
+  const specialInstructions = order?.special_instructions || "";
 
   if (!complaint) {
     return (
@@ -543,6 +477,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
       return false;
     }
   })();
+  // Anyone whose role is not exactly 'user' can edit admin notes
+  const roleLower = (user?.role || "").toLowerCase();
+  const isPrivilegedEditor = !!roleLower && roleLower !== "user";
 
   const handleUpdateStatus = async (newStatus) => {
     if (!complaint?.id) return;
@@ -1020,7 +957,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                   </div>
                 </div>
 
-                {/* Processing Actions */}
+                {/* Admin note / processing note */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4">
                     Xử lý khiếu nại
@@ -1039,33 +976,41 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       <label className="block text-sm text-gray-600 mb-1">
                         Ghi chú:
                       </label>
-                      <textarea
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
-                        rows="4"
-                        placeholder="Nhập ghi chú xử lý..."
-                        value={adminNote}
-                        disabled={isNoteLocked}
-                        onChange={(e) => setAdminNote(e.target.value)}
-                      />
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xs text-gray-500">
-                          {isNoteLocked
-                            ? "Ghi chú đã được lưu (không thể sửa)."
-                            : "Ghi chú sẽ được lưu lại để tham chiếu sau."}
-                        </span>
-                        <div className="flex gap-2">
-                          {isAdmin && !isNoteLocked && (
-                            <button
-                              type="button"
-                              disabled={savingNote || !(adminNote || "").trim()}
-                              onClick={handleSaveAdminNote}
-                              className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
-                            >
-                              {savingNote ? "Đang lưu..." : "Gửi ghi chú"}
-                            </button>
-                          )}
+                      {isPrivilegedEditor ? (
+                        <>
+                          <textarea
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
+                            rows="4"
+                            placeholder="Nhập ghi chú xử lý..."
+                            value={adminNote}
+                            disabled={isNoteLocked}
+                            onChange={(e) => setAdminNote(e.target.value)}
+                          />
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-500">
+                              {isNoteLocked
+                                ? "Ghi chú đã được lưu (không thể sửa)."
+                                : "Ghi chú sẽ được lưu lại để tham chiếu sau."}
+                            </span>
+                            <div className="flex gap-2">
+                              {!isNoteLocked && (
+                                <button
+                                  type="button"
+                                  disabled={savingNote || !(adminNote || "").trim()}
+                                  onClick={handleSaveAdminNote}
+                                  className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                                >
+                                  {savingNote ? "Đang lưu..." : "Gửi ghi chú"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-gray-700 bg-white border border-gray-200 rounded-lg p-3">
+                          {(adminNote && adminNote.trim()) || "Chưa có ghi chú"}
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
