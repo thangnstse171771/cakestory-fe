@@ -62,6 +62,8 @@ const humanizePaymentError = (err) => {
 export default function UserWallet() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const COOLDOWN_KEY = "walletDepositCooldownUntil";
+  const COOLDOWN_SECONDS = 15;
   const [balance, setBalance] = useState(0);
   const [selected, setSelected] = useState(null);
   const [custom, setCustom] = useState("");
@@ -142,6 +144,15 @@ export default function UserWallet() {
       }
     };
     fetchBalance();
+    // Rehydrate cooldown from localStorage if exists
+    try {
+      const untilRaw = localStorage.getItem(COOLDOWN_KEY);
+      const until = untilRaw ? parseInt(untilRaw, 10) : 0;
+      if (until && until > Date.now()) {
+        const remain = Math.ceil((until - Date.now()) / 1000);
+        setCooldown(remain > 0 ? remain : 0);
+      }
+    } catch {}
   }, [user]);
 
   // Cooldown ticker to avoid button spamming
@@ -149,6 +160,15 @@ export default function UserWallet() {
     if (cooldown <= 0) return;
     const t = setInterval(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
     return () => clearInterval(t);
+  }, [cooldown]);
+
+  // Cleanup cooldown key when finished
+  useEffect(() => {
+    if (cooldown <= 0) {
+      try {
+        localStorage.removeItem(COOLDOWN_KEY);
+      } catch {}
+    }
   }, [cooldown]);
 
   // Timer countdown
@@ -361,6 +381,17 @@ export default function UserWallet() {
   };
 
   const handleDeposit = async () => {
+    // Enforce persisted cooldown in case of quick reload
+    try {
+      const untilRaw = localStorage.getItem(COOLDOWN_KEY);
+      const until = untilRaw ? parseInt(untilRaw, 10) : 0;
+      if (until && until > Date.now()) {
+        const remain = Math.ceil((until - Date.now()) / 1000);
+        setCooldown(remain > 0 ? remain : 0);
+        setError(`Vui lòng đợi ${remain}s trước khi thử lại.`);
+        return;
+      }
+    } catch {}
     // Block when a pending transaction is already open
     if (showModal && paymentStatus === "pending") {
       setError(
@@ -453,7 +484,14 @@ export default function UserWallet() {
     } finally {
       setLoading(false);
       depositLockRef.current = false; // release lock
-      setCooldown(15); // 15s cooldown per transaction (Fleen processing window)
+      // Set fixed cooldown and persist until timestamp so reloads can't bypass
+      setCooldown(COOLDOWN_SECONDS);
+      try {
+        localStorage.setItem(
+          COOLDOWN_KEY,
+          String(Date.now() + COOLDOWN_SECONDS * 1000)
+        );
+      } catch {}
     }
   };
 
