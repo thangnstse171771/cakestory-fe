@@ -109,7 +109,12 @@ const Sidebar = () => {
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
-      "Ví tiền": ["/wallet", "/withdraw", "/all-transactions"],
+      "Ví tiền": [
+        "/wallet",
+        "/withdraw",
+        "/all-transactions",
+        "/wallet/transactions",
+      ],
       "Cửa Hàng của Tôi": ["/order-tracking", "/complaints"],
       "Tùy chọn khác": ["/settings", "/change-password"],
     };
@@ -202,6 +207,11 @@ const Sidebar = () => {
       submenu: [
         { icon: ArrowDownToLine, label: "Yêu cầu rút tiền", path: "/withdraw" },
         { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
+        {
+          icon: Receipt,
+          label: "Giao dịch ví chi tiết",
+          path: "/wallet/transactions",
+        },
       ],
     },
   ];
@@ -255,7 +265,12 @@ const Sidebar = () => {
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
-      "Ví tiền": ["/wallet", "/withdraw", "/all-transactions"],
+      "Ví tiền": [
+        "/wallet",
+        "/withdraw",
+        "/all-transactions",
+        "/wallet/transactions",
+      ],
       "Cửa Hàng của Tôi": ["/order-tracking", "/complaints"],
       "Tùy chọn khác": ["/settings", "/change-password"],
     };

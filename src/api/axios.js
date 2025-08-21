@@ -703,3 +703,15 @@ export const fetchCakeOrdersByUserId = async (userId) => {
     throw error;
   }
 };
+
+// Lấy tất cả giao dịch ví theo userId (raw wallet transactions: order_payment, ai_generation, refund, ...)
+export const fetchWalletTransactionsByUserId = async (userId) => {
+  try {
+    if (!userId) throw new Error("Thiếu userId");
+    const response = await axiosInstance.get(`/wallet/transactions/${userId}`);
+    return response.data; // expects { success, transactions: [] }
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchWalletTransactionsByUserId:", error);
+    throw error;
+  }
+};
