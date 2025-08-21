@@ -43,6 +43,7 @@ import DepositDetails from "./pages/Admin/DepositDetails";
 import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import Report from "./pages/Report";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChallengeList from "./pages/Challenge/ChallengeList";
 import ChallengeDetail from "./pages/Challenge/ChallengeDetail";
 import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
@@ -268,6 +269,7 @@ export default function App() {
             />
             <Route path="/settings" element={<Settings />} />
             <Route path="/report" element={<Report />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route
               path="admin/challenge"
               element={<AdminChallengeDashboard />}
