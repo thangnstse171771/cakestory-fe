@@ -54,6 +54,7 @@ import UserWallet from "./pages/Wallet/UserWallet";
 import WithdrawRequest from "./pages/Wallet/WithdrawRequest";
 import WithdrawHistory from "./pages/Wallet/WithdrawHistory";
 import AllPaymentHistory from "./pages/Wallet/AllPaymentHistory";
+import UserTransactions from "./pages/Wallet/UserTransactions";
 import DepositHistoryDetails from "./pages/Wallet/DepositHistoryDetails";
 import CustomizedOrderDetails from "./pages/CustomizedOrderForm/CustomizedOrderDetails";
 import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
@@ -86,7 +87,8 @@ function ProtectedRoute({ children }) {
     return <div>Loading...</div>;
   }
   if (!isAuthenticated()) {
-    return <Navigate to="/" replace />;
+    // Redirect unauthenticated users to login for clarity
+    return <Navigate to="/login" replace />;
   }
   return children;
 }
@@ -214,6 +216,7 @@ export default function App() {
             <Route path="withdraw" element={<WithdrawRequest />} />
             <Route path="withdraw-history" element={<WithdrawHistory />} />
             <Route path="all-transactions" element={<AllPaymentHistory />} />
+            <Route path="wallet/transactions" element={<UserTransactions />} />
             <Route
               path="wallet/deposits/:id"
               element={<DepositHistoryDetails />}
@@ -280,19 +283,7 @@ export default function App() {
         </Routes>
 
         {/* Toast Container */}
-        <ToastContainer
-          position="top-right"
-          autoClose={4000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss={false}
-          draggable
-          pauseOnHover={false}
-          theme="colored"
-          style={{ zIndex: 9999 }}
-        />
+        <ToastContainer position="bottom-right" />
       </Router>
     </AuthProvider>
   );

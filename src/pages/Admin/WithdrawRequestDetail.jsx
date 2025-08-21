@@ -86,6 +86,19 @@ export default function WithdrawRequestDetail() {
         withdrawData.user_id || withdrawData.userId,
         usersData
       );
+      // Normalize backend status into a small set for UI
+      const normalizeStatus = (s) => {
+        const v = (s || "").toString().trim().toLowerCase();
+        if (["pending", "processing", "in_progress"].includes(v))
+          return "pending";
+        if (["completed", "success", "successful", "approved"].includes(v))
+          return "completed";
+        if (["cancelled", "canceled"].includes(v)) return "cancelled";
+        if (["failed", "error", "rejected", "denied"].includes(v))
+          return "failed";
+        return v || "pending";
+      };
+
       const transformedRequest = {
         id: withdrawData.id,
         userId: withdrawData.user_id || withdrawData.userId,
@@ -104,19 +117,13 @@ export default function WithdrawRequestDetail() {
           userInfo.username ||
           "Chưa cập nhật",
         amount: parseFloat(withdrawData.amount) || 0,
-        status:
-          withdrawData.status === "pending"
-            ? "pending"
-            : withdrawData.status === "completed"
-            ? "completed"
-            : withdrawData.status === "cancelled"
-            ? "cancelled"
-            : withdrawData.status,
+        status: normalizeStatus(withdrawData.status),
         requestDate:
           withdrawData.created_at ||
           withdrawData.createdAt ||
           withdrawData.requestDate,
         processedDate:
+          withdrawData.processed_at ||
           withdrawData.updated_at ||
           withdrawData.updatedAt ||
           withdrawData.processedDate,
@@ -315,14 +322,15 @@ export default function WithdrawRequestDetail() {
                 ? "bg-yellow-100 text-yellow-700"
                 : request.status === "completed"
                 ? "bg-green-100 text-green-700"
-                : request.status === "cancelled"
-                ? "bg-gray-100 text-gray-700"
+                : request.status === "failed"
+                ? "bg-red-100 text-red-700"
                 : "bg-gray-100 text-gray-700"
             }`}
           >
             {request.status === "pending" && "Chờ xử lý"}
             {request.status === "completed" && "Hoàn thành"}
             {request.status === "cancelled" && "Đã hủy"}
+            {request.status === "failed" && "Thất bại"}
           </span>
         </div>
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -424,7 +432,7 @@ export default function WithdrawRequestDetail() {
                   className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={actionLoading}
                 >
-                  Hủy
+                  Không
                 </button>
                 <button
                   onClick={handleConfirmAction}
