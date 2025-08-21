@@ -224,6 +224,23 @@ export default function CakeShop() {
       return;
     }
 
+    // Validate required user contact info
+    const userPhone = user?.phone_number || user?.phone;
+    const userAddress = user?.address || user?.location;
+    if (!userPhone || !userAddress) {
+      toast.warn(
+        `Vui lòng cập nhật ${
+          !userPhone && !userAddress
+            ? "số điện thoại và địa chỉ"
+            : !userPhone
+            ? "số điện thoại"
+            : "địa chỉ"
+        } trước khi thanh toán!`,
+        { position: "top-right", autoClose: 4000 }
+      );
+      return;
+    }
+
     setIsCheckingOut(true);
 
     try {
@@ -708,11 +725,21 @@ export default function CakeShop() {
                 </div>
 
                 <button
-                  onClick={() => setShowConfirmModal(true)}
+                  onClick={() => {
+                    // Re-check before opening modal
+                    const userPhone = user?.phone_number || user?.phone;
+                    const userAddress = user?.address || user?.location;
+                    if (!userPhone || !userAddress) return; // guarded by disabled but double safety
+                    setShowConfirmModal(true);
+                  }}
                   disabled={
                     isCheckingOut ||
                     !selectedSize ||
-                    (!loadingBalance && user && walletBalance < getTotalPrice())
+                    (!loadingBalance &&
+                      user &&
+                      walletBalance < getTotalPrice()) ||
+                    (user && !user?.phone_number && !user?.phone) ||
+                    (user && !user?.address && !user?.location)
                   }
                   className="w-full bg-pink-600 hover:bg-pink-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-3 px-6 rounded-lg text-lg font-semibold flex items-center justify-center space-x-2 transition-colors"
                 >
@@ -727,10 +754,57 @@ export default function CakeShop() {
                     user &&
                     walletBalance < getTotalPrice() ? (
                     <span>Số dư không đủ</span>
+                  ) : user && !user?.phone_number && !user?.phone ? (
+                    <span>Thiếu SĐT</span>
+                  ) : user && !user?.address && !user?.location ? (
+                    <span>Thiếu địa chỉ</span>
                   ) : (
                     <span>Thanh Toán</span>
                   )}
                 </button>
+                {user &&
+                  (() => {
+                    const userPhone = user?.phone_number || user?.phone;
+                    const userAddress = user?.address || user?.location;
+                    if (userPhone && userAddress) return null;
+                    return (
+                      <div className="mt-4 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 text-sm space-y-3">
+                        <div className="font-semibold flex items-center gap-2">
+                          <span>⚠️</span>
+                          <span>
+                            Bạn chưa cập nhật{" "}
+                            {!userPhone && !userAddress
+                              ? "số điện thoại và địa chỉ"
+                              : !userPhone
+                              ? "số điện thoại"
+                              : "địa chỉ"}
+                            .
+                          </span>
+                        </div>
+                        <p>
+                          Vui lòng cập nhật thông tin liên hệ để shop có thể xác
+                          nhận đơn hàng, hoặc trao đổi với shop qua chat trước
+                          khi thanh toán.
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => navigate("/edit-profile")}
+                            className="px-4 py-2 rounded-md bg-pink-500 hover:bg-pink-600 text-white text-sm font-medium transition-colors"
+                          >
+                            Cập nhật hồ sơ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate("/chat")}
+                            className="px-4 py-2 rounded-md border border-pink-300 text-pink-600 hover:bg-pink-50 text-sm font-medium transition-colors"
+                          >
+                            Trao đổi qua chat
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
               </div>
             </div>
           </div>
