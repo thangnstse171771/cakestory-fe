@@ -462,33 +462,12 @@ const Sidebar = () => {
               <button
                 onClick={() => {
                   setShowMore(false);
-                  navigate("/settings");
+                  navigate("/change-password");
                 }}
                 className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group"
               >
-                <span className="mr-3 text-lg">⚙️</span>
-                <span className="font-medium text-sm">Cài đặt</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false); /* handle theme toggle here */
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group border-t border-pink-100"
-              >
-                <span className="mr-3 text-lg">🌗</span>
-                <span className="font-medium text-sm">
-                  Chuyển đổi giao diện
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false);
-                  navigate("/report");
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group border-t border-pink-100"
-              >
-                <span className="mr-3 text-lg">🚩</span>
-                <span className="font-medium text-sm">Báo cáo sự cố</span>
+                <span className="mr-3 text-lg">🔐</span>
+                <span className="font-medium text-sm">Đổi mật khẩu</span>
               </button>
             </div>
           )}
