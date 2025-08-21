@@ -98,7 +98,7 @@ const ProductDetail = () => {
     navigate(`/marketplace/shop/${shop.user_id}`);
   };
 
-  // Kiểm tra xem sản phẩm có Hết hàng không
+  // Kiểm tra xem sản phẩm có hết hạn không
   const isExpired = () => {
     if (!product.expiry_date) return false;
     const currentDate = new Date();
@@ -106,7 +106,7 @@ const ProductDetail = () => {
     return currentDate > expiryDate;
   };
 
-  // Kiểm tra trạng thái sản phẩm (còn hàng và chưa Hết hàng)
+  // Kiểm tra trạng thái sản phẩm (còn hàng và chưa hết hạn)
   const isProductAvailable = () => {
     return product.available && !isExpired();
   };
@@ -222,8 +222,8 @@ const ProductDetail = () => {
                     {isProductAvailable()
                       ? "Còn hàng"
                       : isExpired()
-                      ? "Hết hàng"
-                      : "Hết hàng"}
+                      ? "hết hạn"
+                      : "hết hạn"}
                   </div>
                 </div>
               </div>
@@ -291,7 +291,7 @@ const ProductDetail = () => {
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 text-gray-500" />
                   <div>
-                    <div className="text-sm text-gray-600">Ngày Hết hàng</div>
+                    <div className="text-sm text-gray-600">Ngày hết hạn</div>
                     <div className="font-medium">
                       {product.expiry_date
                         ? new Date(product.expiry_date).toLocaleDateString()
@@ -486,7 +486,7 @@ const ProductDetail = () => {
                         )
                       : item.price || 0;
 
-                  // Kiểm tra xem item có Hết hàng không
+                  // Kiểm tra xem item có hết hạn không
                   const itemIsExpired = () => {
                     if (!item.expiry_date) return false;
                     const currentDate = new Date();
@@ -524,8 +524,8 @@ const ProductDetail = () => {
                           {itemIsAvailable()
                             ? "Còn hàng"
                             : itemIsExpired()
-                            ? "Hết hàng"
-                            : "Hết hàng"}
+                            ? "hết hạn"
+                            : "hết hạn"}
                         </div>
                       </div>
 
