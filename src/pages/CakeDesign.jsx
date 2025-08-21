@@ -637,6 +637,11 @@ Trang trí: ${
     // Add professional photography style
     prompt += ` Phong cách chụp ảnh ánh sáng mềm mại, nền sang trọng, làm nổi bật chi tiết và màu sắc của bánh.`;
 
+    // Ghép mô tả tự do của người dùng (nếu có) đứng trước theo yêu cầu
+    const userDesc = description?.trim();
+    if (userDesc) {
+      return `${userDesc} ${prompt}`.trim();
+    }
     return prompt;
   };
 
@@ -680,7 +685,19 @@ Trang trí: ${
       }, 3000);
     } catch (error) {
       console.error("Error generating AI image:", error);
-      toast.error("Không thể tạo ảnh AI. Vui lòng thử lại!");
+      // Phân biệt lỗi safety (nội dung vi phạm) và lỗi chung
+      const rawMsg =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        "";
+      if (/safety|rejected|not allowed/i.test(rawMsg)) {
+        toast.error(
+          "Yêu cầu bị từ chối bởi hệ thống an toàn. Hãy chỉnh sửa mô tả: tránh nội dung phân biệt chủng tộc, tình dục, bạo lực, thù hằn, tự hại hoặc xúc phạm."
+        );
+      } else {
+        toast.error("Không thể tạo ảnh AI. Vui lòng thử lại!");
+      }
       setIsGeneratingAI(false);
       setPendingAIGeneration(null); // Remove loading placeholder on error
     }
