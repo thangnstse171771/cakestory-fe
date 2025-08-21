@@ -21,7 +21,7 @@ const HomeSideBar = () => {
     const fetchChallenges = async () => {
       try {
         const res = await getAllChallenges();
-        setChallenges(res.challenges || []);
+        setChallenges((res.challenges || []).slice(0, 4));
       } catch (error) {
         console.error("Failed to fetch challenges:", error);
       } finally {
