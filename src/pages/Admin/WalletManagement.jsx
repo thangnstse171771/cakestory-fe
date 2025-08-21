@@ -8,8 +8,8 @@ import {
   fetchSystemWalletBalance,
   fetchTotalAmountAiGenerate,
   fetchAllWithdrawHistory,
-  fetchAllOrders,
   fetchAllUsers,
+  fetchAllWalletTransactions,
 } from "../../api/axios";
 
 const WalletManagement = () => {
@@ -29,30 +29,22 @@ const WalletManagement = () => {
       currency: "VND",
       description: "Doanh thu hệ thống từ gói AI",
     },
-    withdraw: {
-      balance: 0,
-      currency: "VND",
-      description: "Tổng tiền đã rút",
-    },
+    withdraw: { balance: 0, currency: "VND", description: "Tổng tiền đã rút" },
   });
   const [transactions, setTransactions] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [totalUserWalletsBalance, setTotalUserWalletsBalance] = useState(0); // Tổng số dư user wallets
+  const [totalUserWalletsBalance, setTotalUserWalletsBalance] = useState(0);
   const [pendingWithdraw, setPendingWithdraw] = useState({
     amount: 0,
     count: 0,
-  }); // Pending withdraw stats
+  });
   const navigate = useNavigate();
 
   // Filter states
-  const [filters, setFilters] = useState({
-    status: "",
-    user_id: "",
-    type: "",
-  });
+  const [filters, setFilters] = useState({ status: "", user_id: "", type: "" });
   const [showFilters, setShowFilters] = useState(false);
 
   // Pagination state
@@ -66,26 +58,25 @@ const WalletManagement = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch multiple data sources bao gồm AI revenue, all user wallets và withdraw data
       const [
         systemBalanceResponse,
         depositsResponse,
         aiRevenueResponse,
         allWalletsResponse,
         withdrawResponse,
-        ordersResponse,
+        unifiedTxResponse,
         usersResponse,
       ] = await Promise.allSettled([
         fetchSystemWalletBalance(),
-        fetchAllDepositsAdmin(appliedFilters), // Pass filters to API call
-        fetchTotalAmountAiGenerate(), // Fetch AI revenue
-        fetchAllUserWallets(), // Fetch all user wallets for total balance
-        fetchAllWithdrawHistory(), // Fetch withdraw data
-        fetchAllOrders(), // Fetch all cake orders (purchases)
-        fetchAllUsers(), // Fetch all users to map full names
+        fetchAllDepositsAdmin(appliedFilters),
+        fetchTotalAmountAiGenerate(),
+        fetchAllUserWallets(),
+        fetchAllWithdrawHistory(),
+        fetchAllWalletTransactions(),
+        fetchAllUsers(),
       ]);
 
-      // Build a user map for quick lookup of display names
+      // Build user map
       const usersMap = (() => {
         if (usersResponse?.status !== "fulfilled") return {};
         const data = usersResponse.value;
@@ -111,7 +102,6 @@ const WalletManagement = () => {
       })();
 
       const resolveUserDisplay = (rawId, embeddedUser) => {
-        // Prefer embedded full name if available
         const embeddedName =
           embeddedUser?.full_name ||
           embeddedUser?.fullName ||
@@ -119,17 +109,13 @@ const WalletManagement = () => {
             ? `${embeddedUser.first_name} ${embeddedUser.last_name}`
             : embeddedUser?.name || embeddedUser?.username || null);
         if (embeddedName) return embeddedName;
-        // Then lookup from usersMap
         if (rawId != null && usersMap[rawId]) return usersMap[rawId];
-        // Fallback
         return rawId != null ? `user${rawId}` : "User";
       };
 
-      // Update wallet data với system balance (holding wallet)
+      // Update holding card from summary
       if (systemBalanceResponse.status === "fulfilled") {
         const systemData = systemBalanceResponse.value;
-        console.log("System data received:", systemData);
-
         setWalletData((prev) => ({
           ...prev,
           holding: {
@@ -142,78 +128,48 @@ const WalletManagement = () => {
         }));
       }
 
-      // Build unified recent transactions from deposits + withdraws + orders
+      // Unified list starts here
       let unifiedTransactions = [];
 
-      // Deposits
+      // Deposits -> transactions
       if (depositsResponse.status === "fulfilled") {
         const depositsData = depositsResponse.value;
-        console.log("Deposits data:", depositsData);
-        console.log("Deposits data type:", typeof depositsData);
-        console.log("Deposits data keys:", Object.keys(depositsData || {}));
-
-        // Transform deposits thành transactions format - thêm safety check
         let deposits = [];
-
-        // Thử nhiều cách extract deposits array theo đúng API structure
-        if (Array.isArray(depositsData)) {
-          deposits = depositsData;
-        } else if (
-          depositsData?.data?.deposits &&
-          Array.isArray(depositsData.data.deposits)
-        ) {
-          // Correct path: depositsData.data.deposits (từ console log)
+        if (Array.isArray(depositsData)) deposits = depositsData;
+        else if (Array.isArray(depositsData?.data?.deposits))
           deposits = depositsData.data.deposits;
-        } else if (
-          depositsData?.deposits &&
-          Array.isArray(depositsData.deposits)
-        ) {
+        else if (Array.isArray(depositsData?.deposits))
           deposits = depositsData.deposits;
-        } else if (depositsData?.data && Array.isArray(depositsData.data)) {
+        else if (Array.isArray(depositsData?.data))
           deposits = depositsData.data;
-        } else {
-          console.warn("Deposits data is not an array:", depositsData);
-          deposits = [];
-        }
 
-        console.log("Final deposits array:", deposits);
-        console.log("Deposits count:", deposits.length);
-
-        if (deposits.length > 0) {
-          const depositTx = deposits.map((deposit) => ({
-            id: deposit.id,
-            // Keep numeric/string ID for filtering
-            userId:
-              deposit.user_id ??
-              deposit.user?.id ??
-              deposit.user?.user_id ??
-              "",
-            // Prefer full name for display
+        const depositTx = (deposits || [])
+          .map((d) => ({
+            id: d.id,
+            userId: d.user_id ?? d.user?.id ?? d.user?.user_id ?? "",
             userDisplay: resolveUserDisplay(
-              deposit.user_id ?? deposit.user?.id ?? deposit.user?.user_id,
-              deposit.user
+              d.user_id ?? d.user?.id ?? d.user?.user_id,
+              d.user
             ),
             type: "deposit",
-            amount: parseFloat(deposit.amount) || 0,
+            amount: parseFloat(d.amount) || 0,
             status:
-              deposit.status === "completed"
+              d.status === "completed"
                 ? "completed"
-                : deposit.status === "pending"
+                : d.status === "pending"
                 ? "pending"
                 : "failed",
-            timestamp: deposit.created_at || deposit.createdAt,
+            timestamp: d.created_at || d.createdAt,
             description: "Nạp tiền vào ví",
-          }));
-
-          unifiedTransactions = [...unifiedTransactions, ...depositTx];
-          console.log("Deposit transactions prepared:", depositTx.length);
-        }
+          }))
+          // Exclude pending deposits from listing per request
+          .filter((tx) => tx.status !== "pending");
+        unifiedTransactions = [...unifiedTransactions, ...depositTx];
       }
-      // Update floating wallet với AI revenue data thật
+
+      // AI revenue -> floating card
       if (aiRevenueResponse.status === "fulfilled") {
         const aiRevenueData = aiRevenueResponse.value;
-        console.log("AI Revenue data received:", aiRevenueData);
-
         setWalletData((prev) => ({
           ...prev,
           floating: {
@@ -224,126 +180,49 @@ const WalletManagement = () => {
         }));
       }
 
-      // Update totalUserWalletsBalance với dữ liệu từ all user wallets
+      // Total user wallets
       if (allWalletsResponse.status === "fulfilled") {
         const allWalletsData = allWalletsResponse.value;
-        console.log("All user wallets data received:", allWalletsData);
-        console.log("Type of allWalletsData:", typeof allWalletsData);
-        console.log(
-          "Keys of allWalletsData:",
-          Object.keys(allWalletsData || {})
-        );
-        console.log("allWalletsData.userWallets:", allWalletsData?.userWallets);
-        console.log(
-          "Is userWallets array?",
-          Array.isArray(allWalletsData?.userWallets)
-        );
-
-        // Tính tổng số dư của tất cả user wallets
-        let totalBalance = 0;
         let walletArray = [];
-
-        // Extract wallet array from response
-        console.log("=== DEBUGGING WALLET ARRAY EXTRACTION ===");
-        console.log("allWalletsData exists?", !!allWalletsData);
-        console.log(
-          "allWalletsData.userWallets exists?",
-          !!allWalletsData?.userWallets
-        );
-        console.log(
-          "allWalletsData.userWallet exists?",
-          !!allWalletsData?.userWallet
-        );
-        console.log(
-          "allWalletsData.userWallets is array?",
-          Array.isArray(allWalletsData?.userWallets)
-        );
-        console.log(
-          "allWalletsData.userWallet is array?",
-          Array.isArray(allWalletsData?.userWallet)
-        );
-
-        if (
-          allWalletsData &&
-          allWalletsData.userWallets &&
-          Array.isArray(allWalletsData.userWallets)
-        ) {
-          console.log("✅ Using userWallets path");
+        if (Array.isArray(allWalletsData?.userWallets))
           walletArray = allWalletsData.userWallets;
-        } else if (
-          allWalletsData &&
-          allWalletsData.userWallet &&
-          Array.isArray(allWalletsData.userWallet)
-        ) {
-          console.log("✅ Using userWallet path (singular)");
+        else if (Array.isArray(allWalletsData?.userWallet))
           walletArray = allWalletsData.userWallet;
-        } else if (Array.isArray(allWalletsData)) {
-          console.log("✅ Using direct array path");
-          walletArray = allWalletsData;
-        } else if (allWalletsData && Array.isArray(allWalletsData.data)) {
-          console.log("✅ Using data array path");
+        else if (Array.isArray(allWalletsData)) walletArray = allWalletsData;
+        else if (Array.isArray(allWalletsData?.data))
           walletArray = allWalletsData.data;
-        } else {
-          console.log("❌ No valid array found in response");
-          // Try to force extract from userWallets even if checks fail
-          if (allWalletsData?.userWallets) {
-            console.log("🔄 Force extracting from userWallets");
-            walletArray = allWalletsData.userWallets;
-          } else if (allWalletsData?.userWallet) {
-            console.log("🔄 Force extracting from userWallet");
-            walletArray = allWalletsData.userWallet;
-          }
-        }
 
-        console.log("Wallet array extracted:", walletArray);
-        console.log("Wallet array length:", walletArray.length);
-
-        if (walletArray.length > 0) {
-          // Chuẩn hóa parsing VND: hỗ trợ định dạng có dấu phẩy/chấm và ký tự tiền tệ
-          const toVndNumber = (val) => {
-            if (typeof val === "number") return Math.round(val);
-            if (val == null) return 0;
-            let s = String(val).trim();
-            // loại bỏ ký tự không phải số, dấu chấm, dấu phẩy hoặc dấu trừ
-            s = s.replace(/[^0-9.,-]/g, "");
-            // nếu có cả dấu phẩy và chấm, xác định dấu thập phân theo ký tự xuất hiện sau cùng
-            if (s.includes(",") && s.includes(".")) {
-              const lastComma = s.lastIndexOf(",");
-              const lastDot = s.lastIndexOf(".");
-              const dec = lastComma > lastDot ? "," : ".";
-              if (dec === ",") {
-                s = s.replace(/\./g, "");
-                s = s.replace(",", ".");
-              } else {
-                s = s.replace(/,/g, "");
-              }
-            } else if (s.includes(",")) {
-              // chỉ có dấu phẩy: coi như phân cách nghìn → bỏ hết
+        const toVndNumber = (val) => {
+          if (typeof val === "number") return Math.round(val);
+          if (val == null) return 0;
+          let s = String(val)
+            .trim()
+            .replace(/[^0-9.,-]/g, "");
+          if (s.includes(",") && s.includes(".")) {
+            const lastComma = s.lastIndexOf(",");
+            const lastDot = s.lastIndexOf(".");
+            const dec = lastComma > lastDot ? "," : ".";
+            if (dec === ",") {
+              s = s.replace(/\./g, "").replace(",", ".");
+            } else {
               s = s.replace(/,/g, "");
             }
-            const n = parseFloat(s);
-            return Number.isFinite(n) ? Math.round(n) : 0;
-          };
-
-          totalBalance = walletArray.reduce((sum, wallet) => {
-            const parsed = toVndNumber(wallet.balance);
-            console.log(
-              `Wallet ${wallet.user_id}: balance = ${wallet.balance} -> parsed = ${parsed}`
-            );
-            return sum + parsed;
-          }, 0);
-        }
-
-        console.log("Total user wallets balance calculated:", totalBalance);
+          } else if (s.includes(",")) {
+            s = s.replace(/,/g, "");
+          }
+          const n = parseFloat(s);
+          return Number.isFinite(n) ? Math.round(n) : 0;
+        };
+        const totalBalance = (walletArray || []).reduce(
+          (sum, w) => sum + toVndNumber(w.balance),
+          0
+        );
         setTotalUserWalletsBalance(totalBalance);
       }
 
-      // Withdraws -> update wallet card + contribute to unified list
+      // Withdraws -> card + list
       if (withdrawResponse.status === "fulfilled") {
         const wd = withdrawResponse.value;
-        console.log("Withdraw data received:", wd);
-
-        // Hỗ trợ nhiều dạng response khác nhau
         let withdraws = [];
         if (Array.isArray(wd?.data?.withdraws)) withdraws = wd.data.withdraws;
         else if (Array.isArray(wd?.withdraws)) withdraws = wd.withdraws;
@@ -362,10 +241,11 @@ const WalletManagement = () => {
               "thanh cong",
               "hoàn thành",
               "thành công",
+              "approved",
+              "approve",
             ].includes(v)
           )
             return "completed";
-          if (["approved", "approve"].includes(v)) return "approved";
           if (
             [
               "rejected",
@@ -375,26 +255,27 @@ const WalletManagement = () => {
               "error",
               "từ chối",
               "that bai",
+              "cancelled",
+              "canceled",
+              "cancel",
             ].includes(v)
           )
-            return "rejected";
-          if (["cancelled", "canceled", "cancel"].includes(v))
-            return "rejected";
+            return "failed";
           return "pending";
         };
 
         const toNumber = (a) => {
           if (typeof a === "number") return a;
           if (a == null) return 0;
-          let s = String(a).trim();
-          s = s.replace(/[^0-9.,-]/g, "");
+          let s = String(a)
+            .trim()
+            .replace(/[^0-9.,-]/g, "");
           if (s.includes(",") && s.includes(".")) {
             const lastComma = s.lastIndexOf(",");
             const lastDot = s.lastIndexOf(".");
             const dec = lastComma > lastDot ? "," : ".";
             if (dec === ",") {
-              s = s.replace(/\./g, "");
-              s = s.replace(",", ".");
+              s = s.replace(/\./g, "").replace(",", ".");
             } else {
               s = s.replace(/,/g, "");
             }
@@ -412,9 +293,7 @@ const WalletManagement = () => {
 
         const withdrawTx = (withdraws || []).map((w) => ({
           id: w.id || w.withdraw_id || w.request_id || w.transaction_id,
-          // Keep raw id for filter
           userId: w.user_id ?? w.user?.id ?? w.user?.user_id ?? "",
-          // Prefer full name for display
           userDisplay: resolveUserDisplay(
             w.user_id ?? w.user?.id ?? w.user?.user_id,
             w.user
@@ -438,16 +317,6 @@ const WalletManagement = () => {
           }
         });
 
-        console.log("Pending withdraw:", {
-          pendingCount,
-          totalPendingWithdraw,
-        });
-        console.log("Completed withdraw:", {
-          completedCount,
-          totalCompletedWithdraw,
-        });
-
-        // Card "Ví Withdraw" hiển thị: Số tiền đã rút (completed)
         setWalletData((prev) => ({
           ...prev,
           withdraw: {
@@ -456,24 +325,35 @@ const WalletManagement = () => {
             description: `Tổng tiền đã rút (${completedCount} yêu cầu hoàn thành)`,
           },
         }));
-
-        // Summary giữ nguyên: Tiền Chờ Rút (pending)
         setPendingWithdraw({
           amount: totalPendingWithdraw,
           count: pendingCount,
         });
-
         unifiedTransactions = [...unifiedTransactions, ...withdrawTx];
       }
 
-      // Orders (purchases)
-      if (ordersResponse && ordersResponse.status === "fulfilled") {
-        let orders = [];
-        const ordersData = ordersResponse.value;
-        if (Array.isArray(ordersData)) orders = ordersData;
-        else if (Array.isArray(ordersData?.orders)) orders = ordersData.orders;
-        else if (Array.isArray(ordersData?.data)) orders = ordersData.data;
+      // Unified endpoint: add order_payment and ai_generation
+      if (unifiedTxResponse && unifiedTxResponse.status === "fulfilled") {
+        const payload = unifiedTxResponse.value;
+        const rawList = Array.isArray(payload?.transactions)
+          ? payload.transactions
+          : Array.isArray(payload?.data?.transactions)
+          ? payload.data.transactions
+          : Array.isArray(payload)
+          ? payload
+          : [];
 
+        const mapStatus = (s) => {
+          const v = String(s || "").toLowerCase();
+          if (v.includes("pend")) return "pending";
+          if (
+            v.includes("fail") ||
+            v.includes("reject") ||
+            v.includes("cancel")
+          )
+            return "failed";
+          return "completed";
+        };
         const toNumber = (a) => {
           if (typeof a === "number") return a;
           if (a == null) return 0;
@@ -489,66 +369,87 @@ const WalletManagement = () => {
             } else {
               s = s.replace(/,/g, "");
             }
-          } else if (s.includes(",")) s = s.replace(/,/g, "");
+          } else if (s.includes(",")) {
+            s = s.replace(/,/g, "");
+          }
           const n = parseFloat(s);
           return Number.isFinite(n) ? n : 0;
         };
 
-        const normalizeOrderStatus = (raw) => {
-          const s = String(raw || "").toLowerCase();
-          if (
-            [
-              "paid",
-              "completed",
-              "complete",
-              "delivered",
-              "shipped",
-              "success",
-            ].includes(s)
-          )
-            return "completed";
-          if (
-            [
-              "pending",
-              "processing",
-              "in_progress",
-              "created",
-              "ordered",
-            ].includes(s)
-          )
-            return "pending";
-          if (["failed", "rejected", "cancelled", "canceled"].includes(s))
-            return "failed";
-          return "pending";
+        const localizeUnifiedDescription = (t, normStatus) => {
+          const type = t?.transaction_type;
+          const orderId = t?.order_id || t?.orderId;
+          const raw = String(t?.description || "");
+          const lower = raw.toLowerCase();
+          if (type === "order_payment") {
+            // Released payment -> Giải ngân
+            if (lower.includes("released payment")) {
+              let extra = "";
+              const shop = raw.match(/Shop received\s*(\d+%)/i);
+              const admin = raw.match(/Admin received\s*(\d+%)/i);
+              const parts = [];
+              if (shop && shop[1]) parts.push(`Cửa hàng nhận ${shop[1]}`);
+              if (admin && admin[1]) parts.push(`Admin nhận ${admin[1]}`);
+              if (parts.length) extra = ". " + parts.join(", ");
+              return `Giải ngân thanh toán cho đơn #${
+                orderId ?? ""
+              }${extra}`.trim();
+            }
+            // Held in escrow or pending -> (đang giữ tạm)
+            if (lower.includes("held in escrow") || normStatus === "pending") {
+              return `Thanh toán đơn hàng #${
+                orderId ?? ""
+              } (đang giữ tạm)`.trim();
+            }
+            // Generic VN
+            if (orderId) return `Thanh toán đơn hàng #${orderId}`;
+            return "Thanh toán đơn hàng";
+          }
+          if (type === "ai_generation") {
+            return "Doanh thu từ AI Generation";
+          }
+          // Fallback: return raw if present, else generic
+          return raw || "Giao dịch";
         };
 
-        const orderTx = orders.map((order) => ({
-          id: order.id || order.order_id,
-          // Keep raw id for filter
-          userId:
-            order.user_id ?? order.customer_id ?? order.customer?.id ?? "",
-          // Prefer full name for display
-          userDisplay: resolveUserDisplay(
-            order.user_id ?? order.customer_id ?? order.customer?.id,
-            order.customer
-          ),
-          type: "order",
-          amount: toNumber(
-            order.total ?? order.total_price ?? order.totalPrice ?? order.amount
-          ),
-          status: normalizeOrderStatus(order.status || order.payment_status),
-          timestamp:
-            order.created_at ||
-            order.createdAt ||
-            order.updated_at ||
-            order.updatedAt,
-          description: "Mua bánh",
-        }));
+        const unifiedTx = rawList
+          .map((t) => {
+            const embeddedUser =
+              t?.fromWallet?.User || t?.toWallet?.User || null;
+            const rawId =
+              t?.fromWallet?.user_id ?? t?.toWallet?.user_id ?? null;
+            const base = {
+              id: t.id,
+              userId: rawId,
+              userDisplay: resolveUserDisplay(rawId, embeddedUser),
+              amount: toNumber(t.amount),
+              status: mapStatus(t.status),
+              timestamp:
+                t.created_at || t.createdAt || t.updated_at || t.updatedAt,
+            };
+            if (t.transaction_type === "order_payment") {
+              return {
+                ...base,
+                type: "order_payment",
+                orderId: t.order_id || t.orderId || null,
+                description: localizeUnifiedDescription(t, base.status),
+              };
+            }
+            if (t.transaction_type === "ai_generation") {
+              return {
+                ...base,
+                type: "ai_generation",
+                description: localizeUnifiedDescription(t, base.status),
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
 
-        unifiedTransactions = [...unifiedTransactions, ...orderTx];
+        unifiedTransactions = [...unifiedTransactions, ...unifiedTx];
       }
 
-      // Apply client-side filters if provided
+      // Apply client filters
       if (
         appliedFilters &&
         (appliedFilters.status || appliedFilters.user_id || appliedFilters.type)
@@ -565,7 +466,7 @@ const WalletManagement = () => {
         });
       }
 
-      // Sort by time desc and set to state (always set, even if empty)
+      // Sort and set
       unifiedTransactions.sort(
         (a, b) =>
           new Date(b.timestamp || b.created_at) -
@@ -573,7 +474,7 @@ const WalletManagement = () => {
       );
       setTransactions(unifiedTransactions);
 
-      // Keep original admin wallet fetch for accounting
+      // Accounting card (admin wallet)
       const response = await getAdminWallet();
       if (response.success && response.adminWallet) {
         setWalletData((prev) => ({
@@ -695,6 +596,53 @@ const WalletManagement = () => {
     }
   };
 
+  // Build a compact pagination range with ellipsis to avoid overflow
+  const getPageList = (total, current, siblingCount = 1, boundaryCount = 1) => {
+    const pages = [];
+    const maxSimple = boundaryCount * 2 + siblingCount * 2 + 3; // e.g., 7 with defaults
+    if (total <= maxSimple) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+      return pages;
+    }
+
+    const first = 1;
+    const last = total;
+    const left = Math.max(first + boundaryCount, current - siblingCount);
+    const right = Math.min(last - boundaryCount, current + siblingCount);
+
+    // Start boundary
+    for (let i = 1; i <= boundaryCount; i++) pages.push(i);
+
+    // Left ellipsis or neighbor
+    if (left > first + boundaryCount) {
+      pages.push("dots");
+    } else {
+      for (let i = boundaryCount + 1; i < left; i++) pages.push(i);
+    }
+
+    // Sibling range
+    for (let i = left; i <= right; i++) pages.push(i);
+
+    // Right ellipsis or neighbor
+    if (right < last - boundaryCount) {
+      pages.push("dots");
+    } else {
+      for (let i = right + 1; i <= last - boundaryCount; i++) pages.push(i);
+    }
+
+    // End boundary
+    for (let i = last - boundaryCount + 1; i <= last; i++) pages.push(i);
+
+    // Dedup consecutive numbers/markers
+    const compact = [];
+    for (const p of pages) {
+      if (compact.length === 0 || compact[compact.length - 1] !== p) {
+        compact.push(p);
+      }
+    }
+    return compact;
+  };
+
   const handleViewTransactions = (walletType) => {
     setSelectedWallet(walletType);
     setShowTransactionModal(true);
@@ -740,7 +688,7 @@ const WalletManagement = () => {
               key={key}
               className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center mb-4">
                 <div
                   className={`w-12 h-12 rounded-full ${getWalletColor(
                     key
@@ -748,14 +696,6 @@ const WalletManagement = () => {
                 >
                   {getWalletIcon(key)}
                 </div>
-                {(key === "holding" || key === "withdraw") && (
-                  <button
-                    onClick={() => handleViewTransactions(key)}
-                    className="text-pink-600 hover:text-pink-700 text-sm font-medium"
-                  >
-                    Xem chi tiết
-                  </button>
-                )}
               </div>
 
               <h3 className="text-lg font-semibold text-gray-800 mb-2 capitalize">
@@ -899,16 +839,7 @@ const WalletManagement = () => {
                           Chi tiết
                         </button>
                       )}
-                      {transaction.type === "order" && (
-                        <button
-                          className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
-                          onClick={() =>
-                            navigate(`/admin/order-tracking/${transaction.id}`)
-                          }
-                        >
-                          Chi tiết
-                        </button>
-                      )}
+                      {/* No detail link for unified non-withdraw/deposit types */}
                     </td>
                   </tr>
                 ))}
@@ -921,7 +852,7 @@ const WalletManagement = () => {
       {/* Transaction Modal */}
       {showTransactionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-xl p-6 w-[90vw] max-w-6xl max-h-[80vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-gray-800">
                 Chi Tiết Giao Dịch -{" "}
@@ -982,6 +913,7 @@ const WalletManagement = () => {
                       <option value="">Tất cả</option>
                       <option value="completed">Hoàn thành</option>
                       <option value="pending">Đang xử lý</option>
+                      <option value="failed">Thất bại</option>
                     </select>
                   </div>
 
@@ -1016,7 +948,8 @@ const WalletManagement = () => {
                       <option value="">Tất cả</option>
                       <option value="deposit">Nạp tiền</option>
                       <option value="withdraw">Rút tiền</option>
-                      <option value="order">Mua bánh</option>
+                      <option value="order_payment">Thanh toán đơn hàng</option>
+                      <option value="ai_generation">AI Generation</option>
                     </select>
                   </div>
                 </div>
@@ -1061,19 +994,19 @@ const WalletManagement = () => {
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
                       User
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[260px]">
                       Loại
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">
                       Số Tiền
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[120px]">
                       Trạng Thái
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[160px]">
                       Thời Gian
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700 min-w-[100px]">
                       Chi tiết
                     </th>
                   </tr>
@@ -1100,7 +1033,7 @@ const WalletManagement = () => {
                         </td>
                         <td className="py-3 px-4">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getTransactionStatusColor(
+                            className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getTransactionStatusColor(
                               transaction.status
                             )}`}
                           >
@@ -1109,7 +1042,7 @@ const WalletManagement = () => {
                             {transaction.status === "failed" && "Thất bại"}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
                           {new Date(transaction.timestamp).toLocaleString(
                             "vi-VN"
                           )}
@@ -1139,19 +1072,7 @@ const WalletManagement = () => {
                               Chi tiết
                             </button>
                           )}
-                          {transaction.type === "order" && (
-                            <button
-                              className="text-pink-600 hover:text-pink-800 font-medium hover:underline text-sm"
-                              onClick={() => {
-                                setShowTransactionModal(false);
-                                navigate(
-                                  `/admin/order-tracking/${transaction.id}`
-                                );
-                              }}
-                            >
-                              Chi tiết
-                            </button>
-                          )}
+                          {/* No detail link for unified non-withdraw/deposit types */}
                         </td>
                       </tr>
                     ))}
@@ -1159,20 +1080,59 @@ const WalletManagement = () => {
               </table>
             </div>
             {/* Pagination */}
-            <div className="flex justify-center items-center gap-2 mt-4">
-              {Array.from({ length: totalPages }, (_, i) => (
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4">
+              <div className="flex items-center gap-2 overflow-x-auto max-w-full">
                 <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 rounded-lg font-semibold border ${
-                    currentPage === i + 1
-                      ? "bg-pink-500 text-white border-pink-500"
-                      : "bg-white text-pink-600 border-pink-200 hover:bg-pink-50"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded-lg border font-medium whitespace-nowrap ${
+                    currentPage === 1
+                      ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                   }`}
                 >
-                  {i + 1}
+                  ← Trước
                 </button>
-              ))}
+
+                {getPageList(totalPages, currentPage, 1, 1).map((p, idx) =>
+                  p === "dots" ? (
+                    <span key={`dots-${idx}`} className="px-2 text-gray-400">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      className={`px-3 py-1 rounded-lg font-semibold border ${
+                        currentPage === p
+                          ? "bg-pink-500 text-white border-pink-500"
+                          : "bg-white text-pink-600 border-pink-200 hover:bg-pink-50"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className={`px-3 py-1 rounded-lg border font-medium whitespace-nowrap ${
+                    currentPage === totalPages || totalPages === 0
+                      ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  Sau →
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                Trang {Math.min(currentPage, Math.max(1, totalPages))} /{" "}
+                {Math.max(1, totalPages)}
+              </div>
             </div>
           </div>
         </div>

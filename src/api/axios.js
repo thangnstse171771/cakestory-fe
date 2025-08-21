@@ -305,6 +305,20 @@ export const fetchAllWithdrawHistory = async () => {
   }
 };
 
+// Admin: Lấy tất cả giao dịch hệ thống (unified transactions)
+export const fetchAllWalletTransactions = async (params = {}) => {
+  try {
+    const response = await axiosInstance.get("/wallet/transactions", {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Lỗi khi gọi fetchAllWalletTransactions:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
 // Lấy lịch sử rút tiền cụ thể theo ID user
 export const fetchWithdrawHistoryByUserId = async (userId) => {
   try {
