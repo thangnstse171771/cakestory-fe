@@ -196,6 +196,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                     <Field
                       type="text"
                       name="title"
+                      placeholder="Nhập tên sự kiện..."
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                     />
                     <ErrorMessage
@@ -214,6 +215,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                   <Field
                     as="textarea"
                     name="description"
+                    placeholder="Nhập mô tả sự kiện..."
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                   />
                   <ErrorMessage
@@ -269,6 +271,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                     <Field
                       type="text"
                       name="prize_description"
+                      placeholder="Chọn giải thưởng..."
                       onKeyDown={(e) => {
                         if (e.key === "-" || e.key === "e") {
                           e.preventDefault();
@@ -317,6 +320,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                     <Field
                       type="number"
                       name="min_participants"
+                      placeholder="Tối thiểu 3 người"
                       onKeyDown={(e) => {
                         if (e.key === "-" || e.key === "e") {
                           e.preventDefault();
@@ -338,6 +342,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                     <Field
                       type="number"
                       name="max_participants"
+                      placeholder="Tối đa 200 người"
                       onKeyDown={(e) => {
                         if (e.key === "-" || e.key === "e") {
                           e.preventDefault();
@@ -360,6 +365,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                   <Field
                     type="text"
                     name="hashtag"
+                    placeholder="Nhập hashtag..."
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent mb-2"
                   />
 
@@ -412,6 +418,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                     <Field
                       as="textarea"
                       name="rules"
+                      placeholder="Nhập luật chơi..."
                       rows={4}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-y"
                     />
@@ -429,6 +436,7 @@ const UpdateChallenge = ({ isOpen, onClose, challenge, onUpdate }) => {
                     <Field
                       as="textarea"
                       name="requirements"
+                      placeholder="Nhập yêu cầu..."
                       rows={4}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-y"
                     />
