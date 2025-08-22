@@ -297,8 +297,20 @@ export default function OrderTrackingForm({
   const fetchOrderDetail = async () => {
     try {
       setLoading(true);
+      if (isAdminOrdersPage) {
+        console.log("≈ ADMIN | Gọi fetchOrderById với orderId:", orderId);
+      }
       const response = await fetchOrderById(orderId);
       const data = response?.order || response?.data || response;
+
+      if (isAdminOrdersPage) {
+        console.log("≈ ADMIN | RAW RESPONSE (fetchOrderById):", response);
+        console.log("≈ ADMIN | RAW ORDER DATA:", data);
+        console.log(
+          "≈ ADMIN | RAW USER TRONG ORDER:",
+          data?.User || data?.user || null
+        );
+      }
 
       const customerUser = data.User || data.user || {};
       const customerName =
@@ -360,6 +372,10 @@ export default function OrderTrackingForm({
         : null;
       const ingredientTotalField = parseFloat(data.ingredient_total);
 
+      // YÊU CẦU: log RAW data tại dòng này (không phải object đã transform)
+      // Log nguyên bản object trả về từ API (không chỉnh sửa)
+      console.log("RAW ORDER API DATA (unmodified):", data);
+
       const transformedOrder = {
         id: data.id || data._id,
         customerName,
@@ -385,6 +401,8 @@ export default function OrderTrackingForm({
         customer_user_id: extractCustomerUserId(data),
       };
 
+      // (Giữ lại nếu cần so sánh) console.log("TRANSFORMED ORDER (for UI):", transformedOrder);
+
       setOrderDetail(transformedOrder);
     } catch (error) {
       alert("Không thể tải thông tin đơn hàng");
@@ -393,16 +411,26 @@ export default function OrderTrackingForm({
     }
   };
 
-  // Fetch order detail if orderId from URL params
+  // Fetch order detail:
+  // - Trước đây chỉ fetch khi KHÔNG có prop order => nếu parent đã truyền order (đã transform) thì không có raw log
+  // - Yêu cầu: admin muốn thấy RAW data => trên trang admin luôn refetch theo id để log raw API response
   useEffect(() => {
-    if (orderId && !order) {
+    if (!orderId) return;
+    if (isAdminOrdersPage) {
+      // Luôn fetch lại để có RAW ORDER API DATA log
+      fetchOrderDetail();
+    } else if (!order) {
+      // Các trang khác giữ hành vi cũ để tránh request dư thừa
       fetchOrderDetail();
     }
-  }, [orderId]);
+  }, [orderId, isAdminOrdersPage]);
 
   // Keep local detail in sync with parent order
   useEffect(() => {
     if (order) {
+      if (isAdminOrdersPage) {
+        console.log("≈ ADMIN | ORDER PROP PASSED TỪ PARENT:", order);
+      }
       setOrderDetail({
         ...order,
         status: normalizeStatus(order.status),

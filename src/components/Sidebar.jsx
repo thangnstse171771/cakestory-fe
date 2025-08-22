@@ -217,8 +217,12 @@ const Sidebar = () => {
   ];
 
   // Menu cho admin/staff
+  const isAdmin = user?.role === "admin";
   const adminMenu = [
-    { icon: Shield, label: "Bảng điều khiển quản trị", path: "/admin" },
+    // Chỉ admin mới thấy bảng điều khiển quản trị
+    ...(isAdmin
+      ? [{ icon: Shield, label: "Bảng điều khiển quản trị", path: "/admin" }]
+      : []),
     {
       icon: ListOrdered,
       label: "Tất cả đơn hàng",

@@ -123,7 +123,7 @@ const AccountsTable = ({
                   Cửa hàng
                 </th>
               )}
-              <th className="w-[10%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              <th className="w-[20%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Ngày tạo
               </th>
               <th className="w-[15%] px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
