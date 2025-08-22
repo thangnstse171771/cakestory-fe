@@ -170,7 +170,9 @@ export default function WithdrawRequestDetail() {
         if (actionType === "approve") await confirmWithdrawRequest(id);
         else await cancelWithdrawRequest(id);
         alert(
-          `${actionType === "approve" ? "Duyệt" : "Hủy"} yêu cầu thành công!`
+          `${
+            actionType === "approve" ? "Duyệt" : "Từ chối"
+          } yêu cầu thành công!`
         );
         setRequest((prev) => ({
           ...prev,
@@ -193,7 +195,7 @@ export default function WithdrawRequestDetail() {
               status: actionType === "approve" ? "completed" : "cancelled",
               processedDate: new Date().toISOString(),
               adminNote: `[LOCAL UPDATE] ${
-                actionType === "approve" ? "Duyệt" : "Hủy"
+                actionType === "approve" ? "Duyệt" : "Từ chối"
               } tạm thời bởi admin lúc ${new Date().toLocaleString("vi-VN")}`,
             }));
             alert(
@@ -409,7 +411,7 @@ export default function WithdrawRequestDetail() {
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={actionLoading}
               >
-                {actionLoading ? "Đang xử lý..." : "Hủy"}
+                {actionLoading ? "Đang xử lý..." : "Từ chối"}
               </button>
             </div>
           </>
@@ -419,12 +421,13 @@ export default function WithdrawRequestDetail() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md">
               <div className="text-lg font-bold mb-4">
-                Xác nhận {actionType === "approve" ? "duyệt" : "hủy"} yêu cầu
+                Xác nhận {actionType === "approve" ? "duyệt" : "từ chối"} yêu
+                cầu
               </div>
               <div className="mb-6 text-gray-600">
                 Bạn có chắc chắn muốn{" "}
-                {actionType === "approve" ? "duyệt" : "hủy"} yêu cầu rút tiền #
-                {request.id} không?
+                {actionType === "approve" ? "duyệt" : "từ chối"} yêu cầu rút
+                tiền #{request.id} không?
               </div>
               <div className="flex gap-3">
                 <button
@@ -447,7 +450,7 @@ export default function WithdrawRequestDetail() {
                     ? "Đang xử lý..."
                     : actionType === "approve"
                     ? "Duyệt"
-                    : "Hủy"}
+                    : "Từ chối"}
                 </button>
               </div>
             </div>
