@@ -252,52 +252,17 @@ export default function MembersList({ challenge, onBack }) {
                 className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2.5 bg-white border border-gray-300 rounded-md text-sm text-gray-700 cursor-pointer min-w-[180px] focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-              >
-                <option value="all">Tất cả</option>
-                <option value="active">Hoạt động</option>
-                <option value="banned">Bị cấm</option>
-              </select>
-            </div>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 gap-4 mb-6">
           <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
             <div className="text-3xl mb-2">👥</div>
             <p className="text-2xl font-bold text-gray-700 mb-1">
               {filteredUsers.length}
             </p>
             <p className="text-sm text-gray-500">Tổng thành viên</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-            <div className="text-3xl mb-2">✅</div>
-            <p className="text-2xl font-bold text-gray-700 mb-1">
-              {
-                filteredUsers.filter((p) => {
-                  const user = p.User || p.user;
-                  return user?.status === "active" || p.status === "active";
-                }).length
-              }
-            </p>
-            <p className="text-sm text-gray-500">Đang hoạt động</p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4 text-center shadow-sm">
-            <div className="text-3xl mb-2">❌</div>
-            <p className="text-2xl font-bold text-gray-700 mb-1">
-              {
-                filteredUsers.filter((p) => {
-                  const user = p.User || p.user;
-                  return user?.status === "banned" || p.status === "banned";
-                }).length
-              }
-            </p>
-            <p className="text-sm text-gray-500">Bị cấm</p>
           </div>
         </div>
 

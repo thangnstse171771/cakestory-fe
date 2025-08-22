@@ -25,7 +25,7 @@ import { DeletePostPopup } from "../components/ShopDetail";
 const FILTERS = [
   { id: "all", label: "Tất cả" },
   { id: "available", label: "Còn hàng" },
-  { id: "expired", label: "Hết hàng" },
+  { id: "expired", label: "hết hạn" },
 ];
 
 const AllShopCakes = () => {
@@ -303,7 +303,7 @@ const AllShopCakes = () => {
                     </div>
                   ) : (
                     <div className="absolute top-3 right-3 px-3 py-1 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                      Hết Hàng
+                      hết hạn
                     </div>
                   )}
 

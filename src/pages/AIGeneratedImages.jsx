@@ -255,6 +255,7 @@ export default function AIGeneratedImages() {
           throw new Error(`Tạo ảnh thứ ${indexLabel} mất quá nhiều thời gian`);
       };
 
+      let safetyViolated = false;
       // Flow hợp nhất: nếu còn lượt free dùng endpoint free, hết dùng endpoint trả phí.
       for (let i = 0; i < wantImages; i++) {
         try {
@@ -269,12 +270,29 @@ export default function AIGeneratedImages() {
             },
             body: JSON.stringify({ prompt }),
           });
-          if (!response.ok)
+          if (!response.ok) {
+            let safetyRejected = false;
+            try {
+              const errJson = await response.json();
+              const errText =
+                errJson?.error || errJson?.message || JSON.stringify(errJson);
+              if (/safety|rejected|not allowed/i.test(errText)) {
+                safetyRejected = true;
+                safetyViolated = true;
+                setError(
+                  "Yêu cầu bị từ chối bởi hệ thống an toàn. Hãy chỉnh sửa prompt: tránh nội dung phân biệt chủng tộc, giới tính, bạo lực, thù hằn, khiêu dâm hoặc xúc phạm."
+                );
+              }
+            } catch (_) {
+              // ignore parse errors
+            }
+            if (safetyRejected) break; // stop further generations
             throw new Error(
               `Không thể tạo ảnh AI thứ ${i + 1} (${
                 hasFree ? "miễn phí" : "trả phí"
               })`
             );
+          }
           await pollForNewImage(i + 1);
         } catch (err) {
           console.error(`Error generating image ${i + 1}:`, err);
@@ -310,11 +328,24 @@ export default function AIGeneratedImages() {
           );
         }
       } else {
-        setError("Không thể tạo ảnh nào. Vui lòng thử lại sau.");
+        // Chỉ đặt lỗi chung nếu không có vi phạm safety trước đó
+        if (!safetyViolated && !error) {
+          setError("Không thể tạo ảnh nào. Vui lòng thử lại sau.");
+        }
       }
     } catch (err) {
       console.error("Generation error:", err);
-      setError("Có lỗi xảy ra khi tạo ảnh AI.");
+      const rawMsg = err?.message || "";
+      if (/safety|rejected|not allowed/i.test(rawMsg)) {
+        if (!error) {
+          setError(
+            "Yêu cầu bị từ chối bởi hệ thống an toàn. Hãy chỉnh sửa prompt tránh nội dung vi phạm."
+          );
+        }
+      } else if (!error) {
+        // Không ghi đè nếu đã có lỗi đặt trước (ví dụ safety loop)
+        setError("Có lỗi xảy ra khi tạo ảnh AI.");
+      }
     } finally {
       setGenerating(false);
       setGeneratingImages([false, false, false]); // Reset all loading states

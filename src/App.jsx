@@ -43,6 +43,7 @@ import DepositDetails from "./pages/Admin/DepositDetails";
 import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import Report from "./pages/Report";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChallengeList from "./pages/Challenge/ChallengeList";
 import ChallengeDetail from "./pages/Challenge/ChallengeDetail";
 import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
@@ -54,6 +55,7 @@ import UserWallet from "./pages/Wallet/UserWallet";
 import WithdrawRequest from "./pages/Wallet/WithdrawRequest";
 import WithdrawHistory from "./pages/Wallet/WithdrawHistory";
 import AllPaymentHistory from "./pages/Wallet/AllPaymentHistory";
+import UserTransactions from "./pages/Wallet/UserTransactions";
 import DepositHistoryDetails from "./pages/Wallet/DepositHistoryDetails";
 import CustomizedOrderDetails from "./pages/CustomizedOrderForm/CustomizedOrderDetails";
 import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
@@ -215,6 +217,7 @@ export default function App() {
             <Route path="withdraw" element={<WithdrawRequest />} />
             <Route path="withdraw-history" element={<WithdrawHistory />} />
             <Route path="all-transactions" element={<AllPaymentHistory />} />
+            <Route path="wallet/transactions" element={<UserTransactions />} />
             <Route
               path="wallet/deposits/:id"
               element={<DepositHistoryDetails />}
@@ -266,6 +269,7 @@ export default function App() {
             />
             <Route path="/settings" element={<Settings />} />
             <Route path="/report" element={<Report />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route
               path="admin/challenge"
               element={<AdminChallengeDashboard />}

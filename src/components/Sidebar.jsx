@@ -109,7 +109,12 @@ const Sidebar = () => {
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
-      "Ví tiền": ["/wallet", "/withdraw", "/all-transactions"],
+      "Ví tiền": [
+        "/wallet",
+        "/withdraw",
+        "/all-transactions",
+        "/wallet/transactions",
+      ],
       "Cửa Hàng của Tôi": ["/order-tracking", "/complaints"],
       "Tùy chọn khác": ["/settings", "/change-password"],
     };
@@ -202,6 +207,11 @@ const Sidebar = () => {
       submenu: [
         { icon: ArrowDownToLine, label: "Yêu cầu rút tiền", path: "/withdraw" },
         { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
+        {
+          icon: Receipt,
+          label: "Giao dịch ví chi tiết",
+          path: "/wallet/transactions",
+        },
       ],
     },
   ];
@@ -259,7 +269,12 @@ const Sidebar = () => {
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
-      "Ví tiền": ["/wallet", "/withdraw", "/all-transactions"],
+      "Ví tiền": [
+        "/wallet",
+        "/withdraw",
+        "/all-transactions",
+        "/wallet/transactions",
+      ],
       "Cửa Hàng của Tôi": ["/order-tracking", "/complaints"],
       "Tùy chọn khác": ["/settings", "/change-password"],
     };
@@ -451,33 +466,12 @@ const Sidebar = () => {
               <button
                 onClick={() => {
                   setShowMore(false);
-                  navigate("/settings");
+                  navigate("/change-password");
                 }}
                 className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group"
               >
-                <span className="mr-3 text-lg">⚙️</span>
-                <span className="font-medium text-sm">Cài đặt</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false); /* handle theme toggle here */
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group border-t border-pink-100"
-              >
-                <span className="mr-3 text-lg">🌗</span>
-                <span className="font-medium text-sm">
-                  Chuyển đổi giao diện
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false);
-                  navigate("/report");
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group border-t border-pink-100"
-              >
-                <span className="mr-3 text-lg">🚩</span>
-                <span className="font-medium text-sm">Báo cáo sự cố</span>
+                <span className="mr-3 text-lg">🔐</span>
+                <span className="font-medium text-sm">Đổi mật khẩu</span>
               </button>
             </div>
           )}

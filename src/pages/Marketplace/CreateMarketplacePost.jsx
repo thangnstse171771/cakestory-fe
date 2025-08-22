@@ -22,18 +22,14 @@ const CreateMarketplacePostSchema = Yup.object().shape({
     .max(8, "Bánh không được vượt quá 8 tầng")
     .required("Số tầng là bắt buộc"),
   expiry_date: Yup.string()
-    .required("Ngày Hết hàng là bắt buộc")
-    .test(
-      "future-date",
-      "Ngày Hết hàng phải trong tương lai",
-      function (value) {
-        if (!value) return false;
-        const selectedDate = new Date(value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return selectedDate >= today;
-      }
-    ),
+    .required("Ngày Hết hạn là bắt buộc")
+    .test("future-date", "Ngày Hết hạn phải trong tương lai", function (value) {
+      if (!value) return false;
+      const selectedDate = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return selectedDate >= today;
+    }),
   is_public: Yup.boolean().required(),
   media: Yup.array()
     .min(1, "Vui lòng thêm ít nhất một tệp media")
@@ -178,13 +174,33 @@ const CreateMarketplacePost = ({
           <Formik
             enableReinitialize
             initialValues={{
-              title: initialData?.Post?.title || "",
-              description: initialData?.Post?.description || "",
+              // Hỗ trợ cả Post và post (API trả về không đồng nhất)
+              title:
+                (initialData?.Post || initialData?.post)?.title?.trim() || "",
+              description:
+                (initialData?.Post || initialData?.post)?.description?.trim() ||
+                "",
               tier: initialData?.tier || 1,
-              available: true, // luôn true như logic cũ
-              expiry_date: initialData?.expiry_date || "",
-              is_public: initialData?.is_public ?? true,
-              media: [], // always upload new files
+              available:
+                typeof initialData?.available === "boolean"
+                  ? initialData.available
+                  : true,
+              expiry_date: initialData?.expiry_date
+                ? (() => {
+                    try {
+                      const d = new Date(initialData.expiry_date);
+                      if (!isNaN(d.getTime()))
+                        return d.toISOString().split("T")[0];
+                      return "";
+                    } catch {
+                      return "";
+                    }
+                  })()
+                : "",
+              is_public:
+                (initialData?.Post || initialData?.post)?.is_public ?? true,
+              // Không tự động nạp lại media cũ vào input file (File object) – nếu không upload mới thì media giữ nguyên phía backend
+              media: [],
             }}
             validationSchema={CreateMarketplacePostSchema}
             onSubmit={async (
@@ -256,6 +272,44 @@ const CreateMarketplacePost = ({
                   <label className="block text-lg font-semibold text-gray-800">
                     Ảnh Sản phẩm
                   </label>
+                  {isEdit &&
+                    (initialData?.Post || initialData?.post)?.media && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Ảnh hiện tại
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
+                          {(initialData.Post || initialData.post).media.map(
+                            (m, i) => (
+                              <div
+                                key={i}
+                                className="relative group border-2 border-gray-200 rounded-xl overflow-hidden"
+                              >
+                                {m.image_url ? (
+                                  <img
+                                    src={m.image_url}
+                                    alt={`old-${i}`}
+                                    className="w-full h-32 object-cover"
+                                  />
+                                ) : m.video_url ? (
+                                  <video
+                                    src={m.video_url}
+                                    className="w-full h-32 object-cover"
+                                    controls
+                                  />
+                                ) : null}
+                                <span className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
+                                  Cũ
+                                </span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 italic">
+                          Nếu bạn không tải ảnh mới, ảnh cũ sẽ được giữ nguyên.
+                        </p>
+                      </div>
+                    )}
                   <div
                     className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
                       dragActive
@@ -551,7 +605,7 @@ const CreateMarketplacePost = ({
                 {/* Expiry Date */}
                 <div className="space-y-2">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Ngày Hết hàng sản phẩm
+                    Ngày hết hạn sản phẩm
                   </label>
                   <div className="relative">
                     <Field
@@ -596,7 +650,7 @@ const CreateMarketplacePost = ({
                       />
                     </svg>
                     <span>
-                      Chọn thời điểm danh sách sản phẩm này sẽ Hết hàng. Không
+                      Chọn thời điểm danh sách sản phẩm này sẽ hết hạn. Không
                       được phép chọn ngày trong quá khứ.
                     </span>
                   </div>

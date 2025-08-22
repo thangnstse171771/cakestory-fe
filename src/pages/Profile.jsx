@@ -378,15 +378,26 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-8 mb-8">
           <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-8">
-            <div className="relative flex-shrink-0">
-              <img
-                src={
-                  profile.avatar ||
-                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8cHJvZmlsZXxlbnwwfHwwfHx8MA%3D%3D"
-                }
-                alt="Profile"
-                className="w-40 h-40 rounded-full object-cover border-4 border-pink-100"
-              />
+            <div className="relative flex-shrink-0 w-40 h-40">
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt="Profile"
+                  className="w-40 h-40 rounded-full object-cover border-4 border-pink-100"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    const fallback = e.currentTarget.nextSibling;
+                    if (fallback) fallback.style.display = "flex";
+                  }}
+                />
+              ) : null}
+              <div
+                className="absolute inset-0 rounded-full border-4 border-dashed border-pink-200 bg-pink-50/60 flex flex-col items-center justify-center text-pink-400 text-sm font-medium"
+                style={{ display: profile.avatar ? "none" : "flex" }}
+              >
+                <span className="text-4xl mb-1">👤</span>
+                <span>Chưa có ảnh</span>
+              </div>
             </div>
 
             <div className="flex-1">
