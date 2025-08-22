@@ -175,18 +175,24 @@ export const removeUserFromGroupChatByShopId = async ({
   }
 
   for (const groupChatDoc of userChats) {
+    const data = groupChatDoc.data();
     const chatId = groupChatDoc.id;
 
-    // 2. Remove user from groupChats.{members, shopMemberIds}
-    // Handle potential whitespace issues in stored IDs
-    const data = groupChatDoc.data();
+    // 🚨 Skip removal if this user is the customer
+    if (data.customerId?.trim() === firebaseUid?.trim()) {
+      console.log(
+        `Skipping removal: ${firebaseUid} is the customer in chat ${chatId}`
+      );
+      continue;
+    }
+
+    // --- remove from members / shopMemberIds as staff ---
     const membersToRemove =
       data.members?.filter((id) => id?.trim() === firebaseUid?.trim()) || [];
     const shopMembersToRemove =
       data.shopMemberIds?.filter((id) => id?.trim() === firebaseUid?.trim()) ||
       [];
 
-    // Remove all matching IDs (including those with whitespace)
     for (const memberId of membersToRemove) {
       await updateDoc(groupChatDoc.ref, {
         members: arrayRemove(memberId),
@@ -199,7 +205,7 @@ export const removeUserFromGroupChatByShopId = async ({
       });
     }
 
-    // 3. Remove user's chat entry from userchats
+    // --- remove from userchats ---
     const userChatsRef = doc(db, "userchats", firebaseUid);
     const userChatsSnap = await getDoc(userChatsRef);
 
@@ -207,7 +213,6 @@ export const removeUserFromGroupChatByShopId = async ({
       const userData = userChatsSnap.data();
       const chats = userData.chats || [];
 
-      // Find and remove the specific chat entry
       const updatedChats = chats.filter((chat) => chat.chatId !== chatId);
 
       if (updatedChats.length !== chats.length) {
@@ -217,13 +222,7 @@ export const removeUserFromGroupChatByShopId = async ({
         await updateDoc(userChatsRef, {
           chats: updatedChats,
         });
-      } else {
-        console.log(
-          `Chat ${chatId} not found in userchats for user ${firebaseUid}`
-        );
       }
-    } else {
-      console.log(`Userchats document not found for user ${firebaseUid}`);
     }
   }
 };
@@ -242,6 +241,14 @@ export const addUserToGroupChatsByShopId = async ({ firebaseUid, shopId }) => {
     for (const groupChatDoc of snapshot.docs) {
       const data = groupChatDoc.data();
       const chatId = groupChatDoc.id;
+
+      // Skip if this firebaseUid is already in members as the customer
+      if (data.customerId?.trim() === firebaseUid?.trim()) {
+        console.log(
+          `Skipping chat ${chatId} because ${firebaseUid} is the customer`
+        );
+        continue;
+      }
 
       // Add user to groupChats.{members, shopMemberIds} if not already included
       await updateDoc(groupChatDoc.ref, {
