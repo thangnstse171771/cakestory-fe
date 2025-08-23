@@ -240,7 +240,7 @@ const MyPost = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header Section with Gradient Background */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
@@ -296,7 +296,7 @@ const MyPost = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="mx-auto p-8">
         {/* Filter Pills */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {filters.map((filter) => (
