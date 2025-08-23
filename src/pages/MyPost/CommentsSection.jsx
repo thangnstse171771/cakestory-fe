@@ -16,6 +16,8 @@ const CommentsSection = ({ postId, challengeStatus }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -61,6 +63,7 @@ const CommentsSection = ({ postId, challengeStatus }) => {
       return;
     }
 
+    setEditing(true);
     try {
       await authAPI.editComment(editingCommentId, { content: editingContent });
       setEditingCommentId(null);
@@ -68,12 +71,14 @@ const CommentsSection = ({ postId, challengeStatus }) => {
       fetchComments();
     } catch (error) {
       console.error("Failed to edit comment", error);
+    } finally {
+      setEditing(false);
     }
   };
 
   const handleDeleteComment = async () => {
     if (!commentIdToDelete) return;
-    setLoading(true);
+    setDeleting(true);
     try {
       await authAPI.deleteComment(commentIdToDelete);
       fetchComments();
@@ -81,7 +86,7 @@ const CommentsSection = ({ postId, challengeStatus }) => {
       console.error("Failed to delete comment", error);
       toast.error("Xóa bình luận thất bại.");
     } finally {
-      setLoading(false);
+      setDeleting(false);
       setIsPopupOpen(false);
       setCommentIdToDelete(null);
     }
@@ -152,8 +157,12 @@ const CommentsSection = ({ postId, challengeStatus }) => {
                         <button
                           type="submit"
                           className="text-sm text-blue-500 hover:underline"
+                          disabled={
+                            editing ||
+                            (challengeStatus && challengeStatus !== "onGoing")
+                          }
                         >
-                          Lưu
+                          {editing ? "Đang tải..." : "Lưu"}
                         </button>
                         <div
                           className={`text-sm  ${
@@ -167,7 +176,9 @@ const CommentsSection = ({ postId, challengeStatus }) => {
                       </div>
                     </form>
                   ) : (
-                    <p className="text-gray-700 text-sm">{comment.content}</p>
+                    <p className="text-gray-700 text-sm whitespace-pre-line break-all">
+                      {comment.content}
+                    </p>
                   )}
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                     <span className="text-xs">
@@ -257,7 +268,7 @@ const CommentsSection = ({ postId, challengeStatus }) => {
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
         onDelete={handleDeleteComment}
-        loading={loading}
+        loading={deleting}
       />
     </div>
   );

@@ -245,8 +245,6 @@ const AlbumDetail = () => {
                         src={firstVideo.video_url}
                         className="w-full h-64 object-cover cursor-pointer"
                         muted
-                        autoPlay
-                        loop
                         onClick={() => {
                           setSelectedPost(post);
                           setIsAlbumPostOpen(true);
@@ -385,8 +383,6 @@ const AlbumDetail = () => {
                           src={firstVideo.video_url}
                           className="w-32 h-32 object-cover rounded-lg flex-shrink-0 cursor-pointer"
                           muted
-                          autoPlay
-                          loop
                           onClick={() => {
                             setSelectedPost(post);
                             setIsAlbumPostOpen(true);
