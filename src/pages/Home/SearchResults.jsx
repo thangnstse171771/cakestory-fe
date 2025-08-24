@@ -159,7 +159,10 @@ const SearchResults = () => {
                 <div className="flex items-center space-x-3">
                   <Link to={`/user/${post.user.id}`}>
                     <img
-                      src={post.user.avatar || "/placeholder.svg"}
+                      src={
+                        post.user.avatar ||
+                        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                      }
                       alt={post.user.full_name}
                       className="w-11 h-11 rounded-full hover:opacity-80 transition"
                     />
