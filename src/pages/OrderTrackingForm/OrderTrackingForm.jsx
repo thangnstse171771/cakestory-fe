@@ -116,22 +116,23 @@ const extractCustomerUserId = (data) => {
   }
 };
 
-// Helper to extract shop ID from order data
-const extractShopId = (orderData, marketplacePost = null) => {
-  return (
-    orderData?.shop_id ||
-    orderData?.shopId ||
-    orderData?.shop?.id ||
+// Helper to extract shop ID from order data (covers multiple backend shapes)
+const extractShopId = (orderData) => {
+  if (!orderData || typeof orderData !== "object") return null;
+  const mpShop =
     orderData?.marketplace_post?.shop_id ||
-    orderData?.order_details?.[0]?.marketplace_post?.shop_id ||
-    orderData?.orderDetails?.[0]?.shop_id ||
-    marketplacePost?.shop_id ||
-    marketplacePost?.shopId ||
-    marketplacePost?.shop?.id ||
-    marketplacePost?.post?.shop_id ||
-    marketplacePost?.data?.shop_id ||
-    null
-  );
+    orderData?.marketplace_post?.shop?.id;
+  const candidates = [
+    orderData.shop_id,
+    orderData.shopId,
+    orderData.shop?.id,
+    orderData.shop?.shop_id,
+    orderData.Shop?.id,
+    orderData.Shop?.shop_id,
+    mpShop,
+  ].filter((v) => v !== undefined && v !== null && v !== "");
+  if (!candidates.length) return null;
+  return String(candidates[0]);
 };
 
 // Helper to extract marketplace image
@@ -412,18 +413,18 @@ export default function OrderTrackingForm({
   };
 
   // Fetch order detail:
-  // - Trước đây chỉ fetch khi KHÔNG có prop order => nếu parent đã truyền order (đã transform) thì không có raw log
-  // - Yêu cầu: admin muốn thấy RAW data => trên trang admin luôn refetch theo id để log raw API response
+  // - Admin: luôn fetch để có RAW log.
+  // - Các trang khác: fetch nếu không có prop order hoặc prop thiếu shop_id.
   useEffect(() => {
     if (!orderId) return;
-    if (isAdminOrdersPage) {
-      // Luôn fetch lại để có RAW ORDER API DATA log
-      fetchOrderDetail();
-    } else if (!order) {
-      // Các trang khác giữ hành vi cũ để tránh request dư thừa
+    const propMissingShopId = order && !extractShopId(order);
+    if (isAdminOrdersPage || !order || propMissingShopId) {
+      if (propMissingShopId) {
+        console.log("⚠️ order prop thiếu shop_id -> refetch để bổ sung.");
+      }
       fetchOrderDetail();
     }
-  }, [orderId, isAdminOrdersPage]);
+  }, [orderId, isAdminOrdersPage, order && extractShopId(order)]);
 
   // Keep local detail in sync with parent order
   useEffect(() => {
@@ -942,7 +943,7 @@ export default function OrderTrackingForm({
               </li>
               <li>
                 <span className="font-medium">Shop ID:</span>{" "}
-                {orderDetail.shop_id || "Chưa cập nhật"}
+                {orderDetail?.shop_id || "Chưa cập nhật"}
               </li>
               <li>
                 <span className="font-medium">Tên khách hàng:</span>{" "}
