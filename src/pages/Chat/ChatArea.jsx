@@ -16,16 +16,14 @@ import { useChatStore } from "./libs/useChatStore";
 import ChatInfo from "./ChatInfo";
 import { useAuth } from "../../contexts/AuthContext";
 import dayjs from "dayjs";
+import calendar from "dayjs/plugin/calendar";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/vi";
 import upload from "./libs/upload";
 
-const OPPOSING_USER = {
-  avatar:
-    "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
-  name: "Sarah Baker",
-  images: [
-    "https://assets.epicurious.com/photos/65ca8c02e09b10a92f8e7775/4:3/w_5132,h_3849,c_limit/Swiss-Meringue-Buttercream_RECIPE.jpg",
-  ],
-};
+dayjs.extend(calendar);
+dayjs.extend(relativeTime);
+dayjs.locale("vi");
 
 const ChatArea = () => {
   const [text, setText] = useState("");
@@ -253,6 +251,18 @@ const ChatArea = () => {
 
   const MAX_MESSAGE_LENGTH = 1000;
 
+  const formatTimestamp = (timestamp) => {
+  if (!timestamp) return "";
+  const date = timestamp?.toDate ? timestamp.toDate() : timestamp;
+  return dayjs(date).calendar(null, {
+    sameDay: "[Hôm nay] [lúc] HH:mm",       // Hôm nay
+    lastDay: "[Hôm qua] [lúc] HH:mm",       // Hôm qua
+    lastWeek: "dddd [tuần trước] HH:mm",           // Tuần trước (Thứ Hai, Thứ Ba…)
+    sameElse: "DD/MM/YYYY [lúc] HH:mm",     // Ngày khác
+  });
+};
+
+
   const chatPrompts = [
     "Shop mình mở từ mấy giờ ạ?",
     "Mình có thể xem menu được không?",
@@ -336,9 +346,7 @@ const ChatArea = () => {
                       />
                       <div className="bg-pink-500 text-white rounded-lg p-3 max-w-xs">
                         <span className="text-xs text-white/70 mt-1 block">
-                          {dayjs(message.createdAt?.toDate?.()).format(
-                            "h:mm A"
-                          )}
+                          {formatTimestamp(message.createdAt)}
                         </span>
                       </div>
                     </>
@@ -348,7 +356,7 @@ const ChatArea = () => {
                         {message.text}
                       </p>
                       <span className="text-xs text-white/70 mt-1 block">
-                        {dayjs(message.createdAt?.toDate?.()).format("h:mm A")}
+                        {formatTimestamp(message.createdAt)}
                       </span>
                     </div>
                   )}
@@ -386,9 +394,7 @@ const ChatArea = () => {
                         />
                         <div className="bg-pink-100 rounded-lg p-3 max-w-xs">
                           <span className="text-xs text-gray-500 mt-1 block">
-                            {dayjs(message.createdAt?.toDate?.()).format(
-                              "h:mm A"
-                            )}
+                            {formatTimestamp(message.createdAt)}
                           </span>
                         </div>
                       </>
@@ -398,9 +404,7 @@ const ChatArea = () => {
                           {message.text}
                         </p>
                         <span className="text-xs text-gray-500 mt-1 block">
-                          {dayjs(message.createdAt?.toDate?.()).format(
-                            "h:mm A"
-                          )}
+                          {formatTimestamp(message.createdAt)}
                         </span>
                       </div>
                     )}
