@@ -294,7 +294,10 @@ const ReviewSection = ({ marketplacePostId, productInfo = {} }) => {
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200">
                     {review.user?.avatar ? (
                       <img
-                        src={review.user.avatar}
+                        src={
+                          review.user.avatar ||
+                          "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                        }
                         alt={review.user.full_name || review.user.username}
                         className="w-full h-full object-cover"
                       />

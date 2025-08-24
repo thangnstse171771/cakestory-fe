@@ -464,7 +464,7 @@ export default function ChallengeGroup() {
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-pink-200 rounded-full flex items-center justify-center">
                     <img
-                      src={challengeInfo?.image || IMAGE_URL}
+                      src={challengeInfo?.avatar || IMAGE_URL}
                       alt="challenge"
                       className="w-14 h-14 rounded-full object-cover"
                     />
