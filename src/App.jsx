@@ -33,7 +33,7 @@ const ShopDetailWrapper = () => {
 import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
 import ShopGalleryPage from "./pages/ShopGalleryPage";
 import Chat from "./pages/Chat/Chat";
-import Events from "./pages/Events";
+// import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
 import WalletManagement from "./pages/Admin/WalletManagement";
 import WithdrawRequests from "./pages/Admin/WithdrawRequests";
@@ -171,7 +171,7 @@ export default function App() {
               path="marketplace/shop-analytics"
               element={<ShopAnalystic onBack={() => window.history.back()} />}
             />
-            <Route path="events" element={<Events />} />
+            {/* <Route path="events" element={<Events />} /> */}
             <Route
               path="order-tracking"
               element={
