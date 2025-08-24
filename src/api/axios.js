@@ -1,6 +1,13 @@
 import axios from "axios";
 
-const baseURL = "https://cakestory-be.onrender.com/api";
+// Strictly use environment variable (no hardcoded fallback)
+const baseURL = import.meta.env.VITE_API_BASE_URL;
+if (!baseURL) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "[axios] Missing VITE_API_BASE_URL. Define it in your .env file (e.g., VITE_API_BASE_URL=https://your-api-domain/api)."
+  );
+}
 
 const axiosInstance = axios.create({
   baseURL,
