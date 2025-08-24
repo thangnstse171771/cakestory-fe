@@ -4,15 +4,10 @@ import { useState } from "react";
 import ChallengeList from "./ChallengeList";
 import ChallengeDetail from "./ChallengeDetail";
 import MembersList from "./MembersList";
-import AnalyticsTab from "./AnalyticsTab";
-import ChallengeModal from "./ChallengeModal";
 
 export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState("dashboard");
-  const [activeTab, setActiveTab] = useState("challenges");
   const [selectedChallenge, setSelectedChallenge] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingChallenge, setEditingChallenge] = useState(null);
 
   const handleViewChallengeDetail = (challenge) => {
     setSelectedChallenge(challenge);
@@ -34,19 +29,7 @@ export default function AdminDashboard() {
     setCurrentView("challenge-detail");
   };
 
-  const handleEditChallenge = (challenge) => {
-    console.log("🔧 AdminDashboard: handleEditChallenge called", challenge);
-    setEditingChallenge(challenge);
-    setShowEditModal(true);
-  };
-
-  const handleEditSuccess = (updatedChallenge) => {
-    console.log("✅ Challenge updated successfully:", updatedChallenge);
-    setShowEditModal(false);
-    setEditingChallenge(null);
-    // Optionally refresh the challenge list here
-    alert("Challenge đã được cập nhật thành công!");
-  };
+  // Đã bỏ tab Analytics & chức năng edit, nên lược bỏ toàn bộ code liên quan.
 
   // Challenge Detail Page
   if (currentView === "challenge-detail" && selectedChallenge) {
@@ -89,88 +72,16 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        {/* Tabs */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              background: "white",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              style={{
-                padding: "12px 16px",
-                background: activeTab === "challenges" ? "#fce7f3" : "white",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: "500",
-                color: activeTab === "challenges" ? "#be185d" : "#374151",
-                transition: "all 0.2s",
-              }}
-              onClick={() => setActiveTab("challenges")}
-              onMouseEnter={(e) => {
-                if (activeTab !== "challenges")
-                  e.target.style.backgroundColor = "#f9fafb";
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== "challenges")
-                  e.target.style.backgroundColor = "white";
-              }}
-            >
-              Quản lý Challenges
-            </button>
-            <button
-              style={{
-                padding: "12px 16px",
-                background: activeTab === "analytics" ? "#fce7f3" : "white",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: "500",
-                color: activeTab === "analytics" ? "#be185d" : "#374151",
-                transition: "all 0.2s",
-              }}
-              onClick={() => setActiveTab("analytics")}
-              onMouseEnter={(e) => {
-                if (activeTab !== "analytics")
-                  e.target.style.backgroundColor = "#f9fafb";
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== "analytics")
-                  e.target.style.backgroundColor = "white";
-              }}
-            >
-              Thống kê
-            </button>
-          </div>
-
-          <div style={{ minHeight: "400px" }}>
-            {activeTab === "challenges" && (
-              <ChallengeList
-                onViewDetail={handleViewChallengeDetail}
-                onViewMembers={handleViewMembers}
-                onEdit={handleEditChallenge}
-              />
-            )}
-            {activeTab === "analytics" && <AnalyticsTab />}
-          </div>
+        {/* Danh sách challenges (đã bỏ tab Analytics) */}
+        <div style={{ minHeight: "400px" }}>
+          <ChallengeList
+            onViewDetail={handleViewChallengeDetail}
+            onViewMembers={handleViewMembers}
+          />
         </div>
       </div>
 
-      {/* Edit Challenge Modal */}
-      <ChallengeModal
-        isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setEditingChallenge(null);
-        }}
-        onSuccess={handleEditSuccess}
-        editChallenge={editingChallenge}
-        mode="edit"
-      />
+      {/* Đã loại bỏ modal chỉnh sửa và Analytics */}
     </div>
   );
 }

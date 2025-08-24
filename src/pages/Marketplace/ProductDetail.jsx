@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import axios from "../../api/axios";
 import ProductDetailSkeleton from "../../components/ProductDetailSkeleton";
+import ReviewSection from "../../components/ReviewSection";
 
 const ProductDetail = () => {
   const { productId } = useParams();
@@ -97,6 +98,19 @@ const ProductDetail = () => {
     navigate(`/marketplace/shop/${shop.user_id}`);
   };
 
+  // Kiểm tra xem sản phẩm có hết hạn không
+  const isExpired = () => {
+    if (!product.expiry_date) return false;
+    const currentDate = new Date();
+    const expiryDate = new Date(product.expiry_date);
+    return currentDate > expiryDate;
+  };
+
+  // Kiểm tra trạng thái sản phẩm (còn hàng và chưa hết hạn)
+  const isProductAvailable = () => {
+    return product.available && !isExpired();
+  };
+
   if (loading) {
     return <ProductDetailSkeleton />;
   }
@@ -151,24 +165,6 @@ const ProductDetail = () => {
               <ArrowLeft className="w-5 h-5" />
               <span className="font-medium">Back</span>
             </button>
-
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsWishlisted(!isWishlisted)}
-                className={`p-2 rounded-full transition-colors ${
-                  isWishlisted
-                    ? "bg-pink-100 text-pink-600"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                <Heart
-                  className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`}
-                />
-              </button>
-              <button className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">
-                <Share2 className="w-5 h-5" />
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -214,14 +210,20 @@ const ProductDetail = () => {
               <div className="absolute top-6 left-6">
                 <div
                   className={`px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm ${
-                    product.available
+                    isProductAvailable()
                       ? "bg-green-500/90 text-white"
+                      : isExpired()
+                      ? "bg-orange-500/90 text-white"
                       : "bg-red-500/90 text-white"
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     <Check className="w-4 h-4" />
-                    {product.available ? "Còn hàng" : "Hết hàng"}
+                    {isProductAvailable()
+                      ? "Còn hàng"
+                      : isExpired()
+                      ? "hết hạn"
+                      : "hết hạn"}
                   </div>
                 </div>
               </div>
@@ -251,7 +253,7 @@ const ProductDetail = () => {
               )}
               {sortedCakeSizes.length > 1 && (
                 <div className="text-sm text-gray-500 mt-1">
-                  Bắt Đầu từ {getMinPrice(sortedCakeSizes).toLocaleString()} VND
+                  Bắt Đầu Từ {getMinPrice(sortedCakeSizes).toLocaleString()} VND
                 </div>
               )}
             </div>
@@ -316,161 +318,50 @@ const ProductDetail = () => {
 
             {/* Action Buttons */}
             <div className="flex gap-4">
-              <button
-                onClick={handleAddToCart}
-                disabled={!product.available}
-                className={`flex-1 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 ${
-                  product.available
-                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600 shadow-lg hover:shadow-xl transform hover:scale-105"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  Đặt Ngay
-                </div>
-              </button>
+              {isProductAvailable() ? (
+                <>
+                  <button
+                    onClick={handleAddToCart}
+                    className="flex-1 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <ShoppingCart className="w-5 h-5" />
+                      Đặt Ngay
+                    </div>
+                  </button>
 
-              <button
-                onClick={handleShopVisit}
-                className="px-6 py-4 rounded-xl border-2 border-pink-500 text-pink-500 font-semibold hover:bg-pink-50 transition-all duration-300 flex items-center gap-2"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Trò chuyện
-              </button>
+                  <button
+                    onClick={handleShopVisit}
+                    className="px-6 py-4 rounded-xl border-2 border-pink-500 text-pink-500 font-semibold hover:bg-pink-50 transition-all duration-300 flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    Trò chuyện
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleShopVisit}
+                  className="w-full px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    Liên Hệ
+                  </div>
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Reviews Section */}
         <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-8 mb-16">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Đánh giá của khách hàng
-          </h2>
-
-          {/* Rating Summary */}
-          <div className="flex items-center gap-8 mb-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl border border-yellow-200">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-yellow-600">4.8</div>
-              <div className="flex items-center gap-1 mt-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-5 h-5 ${
-                      i < 5 ? "text-yellow-400 fill-current" : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-              <div className="text-sm text-gray-600 mt-1">124 đánh giá</div>
-            </div>
-
-            <div className="flex-1">
-              {[5, 4, 3, 2, 1].map((star) => (
-                <div key={star} className="flex items-center gap-3 mb-2">
-                  <span className="text-sm font-medium w-8">{star}★</span>
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-yellow-400 h-2 rounded-full"
-                      style={{
-                        width: `${
-                          star === 5
-                            ? 70
-                            : star === 4
-                            ? 20
-                            : star === 3
-                            ? 5
-                            : star === 2
-                            ? 3
-                            : 2
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-                  <span className="text-sm text-gray-600 w-8">
-                    {star === 5
-                      ? 87
-                      : star === 4
-                      ? 25
-                      : star === 3
-                      ? 6
-                      : star === 2
-                      ? 4
-                      : 2}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Sample Reviews */}
-          <div className="space-y-6">
-            {[
-              {
-                name: "Nguyễn Thị Mai",
-                rating: 5,
-                comment:
-                  "Bánh rất ngon, đúng như mong đợi. Shop phục vụ tận tình!",
-                date: "2 days ago",
-                avatar:
-                  "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=64",
-              },
-              {
-                name: "Trần Văn Nam",
-                rating: 4,
-                comment:
-                  "Chất lượng tốt, giao hàng nhanh. Sẽ ủng hộ shop tiếp.",
-                date: "1 week ago",
-                avatar:
-                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64",
-              },
-              {
-                name: "Lê Thị Hoa",
-                rating: 5,
-                comment:
-                  "Bánh đẹp và ngon, phù hợp cho tiệc sinh nhật. Highly recommended!",
-                date: "2 weeks ago",
-                avatar:
-                  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64",
-              },
-            ].map((review, index) => (
-              <div
-                key={index}
-                className="border-b border-gray-100 pb-6 last:border-b-0"
-              >
-                <div className="flex items-start gap-4">
-                  <img
-                    src={review.avatar}
-                    alt={review.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-semibold text-gray-900">
-                        {review.name}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-4 h-4 ${
-                              i < review.rating
-                                ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-gray-500">
-                        {review.date}
-                      </span>
-                    </div>
-                    <p className="text-gray-700">{review.comment}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ReviewSection
+            marketplacePostId={productId}
+            productInfo={{
+              title: post.title,
+              image: media[0]?.image_url,
+            }}
+          />
         </div>
 
         {/* Shop Information */}
@@ -506,19 +397,6 @@ const ProductDetail = () => {
                   <h3 className="text-2xl font-bold text-gray-900 mb-2">
                     {shop.business_name}
                   </h3>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className="w-4 h-4 text-yellow-400 fill-current"
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600">
-                      (4.9 • 2.1k reviews)
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -559,16 +437,6 @@ const ProductDetail = () => {
                       <div className="font-medium">{shop.business_hours}</div>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <Star className="w-5 h-5 text-orange-600" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-600">Chuyên môn</div>
-                      <div className="font-medium">{shop.specialty}</div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -596,7 +464,7 @@ const ProductDetail = () => {
         {relatedProducts.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-8">
-              More on Marketplace
+              Xem các sản phẩm khác
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts
@@ -618,6 +486,18 @@ const ProductDetail = () => {
                         )
                       : item.price || 0;
 
+                  // Kiểm tra xem item có hết hạn không
+                  const itemIsExpired = () => {
+                    if (!item.expiry_date) return false;
+                    const currentDate = new Date();
+                    const expiryDate = new Date(item.expiry_date);
+                    return currentDate > expiryDate;
+                  };
+
+                  const itemIsAvailable = () => {
+                    return item.available && !itemIsExpired();
+                  };
+
                   return (
                     <div
                       key={item.post_id}
@@ -634,12 +514,18 @@ const ProductDetail = () => {
                         />
                         <div
                           className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium ${
-                            item.available
+                            itemIsAvailable()
                               ? "bg-green-500/90 text-white"
-                              : "bg-gray-500/90 text-white"
+                              : itemIsExpired()
+                              ? "bg-orange-500/90 text-white"
+                              : "bg-red-500/90 text-white"
                           }`}
                         >
-                          {item.available ? "Còn hàng" : "Hết hàng"}
+                          {itemIsAvailable()
+                            ? "Còn hàng"
+                            : itemIsExpired()
+                            ? "hết hạn"
+                            : "hết hạn"}
                         </div>
                       </div>
 

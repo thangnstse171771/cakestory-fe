@@ -140,7 +140,7 @@ export default function ChallengeList() {
               maxParticipants: challenge.max_participants || 100,
               minParticipants: challenge.min_participants || 10,
               hashtag: challenge.hashtag,
-              image: challenge.image_url || IMAGE_URL,
+              avatar: challenge.avatar || IMAGE_URL,
               tags: Array.isArray(challenge.hashtags) ? challenge.hashtags : [],
               host: {
                 name: challenge.host_name || "Admin",
@@ -382,7 +382,7 @@ export default function ChallengeList() {
             >
               <div className="relative">
                 <img
-                  src={challenge.image || IMAGE_URL}
+                  src={challenge.avatar || IMAGE_URL}
                   alt={challenge.title}
                   className="w-full h-48 object-cover rounded-t-lg"
                 />

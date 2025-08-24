@@ -11,9 +11,9 @@ import { toast } from "react-toastify";
 import CreateRulePopup from "./CreateRulePopup";
 
 const CreateChallengePostSchema = Yup.object().shape({
-  title: Yup.string().required("Hãy nhập tựa đề bài viết"),
-  description: Yup.string().max(2000, "Mô tả không được quá 2000 kí tự"),
-  media: Yup.array().min(1, "Xin hãy thêm ít nhất 1 tệp"),
+  title: Yup.string().required("Hãy nhập tựa đề bài viết").max(100, "Tựa đề không được quá 100 ký tự"),
+  description: Yup.string().required("Hãy nhập mô tả.").max(2000, "Mô tả không được quá 2000 kí tự"),
+  media: Yup.array().min(1, "Xin hãy thêm ít nhất 1 tệp").max(10, "Tối đa 10 tệp"),
 });
 
 const CreateChallengePost = ({ isOpen, onClose, onCreate, challengeId }) => {

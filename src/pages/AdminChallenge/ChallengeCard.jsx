@@ -1,17 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getChallengeParticipantCount } from "../../api/challenge";
+import {
+  deleteChallenge,
+  getChallengeParticipantCount,
+} from "../../api/challenge";
+import UpdateChallenge from "./UpdateChallenge";
+import { se } from "date-fns/locale";
+import { Delete } from "lucide-react";
+import DeleteChallengePopup from "./DeleteChallenge";
 
 export default function ChallengeCard({
   challenge,
   onViewDetail,
   onViewMembers,
-  onEdit,
+  fetchChallenges,
 }) {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [participantCount, setParticipantCount] = useState(0);
+  const [isUpdateChallenge, setIsUpdateChallenge] = useState(false);
+  const [isDeleteChallenge, setIsDeleteChallenge] = useState(false);
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // Fetch participant count when component mounts
   useEffect(() => {
@@ -34,6 +45,22 @@ export default function ChallengeCard({
 
     fetchCount();
   }, [challenge?.id]);
+
+  const handleDeleteChallenge = async () => {
+    if (!selectedChallenge) return;
+    setLoading(true);
+    try {
+      await deleteChallenge(selectedChallenge.id);
+      setIsDeleteChallenge(false);
+      setSelectedChallenge(null);
+      fetchChallenges();
+    } catch (error) {
+      console.error("Delete post failed:", error);
+      toast.error("Xóa bài viết thất bại.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusStyle = (status) => {
     switch (status) {
@@ -315,36 +342,35 @@ export default function ChallengeCard({
           >
             👁️ Xem
           </button>
-          <button
-            style={{
-              padding: "6px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-              fontSize: "12px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              background: "white",
-              color: "#374151",
-            }}
-            onClick={() => {
-              console.log("🔧 ChallengeCard: Edit button clicked", challenge);
-              if (typeof onEdit === "function") {
-                onEdit(challenge);
-              } else {
-                console.error("🔧 ChallengeCard: onEdit is not a function");
-              }
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = "#8b5cf6";
-              e.target.style.color = "#8b5cf6";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db";
-              e.target.style.color = "#374151";
-            }}
-          >
-            ✏️ Sửa
-          </button>
+          {challenge.adminStatus === "Sắp diễn ra" && (
+            <button
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                fontSize: "12px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                background: "white",
+                color: "#374151",
+              }}
+              onClick={() => {
+                setIsUpdateChallenge(true);
+                setSelectedChallenge(challenge);
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = "#8b5cf6";
+                e.target.style.color = "#8b5cf6";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = "#d1d5db";
+                e.target.style.color = "#374151";
+              }}
+            >
+              ✏️ Sửa
+            </button>
+          )}
+
           <button
             style={{
               padding: "6px 12px",
@@ -428,30 +454,36 @@ export default function ChallengeCard({
             </>
           )}
 
-          <button
-            style={{
-              padding: "6px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-              fontSize: "12px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              background: "white",
-              color: "#374151",
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.background = "#ef4444";
-              e.target.style.color = "white";
-              e.target.style.borderColor = "#ef4444";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = "white";
-              e.target.style.color = "#374151";
-              e.target.style.borderColor = "#d1d5db";
-            }}
-          >
-            🗑️ Xóa
-          </button>
+          {challenge.adminStatus === "Sắp diễn ra" && (
+            <button
+              style={{
+                padding: "6px 12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "4px",
+                fontSize: "12px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                background: "white",
+                color: "#374151",
+              }}
+              onClick={() => {
+                setIsDeleteChallenge(true);
+                setSelectedChallenge(challenge);
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = "#ef4444";
+                e.target.style.color = "white";
+                e.target.style.borderColor = "#ef4444";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = "white";
+                e.target.style.color = "#374151";
+                e.target.style.borderColor = "#d1d5db";
+              }}
+            >
+              🗑️ Xóa
+            </button>
+          )}
         </div>
       </div>
 
@@ -607,6 +639,22 @@ export default function ChallengeCard({
           </div>
         </div>
       )}
+      <UpdateChallenge
+        isOpen={isUpdateChallenge}
+        onClose={() => {
+          setIsUpdateChallenge(false);
+        }}
+        challenge={selectedChallenge}
+        onUpdate={fetchChallenges}
+      />
+      <DeleteChallengePopup
+        isOpen={isDeleteChallenge}
+        onClose={() => {
+          setIsDeleteChallenge(false);
+        }}
+        loading={loading}
+        onDelete={handleDeleteChallenge}
+      />
     </div>
   );
 }

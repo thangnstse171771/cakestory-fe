@@ -1,4 +1,4 @@
-import { Star, Search } from "lucide-react";
+import { Star, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,6 +14,10 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
   const [filter, setFilter] = useState("all");
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeProduct, setCustomizeProduct] = useState(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // Hiển thị 12 sản phẩm mỗi trang
 
   // Helper function to check if product is available based on expiry date
   const isProductAvailable = (expiryDate) => {
@@ -47,6 +51,23 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
       return matchesSearch && matchesFilter;
     });
   }, [products, search, filter, isOwnShop]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Reset page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [search, filter]);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Scroll to top when changing page
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   if (!products.length) {
     return (
@@ -95,7 +116,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
       </div>
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.map((item) => {
+        {currentProducts.map((item) => {
           // Lấy post object đúng key
           const post = item.Post || item.post || {};
           const shop = item.shop || {};
@@ -165,8 +186,8 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                     Còn hàng
                   </div>
                 ) : (
-                  <div className="absolute top-3 right-3 px-3 py-1 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                    Hết hạn
+                  <div className="absolute top-3 right-3 px-3 py-1 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+                    hết hạn
                   </div>
                 )}
               </div>
@@ -201,7 +222,7 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                     </span>
                     {hasMultipleSizes && (
                       <span className="text-xs text-gray-500 mt-1">
-                        Bắt đầu từ ({cakeSizes.length} kích cỡ có sẵn)
+                        {cakeSizes.length} kích cỡ có sẵn
                       </span>
                     )}
                     {!hasMultipleSizes && cakeSizes.length === 1 && (
@@ -228,28 +249,47 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                     Xem Chi Tiết
                   </button>
                   <button
-                    className="relative overflow-hidden px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
+                    className={`relative overflow-hidden px-4 py-2 rounded-lg text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 ${
+                      available
+                        ? "bg-gradient-to-r from-pink-500 to-pink-400"
+                        : "bg-gradient-to-r from-blue-500 to-blue-400"
+                    }`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Navigate to CustomizedOrderDetails with shop_id
-                      const shopId = item.shop_id || item.shop?.id;
-                      if (shopId) {
-                        navigate(`/order/customize/${shopId}`, {
-                          state: {
-                            shopData: item.shop,
-                            productData: item,
-                          },
-                        });
+                      if (available) {
+                        // Navigate to CustomizedOrderDetails with shop_id
+                        const shopId = item.shop_id || item.shop?.id;
+                        if (shopId) {
+                          navigate(`/order/customize/${shopId}`, {
+                            state: {
+                              shopData: item.shop,
+                              productData: item,
+                            },
+                          });
+                        } else {
+                          console.error("No shop_id found for this product");
+                          // Fallback to old modal
+                          setCustomizeProduct(item);
+                          setShowCustomize(true);
+                        }
                       } else {
-                        console.error("No shop_id found for this product");
-                        // Fallback to old modal
-                        setCustomizeProduct(item);
-                        setShowCustomize(true);
+                        // Navigate to shop if product is expired
+                        const userId = item.shop?.user_id || item.user_id;
+                        console.log("Navigating to shop by userId:", {
+                          userId,
+                          shop: item.shop,
+                          item_user_id: item.user_id,
+                        });
+                        if (userId) {
+                          navigate(`/marketplace/shop/${userId}`);
+                        } else {
+                          console.error("No user_id found for expired product");
+                        }
                       }
                     }}
                   >
                     <span className="relative z-10 flex items-center gap-2">
-                      Đặt Ngay
+                      {available ? "Đặt Ngay" : "Liên Hệ"}
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-pink-200 to-purple-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </button>
@@ -259,6 +299,90 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center mt-12 space-x-2">
+          {/* Previous Button */}
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+              currentPage === 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 shadow-sm"
+            }`}
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Trước
+          </button>
+
+          {/* Page Numbers */}
+          <div className="flex space-x-1">
+            {[...Array(totalPages)].map((_, index) => {
+              const page = index + 1;
+              const isCurrentPage = page === currentPage;
+
+              // Show first, last, current, and pages around current
+              const showPage =
+                page === 1 ||
+                page === totalPages ||
+                Math.abs(page - currentPage) <= 1;
+
+              if (!showPage && page !== 2 && page !== totalPages - 1) {
+                // Show ellipsis for gaps
+                if (page === currentPage - 2 || page === currentPage + 2) {
+                  return (
+                    <span key={page} className="px-3 py-2 text-gray-500">
+                      ...
+                    </span>
+                  );
+                }
+                return null;
+              }
+
+              return (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    isCurrentPage
+                      ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md transform scale-105"
+                      : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 shadow-sm"
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Next Button */}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+              currentPage === totalPages
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 shadow-sm"
+            }`}
+          >
+            Tiếp
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </button>
+        </div>
+      )}
+
+      {/* Pagination Info */}
+      {filteredProducts.length > 0 && (
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-600">
+            Hiển thị {startIndex + 1}-
+            {Math.min(endIndex, filteredProducts.length)} trong tổng số{" "}
+            {filteredProducts.length} sản phẩm
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import ComplaintModal from "../ComplaintManagement/ComplaintModal";
 import { fetchOrderById } from "../../api/axios";
 import {
@@ -197,6 +197,20 @@ export default function OrderTrackingForm({
 }) {
   const { orderId } = useParams();
   const { user } = useAuth();
+  const location = useLocation();
+  // Detect if viewing from user purchase history page; restrict shop transitions here
+  const isUserHistoryPage = (location?.pathname || "").startsWith(
+    "/order-tracking-user"
+  );
+  // Detect admin orders page
+  const isAdminOrdersPage = (location?.pathname || "").startsWith(
+    "/admin/order-tracking"
+  );
+  // Detect shop orders page (default order-tracking page, not user/admin)
+  const isShopOrdersPage =
+    !isUserHistoryPage &&
+    !isAdminOrdersPage &&
+    (location?.pathname || "").startsWith("/order-tracking");
 
   // Memoized role and permission calculations
   const { role, isShopActor, inferredUserShopId } = useMemo(() => {
@@ -256,11 +270,16 @@ export default function OrderTrackingForm({
       try {
         if (!user?.id) return;
         const shopResp = await fetchShopByUserId(user.id);
+        // Support multiple response shapes
         const sid =
           shopResp?.shop?.shop_id ||
           shopResp?.shop_id ||
           shopResp?.id ||
           shopResp?.shop?.id ||
+          shopResp?.data?.shop?.shop_id ||
+          shopResp?.data?.shop_id ||
+          shopResp?.data?.id ||
+          shopResp?.data?.shop?.id ||
           null;
         if (mounted)
           setViewerShopId(sid != null ? String(sid) : inferFromUser());
@@ -278,8 +297,20 @@ export default function OrderTrackingForm({
   const fetchOrderDetail = async () => {
     try {
       setLoading(true);
+      if (isAdminOrdersPage) {
+        console.log("≈ ADMIN | Gọi fetchOrderById với orderId:", orderId);
+      }
       const response = await fetchOrderById(orderId);
       const data = response?.order || response?.data || response;
+
+      if (isAdminOrdersPage) {
+        console.log("≈ ADMIN | RAW RESPONSE (fetchOrderById):", response);
+        console.log("≈ ADMIN | RAW ORDER DATA:", data);
+        console.log(
+          "≈ ADMIN | RAW USER TRONG ORDER:",
+          data?.User || data?.user || null
+        );
+      }
 
       const customerUser = data.User || data.user || {};
       const customerName =
@@ -341,6 +372,10 @@ export default function OrderTrackingForm({
         : null;
       const ingredientTotalField = parseFloat(data.ingredient_total);
 
+      // YÊU CẦU: log RAW data tại dòng này (không phải object đã transform)
+      // Log nguyên bản object trả về từ API (không chỉnh sửa)
+      console.log("RAW ORDER API DATA (unmodified):", data);
+
       const transformedOrder = {
         id: data.id || data._id,
         customerName,
@@ -366,6 +401,8 @@ export default function OrderTrackingForm({
         customer_user_id: extractCustomerUserId(data),
       };
 
+      // (Giữ lại nếu cần so sánh) console.log("TRANSFORMED ORDER (for UI):", transformedOrder);
+
       setOrderDetail(transformedOrder);
     } catch (error) {
       alert("Không thể tải thông tin đơn hàng");
@@ -374,16 +411,26 @@ export default function OrderTrackingForm({
     }
   };
 
-  // Fetch order detail if orderId from URL params
+  // Fetch order detail:
+  // - Trước đây chỉ fetch khi KHÔNG có prop order => nếu parent đã truyền order (đã transform) thì không có raw log
+  // - Yêu cầu: admin muốn thấy RAW data => trên trang admin luôn refetch theo id để log raw API response
   useEffect(() => {
-    if (orderId && !order) {
+    if (!orderId) return;
+    if (isAdminOrdersPage) {
+      // Luôn fetch lại để có RAW ORDER API DATA log
+      fetchOrderDetail();
+    } else if (!order) {
+      // Các trang khác giữ hành vi cũ để tránh request dư thừa
       fetchOrderDetail();
     }
-  }, [orderId]);
+  }, [orderId, isAdminOrdersPage]);
 
   // Keep local detail in sync with parent order
   useEffect(() => {
     if (order) {
+      if (isAdminOrdersPage) {
+        console.log("≈ ADMIN | ORDER PROP PASSED TỪ PARENT:", order);
+      }
       setOrderDetail({
         ...order,
         status: normalizeStatus(order.status),
@@ -407,11 +454,16 @@ export default function OrderTrackingForm({
         if (!shopIdToUse && isShopActor && user?.id) {
           try {
             const shopResp = await fetchShopByUserId(user.id);
+            // Support multiple response shapes
             shopIdToUse =
               shopResp?.shop?.shop_id ||
               shopResp?.shop_id ||
               shopResp?.id ||
               shopResp?.shop?.id ||
+              shopResp?.data?.shop?.shop_id ||
+              shopResp?.data?.shop_id ||
+              shopResp?.data?.id ||
+              shopResp?.data?.shop?.id ||
               null;
           } catch (e) {
             // Silent fallback
@@ -579,7 +631,16 @@ export default function OrderTrackingForm({
       String(user.email).toLowerCase() ===
         String(orderDetail.customerEmail).toLowerCase()
   );
-  const isOrderOwner = idMatches || emailMatches;
+  const customerNameStr = String(orderDetail?.customerName || "").toLowerCase();
+  const currentUsernameStr = String(
+    user?.username || user?.full_name || user?.name || ""
+  ).toLowerCase();
+  const nameMatches = Boolean(
+    customerNameStr &&
+      currentUsernameStr &&
+      customerNameStr === currentUsernameStr
+  );
+  const isOrderOwner = idMatches || emailMatches || nameMatches;
 
   const orderShopIdStr = extractShopId(orderDetail, marketplacePost)
     ? String(extractShopId(orderDetail, marketplacePost))
@@ -589,11 +650,21 @@ export default function OrderTrackingForm({
     : inferredUserShopId
     ? String(inferredUserShopId)
     : null;
+  // Shop controls are available whenever current viewer belongs to the order's shop
   const canShopControl = Boolean(
-    !isOrderOwner &&
-      viewerShopIdStr &&
-      (!orderShopIdStr || viewerShopIdStr === orderShopIdStr)
+    viewerShopIdStr && (!orderShopIdStr || viewerShopIdStr === orderShopIdStr)
   );
+  // On user history page, even if viewer belongs to the shop, do not allow shop transitions
+  const canShopControlHere = canShopControl && !isUserHistoryPage;
+
+  // Only customer accounts can perform end-customer actions; however, on the user history route
+  // a dual-role account (also a shop) should still act as a customer.
+  const isCustomerRole =
+    isUserHistoryPage ||
+    role === "customer" ||
+    role === "user" ||
+    Boolean(user?.is_customer);
+  const canOwnerCustomerActions = Boolean(isOrderOwner && isCustomerRole);
 
   const hasComplaint = Boolean(
     orderDetail &&
@@ -697,14 +768,17 @@ export default function OrderTrackingForm({
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        {isOrderOwner && orderDetail.status === "shipped" && !hasComplaint && (
-          <button
-            className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-            onClick={() => setShowComplaintModal(true)}
-          >
-            Tạo khiếu nại
-          </button>
-        )}
+        {canOwnerCustomerActions &&
+          !isShopOrdersPage &&
+          orderDetail.status === "shipped" &&
+          !hasComplaint && (
+            <button
+              className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
+              onClick={() => setShowComplaintModal(true)}
+            >
+              Tạo khiếu nại
+            </button>
+          )}
 
         <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
           {/* Progress Bar */}
@@ -746,7 +820,7 @@ export default function OrderTrackingForm({
               Cập nhật trạng thái
             </h3>
             <div className="flex flex-wrap gap-2 mb-4">
-              {isOrderOwner &&
+              {canOwnerCustomerActions &&
                 orderDetail.status === "pending" &&
                 orderDetail.status !== "completed" &&
                 orderDetail.status !== "cancelled" && (
@@ -762,7 +836,7 @@ export default function OrderTrackingForm({
 
               {/* Bỏ nút Tiếp nhận đơn hàng: backend tự chuyển pending -> ordered */}
 
-              {canShopControl && orderDetail.status === "ordered" && (
+              {canShopControlHere && orderDetail.status === "ordered" && (
                 <button
                   onClick={() =>
                     handleUpdateStatus(orderDetail.id, "preparedForDelivery")
@@ -773,7 +847,7 @@ export default function OrderTrackingForm({
                 </button>
               )}
 
-              {canShopControl &&
+              {canShopControlHere &&
                 orderDetail.status === "preparedForDelivery" && (
                   <button
                     onClick={() =>
@@ -785,7 +859,8 @@ export default function OrderTrackingForm({
                   </button>
                 )}
 
-              {isOrderOwner &&
+              {canOwnerCustomerActions &&
+                !isShopOrdersPage &&
                 orderDetail.status === "shipped" &&
                 !hasComplaint && (
                   <button

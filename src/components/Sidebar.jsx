@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Store,
   LogIn,
+  Star,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -104,10 +105,16 @@ const Sidebar = () => {
         "/order-tracking",
         "/my-complaints",
         "/order-tracking-user",
+        "/my-orders-reviews",
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
-      "Ví tiền": ["/wallet", "/withdraw", "/all-transactions"],
+      "Ví tiền": [
+        "/wallet",
+        "/withdraw",
+        "/all-transactions",
+        "/wallet/transactions",
+      ],
       "Cửa Hàng của Tôi": ["/order-tracking", "/complaints"],
       "Tùy chọn khác": ["/settings", "/change-password"],
     };
@@ -139,16 +146,16 @@ const Sidebar = () => {
               {
                 icon: Store,
                 label: "Cửa Hàng của Tôi",
-                path: `/marketplace/shop/${user.id}`,
+                path: `/marketplace/shop/${userShop.user_id}`,
                 submenu: [
                   {
                     icon: ListOrdered,
-                    label: "Đơn hàng của shop",
+                    label: "Đơn hàng",
                     path: "/order-tracking",
                   },
                   {
                     icon: MessageSquareWarning,
-                    label: "Khiếu nại của shop",
+                    label: "Khiếu nại khách hàng",
                     path: "/complaints",
                   },
                 ],
@@ -162,6 +169,11 @@ const Sidebar = () => {
                 icon: ListOrdered,
                 label: "Lịch sử mua hàng",
                 path: "/order-tracking-user",
+              },
+              {
+                icon: Star,
+                label: "Đơn hàng & Đánh giá",
+                path: "/my-orders-reviews",
               },
               {
                 icon: MessageSquareWarning,
@@ -195,13 +207,22 @@ const Sidebar = () => {
       submenu: [
         { icon: ArrowDownToLine, label: "Yêu cầu rút tiền", path: "/withdraw" },
         { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
+        {
+          icon: Receipt,
+          label: "Giao dịch ví chi tiết",
+          path: "/wallet/transactions",
+        },
       ],
     },
   ];
 
   // Menu cho admin/staff
+  const isAdmin = user?.role === "admin";
   const adminMenu = [
-    { icon: Shield, label: "Bảng điều khiển quản trị", path: "/admin" },
+    // Chỉ admin mới thấy bảng điều khiển quản trị
+    ...(isAdmin
+      ? [{ icon: Shield, label: "Bảng điều khiển quản trị", path: "/admin" }]
+      : []),
     {
       icon: ListOrdered,
       label: "Tất cả đơn hàng",
@@ -244,10 +265,16 @@ const Sidebar = () => {
         "/order-tracking",
         "/my-complaints",
         "/order-tracking-user",
+        "/my-orders-reviews",
         "/complaints",
       ],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
-      "Ví tiền": ["/wallet", "/withdraw", "/all-transactions"],
+      "Ví tiền": [
+        "/wallet",
+        "/withdraw",
+        "/all-transactions",
+        "/wallet/transactions",
+      ],
       "Cửa Hàng của Tôi": ["/order-tracking", "/complaints"],
       "Tùy chọn khác": ["/settings", "/change-password"],
     };
@@ -399,7 +426,7 @@ const Sidebar = () => {
       {/* Logo & Home button */}
       <div className="p-6 border-b border-pink-200 flex-shrink-0 bg-gradient-to-r from-pink-50 to-white">
         <button
-          onClick={() => navigate("/home")}
+          onClick={() => navigate("/landing")}
           className="flex items-center justify-center lg:justify-start lg:space-x-3 w-full hover:opacity-90 transition-all duration-200 group"
         >
           <div className="bg-gradient-to-br from-pink-500 to-pink-600 p-2.5 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-200">
@@ -439,33 +466,12 @@ const Sidebar = () => {
               <button
                 onClick={() => {
                   setShowMore(false);
-                  navigate("/settings");
+                  navigate("/change-password");
                 }}
                 className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group"
               >
-                <span className="mr-3 text-lg">⚙️</span>
-                <span className="font-medium text-sm">Cài đặt</span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false); /* handle theme toggle here */
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group border-t border-pink-100"
-              >
-                <span className="mr-3 text-lg">🌗</span>
-                <span className="font-medium text-sm">
-                  Chuyển đổi giao diện
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  setShowMore(false);
-                  navigate("/report");
-                }}
-                className="flex w-full items-center px-4 py-3 text-gray-700 hover:bg-pink-50 transition-all duration-200 group border-t border-pink-100"
-              >
-                <span className="mr-3 text-lg">🚩</span>
-                <span className="font-medium text-sm">Báo cáo sự cố</span>
+                <span className="mr-3 text-lg">🔐</span>
+                <span className="font-medium text-sm">Đổi mật khẩu</span>
               </button>
             </div>
           )}

@@ -10,12 +10,14 @@ dayjs.extend(relativeTime);
 import DeleteCommentPopup from "./DeleteCommentPopup";
 import { toast } from "react-toastify";
 
-const CommentsSection = ({ postId }) => {
+const CommentsSection = ({ postId, challengeStatus }) => {
   const { user } = useAuth();
   const currentUserId = user?.id;
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingContent, setEditingContent] = useState("");
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -61,6 +63,7 @@ const CommentsSection = ({ postId }) => {
       return;
     }
 
+    setEditing(true);
     try {
       await authAPI.editComment(editingCommentId, { content: editingContent });
       setEditingCommentId(null);
@@ -68,12 +71,14 @@ const CommentsSection = ({ postId }) => {
       fetchComments();
     } catch (error) {
       console.error("Failed to edit comment", error);
+    } finally {
+      setEditing(false);
     }
   };
 
   const handleDeleteComment = async () => {
     if (!commentIdToDelete) return;
-    setLoading(true);
+    setDeleting(true);
     try {
       await authAPI.deleteComment(commentIdToDelete);
       fetchComments();
@@ -81,7 +86,7 @@ const CommentsSection = ({ postId }) => {
       console.error("Failed to delete comment", error);
       toast.error("Xóa bình luận thất bại.");
     } finally {
-      setLoading(false);
+      setDeleting(false);
       setIsPopupOpen(false);
       setCommentIdToDelete(null);
     }
@@ -152,8 +157,12 @@ const CommentsSection = ({ postId }) => {
                         <button
                           type="submit"
                           className="text-sm text-blue-500 hover:underline"
+                          disabled={
+                            editing ||
+                            (challengeStatus && challengeStatus !== "onGoing")
+                          }
                         >
-                          Lưu
+                          {editing ? "Đang tải..." : "Lưu"}
                         </button>
                         <div
                           className={`text-sm  ${
@@ -167,7 +176,9 @@ const CommentsSection = ({ postId }) => {
                       </div>
                     </form>
                   ) : (
-                    <p className="text-gray-700 text-sm">{comment.content}</p>
+                    <p className="text-gray-700 text-sm whitespace-pre-line break-all">
+                      {comment.content}
+                    </p>
                   )}
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                     <span className="text-xs">
@@ -177,7 +188,14 @@ const CommentsSection = ({ postId }) => {
                       <>
                         <button
                           onClick={() => handleEditClick(comment)}
-                          className="hover:underline cursor-pointer"
+                          className={`${
+                            challengeStatus && challengeStatus !== "onGoing"
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "hover:underline cursor-pointer"
+                          }`}
+                          disabled={
+                            challengeStatus && challengeStatus !== "onGoing"
+                          }
                         >
                           Chỉnh sửa
                         </button>
@@ -186,7 +204,14 @@ const CommentsSection = ({ postId }) => {
                             setCommentIdToDelete(comment.id);
                             setIsPopupOpen(true);
                           }}
-                          className="hover:underline cursor-pointer text-red-500"
+                          className={`${
+                            challengeStatus && challengeStatus !== "onGoing"
+                              ? "text-gray-400 cursor-not-allowed"
+                              : "hover:underline text-red-500 cursor-pointer"
+                          }`}
+                          disabled={
+                            challengeStatus && challengeStatus !== "onGoing"
+                          }
                         >
                           Xóa
                         </button>
@@ -211,6 +236,7 @@ const CommentsSection = ({ postId }) => {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Hãy viết gì đó..."
+            disabled={challengeStatus && challengeStatus !== "onGoing"}
             maxLength={MAX_COMMENT_LENGTH}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
@@ -228,7 +254,9 @@ const CommentsSection = ({ postId }) => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={
+              loading || (challengeStatus && challengeStatus !== "onGoing")
+            }
             className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
           >
             {loading ? "Đang tải..." : "Đăng"}
@@ -240,7 +268,7 @@ const CommentsSection = ({ postId }) => {
         isOpen={isPopupOpen}
         onClose={() => setIsPopupOpen(false)}
         onDelete={handleDeleteComment}
-        loading={loading}
+        loading={deleting}
       />
     </div>
   );

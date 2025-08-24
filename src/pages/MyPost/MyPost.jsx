@@ -25,7 +25,7 @@ dayjs.extend(relativeTime);
 const MyPost = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [selectedFilter, setSelectedFilter] = useState("tất cả");
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isUpdatePostOpen, setIsUpdatePostOpen] = useState(false);
   const [isDeletePostOpen, setIsDeletePostOpen] = useState(false);
@@ -240,15 +240,13 @@ const MyPost = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header Section with Gradient Background */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <div className="max-w-7xl mx-auto">
+        <div className="mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-2xl font-bold text-pink-600 mb-2 text-left">
                 Bài viết của tôi
               </h1>
-              <p className="text-gray-600">
-                Quản lý bài viết của bạn tại đây.
-              </p>
+              <p className="text-gray-600">Quản lý bài viết của bạn tại đây.</p>
             </div>
             <button
               onClick={() => setIsCreatePostOpen(true)}
@@ -274,9 +272,6 @@ const MyPost = () => {
               />
             </div>
             <div className="flex gap-2">
-              <button className="p-3 bg-pink-500 text-white backdrop-blur-sm border border-white/20 rounded-xl hover:bg-pink-400 transition-all duration-300">
-                <Filter className="w-5 h-5" />
-              </button>
               <div className="flex bg-pink-500 backdrop-blur-sm border border-white/20 rounded-xl overflow-hidden text-white">
                 <button
                   onClick={() => setViewMode("grid")}
@@ -301,7 +296,7 @@ const MyPost = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="mx-auto p-8">
         {/* Filter Pills */}
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
           {filters.map((filter) => (
@@ -502,9 +497,7 @@ const MyPost = () => {
             <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Search className="w-8 h-8 text-pink-500" />
             </div>
-            <p className="text-gray-500 text-lg">
-              Không tìm thấy vài viết.
-            </p>
+            <p className="text-gray-500 text-lg">Không tìm thấy vài viết.</p>
             {/* <button className="mt-4 text-pink-500 hover:text-pink-600 font-medium">
               Clear filters
             </button> */}

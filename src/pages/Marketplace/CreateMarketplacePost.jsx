@@ -21,10 +21,9 @@ const CreateMarketplacePostSchema = Yup.object().shape({
     .min(1, "Bánh phải có ít nhất 1 tầng")
     .max(8, "Bánh không được vượt quá 8 tầng")
     .required("Số tầng là bắt buộc"),
-  available: Yup.boolean().required(),
   expiry_date: Yup.string()
-    .required("Ngày hết hạn là bắt buộc")
-    .test("future-date", "Ngày hết hạn phải trong tương lai", function (value) {
+    .required("Ngày Hết hạn là bắt buộc")
+    .test("future-date", "Ngày Hết hạn phải trong tương lai", function (value) {
       if (!value) return false;
       const selectedDate = new Date(value);
       const today = new Date();
@@ -32,7 +31,9 @@ const CreateMarketplacePostSchema = Yup.object().shape({
       return selectedDate >= today;
     }),
   is_public: Yup.boolean().required(),
-  media: Yup.array().min(1, "Vui lòng thêm ít nhất một tệp media"),
+  media: Yup.array()
+    .min(1, "Vui lòng thêm ít nhất một tệp media")
+    .max(5, "Tối đa 5 ảnh"),
 });
 
 const CreateMarketplacePost = ({
@@ -173,20 +174,39 @@ const CreateMarketplacePost = ({
           <Formik
             enableReinitialize
             initialValues={{
-              title: initialData?.Post?.title || "",
-              description: initialData?.Post?.description || "",
+              // Hỗ trợ cả Post và post (API trả về không đồng nhất)
+              title:
+                (initialData?.Post || initialData?.post)?.title?.trim() || "",
+              description:
+                (initialData?.Post || initialData?.post)?.description?.trim() ||
+                "",
               tier: initialData?.tier || 1,
-              available: initialData?.available ?? true,
-              expiry_date: initialData?.expiry_date || "",
-              is_public: initialData?.is_public ?? true,
-              media: [], // always upload new files
+              available:
+                typeof initialData?.available === "boolean"
+                  ? initialData.available
+                  : true,
+              expiry_date: initialData?.expiry_date
+                ? (() => {
+                    try {
+                      const d = new Date(initialData.expiry_date);
+                      if (!isNaN(d.getTime()))
+                        return d.toISOString().split("T")[0];
+                      return "";
+                    } catch {
+                      return "";
+                    }
+                  })()
+                : "",
+              is_public:
+                (initialData?.Post || initialData?.post)?.is_public ?? true,
+              // Không tự động nạp lại media cũ vào input file (File object) – nếu không upload mới thì media giữ nguyên phía backend
+              media: [],
             }}
             validationSchema={CreateMarketplacePostSchema}
             onSubmit={async (
               values,
               { setSubmitting, resetForm, setFieldError }
             ) => {
-              // Validate cake sizes
               const sizeError = validateCakeSizes();
               if (sizeError) {
                 setFieldError("general", sizeError);
@@ -214,8 +234,8 @@ const CreateMarketplacePost = ({
                   expiry_date: values.expiry_date,
                   is_public: values.is_public,
                   media: uploadedMedia,
-                  cakeSizes: cakeSizes.filter((s) => s.size && s.price),
                 };
+                payload.cakeSizes = cakeSizes.filter((s) => s.size && s.price);
 
                 if (isEdit && initialData) {
                   await updateMarketplacePost(initialData.post_id, payload);
@@ -239,13 +259,57 @@ const CreateMarketplacePost = ({
               }
             }}
           >
-            {({ values, setFieldValue, isSubmitting, errors }) => (
+            {({
+              values,
+              setFieldValue,
+              isSubmitting,
+              errors,
+              setFieldError,
+            }) => (
               <Form className="space-y-8">
                 {/* Media Upload */}
                 <div className="space-y-4">
                   <label className="block text-lg font-semibold text-gray-800">
                     Ảnh Sản phẩm
                   </label>
+                  {isEdit &&
+                    (initialData?.Post || initialData?.post)?.media && (
+                      <div className="mb-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Ảnh hiện tại
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-2">
+                          {(initialData.Post || initialData.post).media.map(
+                            (m, i) => (
+                              <div
+                                key={i}
+                                className="relative group border-2 border-gray-200 rounded-xl overflow-hidden"
+                              >
+                                {m.image_url ? (
+                                  <img
+                                    src={m.image_url}
+                                    alt={`old-${i}`}
+                                    className="w-full h-32 object-cover"
+                                  />
+                                ) : m.video_url ? (
+                                  <video
+                                    src={m.video_url}
+                                    className="w-full h-32 object-cover"
+                                    controls
+                                  />
+                                ) : null}
+                                <span className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">
+                                  Cũ
+                                </span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 italic">
+                          Nếu bạn không tải ảnh mới, ảnh cũ sẽ được giữ nguyên.
+                        </p>
+                      </div>
+                    )}
                   <div
                     className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
                       dragActive
@@ -260,10 +324,23 @@ const CreateMarketplacePost = ({
                       e.stopPropagation();
                       setDragActive(false);
                       if (e.dataTransfer.files) {
-                        setFieldValue("media", [
-                          ...values.media,
-                          ...Array.from(e.dataTransfer.files),
-                        ]);
+                        const imageFiles = Array.from(
+                          e.dataTransfer.files
+                        ).filter((file) => file.type.startsWith("image"));
+                        if (!imageFiles.length) return;
+                        const remaining = 5 - values.media.length;
+                        if (remaining <= 0) {
+                          setFieldError("media", "Đã đạt giới hạn 5 ảnh");
+                          return;
+                        }
+                        const toAdd = imageFiles.slice(0, remaining);
+                        setFieldValue("media", [...values.media, ...toAdd]);
+                        if (imageFiles.length > remaining) {
+                          setFieldError(
+                            "media",
+                            "Chỉ thêm tối đa 5 ảnh (đã cắt bớt)"
+                          );
+                        }
                       }
                     }}
                   >
@@ -274,20 +351,40 @@ const CreateMarketplacePost = ({
                       <p className="text-gray-700 mb-2 font-medium">
                         Kéo và thả ảnh của bạn vào đây
                       </p>
-                      <p className="text-gray-500 text-sm mb-4">
+                      <p className="text-gray-500 text-sm mb-2">
                         hoặc nhấp để duyệt tệp
+                      </p>
+                      <p className="text-xs text-gray-500 mb-4">
+                        {values.media.length}/5 ảnh
                       </p>
                       <label className="cursor-pointer">
                         <input
                           type="file"
                           multiple
-                          accept="image/*,video/*"
+                          accept="image/*"
                           className="hidden"
                           onChange={(e) => {
-                            setFieldValue("media", [
-                              ...values.media,
-                              ...Array.from(e.target.files),
-                            ]);
+                            const imageFiles = Array.from(
+                              e.target.files
+                            ).filter((file) => file.type.startsWith("image"));
+                            if (!imageFiles.length) {
+                              e.target.value = "";
+                              return;
+                            }
+                            const remaining = 5 - values.media.length;
+                            if (remaining <= 0) {
+                              setFieldError("media", "Đã đạt giới hạn 5 ảnh");
+                              e.target.value = "";
+                              return;
+                            }
+                            const toAdd = imageFiles.slice(0, remaining);
+                            setFieldValue("media", [...values.media, ...toAdd]);
+                            if (imageFiles.length > remaining) {
+                              setFieldError(
+                                "media",
+                                "Chỉ thêm tối đa 5 ảnh (đã cắt bớt)"
+                              );
+                            }
                             e.target.value = "";
                           }}
                         />
@@ -484,22 +581,7 @@ const CreateMarketplacePost = ({
                     giá tương ứng của họ
                   </p>
                 </div>
-
-                {/* Available Toggle */}
-                <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-200">
-                  <Field
-                    type="checkbox"
-                    name="available"
-                    id="available"
-                    className="w-5 h-5 text-pink-500 rounded focus:ring-pink-500"
-                  />
-                  <label
-                    htmlFor="available"
-                    className="text-lg font-semibold text-gray-800"
-                  >
-                    Sản phẩm có sẵn để bán
-                  </label>
-                </div>
+                {/* End Cake Sizes */}
 
                 {/* Public Toggle */}
                 <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">

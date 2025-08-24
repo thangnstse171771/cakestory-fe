@@ -25,7 +25,7 @@ import { DeletePostPopup } from "../components/ShopDetail";
 const FILTERS = [
   { id: "all", label: "Tất cả" },
   { id: "available", label: "Còn hàng" },
-  { id: "expired", label: "Hết hạn" },
+  { id: "expired", label: "hết hạn" },
 ];
 
 const AllShopCakes = () => {
@@ -220,16 +220,6 @@ const AllShopCakes = () => {
                   <h1 className="text-2xl font-bold text-gray-800">
                     {shopInfo.name}
                   </h1>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span>{shopInfo.rating}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="w-4 h-4 text-rose-500" />
-                      <span>{shopInfo.followers} người theo dõi</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -312,8 +302,8 @@ const AllShopCakes = () => {
                       Còn hàng
                     </div>
                   ) : (
-                    <div className="absolute top-3 right-3 px-3 py-1 bg-red-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                      Hết hạn
+                    <div className="absolute top-3 right-3 px-3 py-1 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+                      hết hạn
                     </div>
                   )}
 
@@ -440,14 +430,23 @@ const AllShopCakes = () => {
                           Xem chi tiết
                         </button>
                         <button
-                          className="relative overflow-hidden px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-pink-400 text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
+                          className={`relative overflow-hidden px-4 py-2 rounded-lg text-white text-sm font-medium transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95 ${
+                            available
+                              ? "bg-gradient-to-r from-pink-500 to-pink-400"
+                              : "bg-gradient-to-r from-blue-500 to-blue-400"
+                          }`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleOrderCake(cake);
+                            if (available) {
+                              handleOrderCake(cake);
+                            } else {
+                              // Navigate to shop if product is expired
+                              handleShopVisit();
+                            }
                           }}
                         >
                           <span className="relative z-10 flex items-center gap-2">
-                            Đặt Ngay
+                            {available ? "Đặt Ngay" : "Liên Hệ"}
                           </span>
                           <div className="absolute inset-0 bg-gradient-to-r from-pink-200 to-purple-200 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </button>

@@ -50,8 +50,9 @@ const AlbumDetail = () => {
         description: data.description,
         createdDate: data.created_at,
         coverImage:
-          data.AlbumPosts?.[0]?.Post?.media?.[0]?.image_url ||
-          "/placeholder.svg",
+          data.AlbumPosts?.flatMap((ap) => ap.Post?.media || []).find(
+            (m) => m.image_url
+          )?.image_url || "/placeholder.svg",
         totalPosts: data.AlbumPosts.length,
         totalLikes: 0,
         totalViews: 0,
@@ -151,7 +152,9 @@ const AlbumDetail = () => {
               <div className="flex items-center space-x-6 text-sm">
                 <span className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
-                  <span>Tạo vào {dayjs(album.createdDate).format("D MMM, YYYY")}</span>
+                  <span>
+                    Tạo vào {dayjs(album.createdDate).format("D MMM, YYYY")}
+                  </span>
                 </span>
                 <span>{album.totalPosts} bài đăng</span>
               </div>
@@ -242,8 +245,6 @@ const AlbumDetail = () => {
                         src={firstVideo.video_url}
                         className="w-full h-64 object-cover cursor-pointer"
                         muted
-                        autoPlay
-                        loop
                         onClick={() => {
                           setSelectedPost(post);
                           setIsAlbumPostOpen(true);
@@ -382,8 +383,6 @@ const AlbumDetail = () => {
                           src={firstVideo.video_url}
                           className="w-32 h-32 object-cover rounded-lg flex-shrink-0 cursor-pointer"
                           muted
-                          autoPlay
-                          loop
                           onClick={() => {
                             setSelectedPost(post);
                             setIsAlbumPostOpen(true);

@@ -94,7 +94,7 @@ const CreateAlbum = ({ isOpen, onClose, onCreate }) => {
                     className="px-6 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors"
                     disabled={isSubmitting || loading}
                   >
-                    {isSubmitting || loading ? "Creating..." : "Create Album"}
+                    {isSubmitting || loading ? "Đang tải..." : "Tạo Album"}
                   </button>
                 </div>
               </Form>

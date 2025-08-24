@@ -112,12 +112,14 @@ const Home = () => {
           const data = res.likes;
           const totalLikes = res.total_likes || data.length;
           const liked = data.some((like) => like.user_id === currentUserId);
-          initialLikes[post.id] = { liked, count: totalLikes };
+
+          initialLikes[post.id] = { liked, count: totalLikes, liking: false };
         } catch (error) {
           console.error("Failed to fetch likes for post", post.id, error);
           initialLikes[post.id] = {
             liked: false,
             count: post.total_likes || 0,
+            liking: false,
           };
         }
       }
@@ -168,22 +170,43 @@ const Home = () => {
 
   const handleLike = async (postId) => {
     try {
+      // set loading = true for this post
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: true,
+        },
+      }));
+
       await authAPI.likePost(postId);
+
       setLikesData((prev) => {
         const wasLiked = prev[postId]?.liked;
         const newCount = wasLiked
           ? prev[postId].count - 1
           : prev[postId].count + 1;
+
         return {
           ...prev,
           [postId]: {
             liked: !wasLiked,
             count: newCount,
+            liking: false, // reset loading
           },
         };
       });
     } catch (error) {
       console.error("Failed to toggle like", error);
+
+      // reset loading on error
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: false,
+        },
+      }));
     }
   };
 
@@ -580,7 +603,6 @@ const Home = () => {
                                   </div>
                                 </div>
                               </div>
-                              
                             </div>
 
                             <div className="relative rounded-lg overflow-hidden">
@@ -669,6 +691,7 @@ const Home = () => {
                               <div className="flex items-center space-x-4">
                                 <button
                                   onClick={() => handleLike(post.id)}
+                                  disabled={likesData[post.id]?.liking}
                                   className="flex items-center space-x-2 text-gray-600 hover:text-pink-500"
                                 >
                                   <Heart

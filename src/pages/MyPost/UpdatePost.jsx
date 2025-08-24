@@ -15,8 +15,8 @@ const UpdatePostSchema = Yup.object().shape({
     .max(new Date(), "Ngày sự kiện không thể ở tương lai.")
     .required("Hãy chọn ngày sự kiện."),
   eventType: Yup.string().required("Hãy chọn thể loại sự kiện."),
-  story: Yup.string().max(1000, "Câu chuyện không được vượt quá 1000 ký tự."),
-  media: Yup.array().min(1, "Hãy chọn ít nhất một tệp."),
+  story: Yup.string().required("Hãy nhập câu chuyện.").max(1000, "Câu chuyện không được vượt quá 1000 ký tự."),
+  media: Yup.array().min(1, "Hãy chọn ít nhất một tệp.").max(10, "Tối đa 10 tệp."),
 });
 
 const UpdatePost = ({ isOpen, onClose, post, onUpdate }) => {

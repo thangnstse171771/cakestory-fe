@@ -18,7 +18,46 @@ export const authAPI = {
   },
 
   register: async (userData) => {
-    const response = await axiosInstance.post("/auth/register", userData);
+    // Map frontend camelCase fullName to backend expected snake_case full_name.
+    // Exclude confirmPassword if it exists; backend usually only needs password.
+    const {
+      username,
+      email,
+      password,
+      fullName,
+      full_name, // in case caller already provided snake_case
+      avatarUrl,
+      avatar_url, // fallback naming variant
+    } = userData;
+
+    const payload = {
+      username,
+      email,
+      password,
+      // Provide both keys to stay backward-compatible if backend later accepts camelCase
+      full_name: full_name || fullName || undefined,
+      fullName: fullName || full_name || undefined,
+      avatarUrl: avatarUrl || avatar_url || undefined,
+    };
+    // Remove undefined keys to avoid sending them explicitly
+    Object.keys(payload).forEach(
+      (k) => payload[k] === undefined && delete payload[k]
+    );
+    const response = await axiosInstance.post("/auth/register", payload);
+    return response.data;
+  },
+
+  verifyEmail: async (email) => {
+    const response = await axiosInstance.put(
+      `/auth/verify?email=${encodeURIComponent(email)}`
+    );
+    return response.data;
+  },
+
+  resendVerificationEmail: async (email) => {
+    const response = await axiosInstance.post("/auth/resend-verification", {
+      email,
+    });
     return response.data;
   },
 

@@ -1,6 +1,6 @@
 "use client";
 // Đã loại bỏ các import không tồn tại, dùng thẻ div và TailwindCSS thay thế
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ListOrdered, CalendarDays, User, Package } from "lucide-react";
 import OrderTrackingForm from "./OrderTrackingForm";
@@ -212,12 +212,28 @@ export default function OrderTrackingList({
   const displayOrders =
     Array.isArray(orders) && orders.length > 0 ? orders : realOrders;
 
+  // Always show newest orders first
+  const sortedDisplayOrders = useMemo(() => {
+    const arr = Array.isArray(displayOrders) ? [...displayOrders] : [];
+    arr.sort((a, b) => {
+      const tb =
+        Date.parse(b.placedDate || b.created_at || b.createdAt || 0) || 0;
+      const ta =
+        Date.parse(a.placedDate || a.created_at || a.createdAt || 0) || 0;
+      if (tb !== ta) return tb - ta; // newer first
+      const idb = Number(b.id) || 0;
+      const ida = Number(a.id) || 0;
+      return idb - ida;
+    });
+    return arr;
+  }, [displayOrders]);
+
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  const filteredOrders = displayOrders.filter((o) => {
+  const filteredOrders = sortedDisplayOrders.filter((o) => {
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     const s = search.toLowerCase();
     const matchSearch = !s || o.orderNumber.toLowerCase().includes(s);
@@ -319,6 +335,8 @@ export default function OrderTrackingList({
         orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
         placedDate: data.created_at || data.createdAt,
         status: data.status,
+        customer_user_id:
+          userObj.id || userObj.user_id || data.customer_id || null,
         customerName,
         customerEmail,
         customerPhone,
@@ -600,7 +618,8 @@ export default function OrderTrackingList({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            Hiển thị {filteredOrders.length} / {displayOrders.length} đơn hàng
+            Hiển thị {filteredOrders.length} / {sortedDisplayOrders.length} đơn
+            hàng
           </div>
         </div>
 
@@ -616,7 +635,9 @@ export default function OrderTrackingList({
                   <tr className="text-left">
                     <th className="px-4 py-3 font-semibold">#</th>
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
-                    <th className="px-4 py-3 font-semibold">Số SP</th>
+                    <th className="px-4 py-3 font-semibold">
+                      Số SP đi kèm bánh
+                    </th>
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
                     <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>

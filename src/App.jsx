@@ -6,19 +6,32 @@ import {
   Routes,
   Route,
   Navigate,
+  useParams,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
+import VerifyEmail from "./pages/VerifyEmail";
+import EmailVerified from "./pages/EmailVerified";
 import Home from "./pages/Home/Home";
+import LandingPage from "./pages/LandingPage";
 import CakeDesign from "./pages/CakeDesign";
 import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
 import ShopDetail from "./pages/Marketplace/ShopDetail";
+
+// Wrapper component to ensure ShopDetail re-renders when id changes
+const ShopDetailWrapper = () => {
+  const { id } = useParams();
+  return <ShopDetail key={id} />;
+};
 import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
+import ShopGalleryPage from "./pages/ShopGalleryPage";
 import Chat from "./pages/Chat/Chat";
 import Events from "./pages/Events";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -26,9 +39,11 @@ import WalletManagement from "./pages/Admin/WalletManagement";
 import WithdrawRequests from "./pages/Admin/WithdrawRequests";
 import AccountDetails from "./pages/AccountDetails";
 import WithdrawRequestDetail from "./pages/Admin/WithdrawRequestDetail";
+import DepositDetails from "./pages/Admin/DepositDetails";
 import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import Report from "./pages/Report";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ChallengeList from "./pages/Challenge/ChallengeList";
 import ChallengeDetail from "./pages/Challenge/ChallengeDetail";
 import ChallengeGroup from "./pages/Challenge/ChallengeGroup";
@@ -40,6 +55,8 @@ import UserWallet from "./pages/Wallet/UserWallet";
 import WithdrawRequest from "./pages/Wallet/WithdrawRequest";
 import WithdrawHistory from "./pages/Wallet/WithdrawHistory";
 import AllPaymentHistory from "./pages/Wallet/AllPaymentHistory";
+import UserTransactions from "./pages/Wallet/UserTransactions";
+import DepositHistoryDetails from "./pages/Wallet/DepositHistoryDetails";
 import CustomizedOrderDetails from "./pages/CustomizedOrderForm/CustomizedOrderDetails";
 import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
 import "./App.css";
@@ -52,6 +69,7 @@ import OrderTrackingList from "./pages/OrderTrackingForm/OrderTrackingList";
 // import OrderTrackingFormByShop from "./pages/OrderTrackingForm/OrderTrackingFormByShop";
 import OrderTrackingUserList from "./pages/OrderTrackingForm/OrderTrackingUserList";
 import OrderTrackingAdminAllList from "./pages/OrderTrackingForm/OrderTrackingAdminAllList";
+import UserOrdersWithReviews from "./pages/UserOrdersWithReviews";
 import ComplaintList from "./pages/ComplaintManagement/ComplaintList";
 import AllShopCakes from "./pages/AllShopCakes";
 import AIGeneratedImages from "./pages/AIGeneratedImages";
@@ -70,6 +88,7 @@ function ProtectedRoute({ children }) {
     return <div>Loading...</div>;
   }
   if (!isAuthenticated()) {
+    // Redirect unauthenticated users to login for clarity
     return <Navigate to="/login" replace />;
   }
   return children;
@@ -107,22 +126,41 @@ export default function App() {
               </PublicRoute>
             }
           />
+          <Route
+            path="/verify-email"
+            element={
+              <PublicRoute>
+                <VerifyEmail />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/email-verified"
+            element={
+              <PublicRoute>
+                <EmailVerified />
+              </PublicRoute>
+            }
+          />
 
           {/* Public pages (guest) */}
           <Route element={<Layout />}>
-            <Route index element={<Navigate to="home" replace />} />
-            <Route path="home" element={<Home />} />
+            <Route index element={<LandingPage />} />
             <Route path="search" element={<SearchResults />} />
             <Route path="marketplace" element={<Marketplace />} />
             <Route
               path="marketplace/product/:productId"
               element={<ProductDetail />}
             />
-            <Route path="marketplace/shop/:id" element={<ShopDetail />} />
+            <Route
+              path="marketplace/shop/:id"
+              element={<ShopDetailWrapper />}
+            />
             <Route
               path="marketplace/shop/:id/all-cakes"
               element={<AllShopCakes />}
             />
+            <Route path="shop-gallery/:shopId" element={<ShopGalleryPage />} />
             <Route path="marketplace/create-shop" element={<CreateShop />} />
             <Route
               path="order/customize/:shopId"
@@ -154,6 +192,10 @@ export default function App() {
               element={<OrderTrackingUserList showOrderDetails={true} />}
             />
             <Route
+              path="my-orders-reviews"
+              element={<UserOrdersWithReviews />}
+            />
+            <Route
               path="admin/order-tracking"
               element={<OrderTrackingAdminAllList />}
             />
@@ -175,6 +217,11 @@ export default function App() {
             <Route path="withdraw" element={<WithdrawRequest />} />
             <Route path="withdraw-history" element={<WithdrawHistory />} />
             <Route path="all-transactions" element={<AllPaymentHistory />} />
+            <Route path="wallet/transactions" element={<UserTransactions />} />
+            <Route
+              path="wallet/deposits/:id"
+              element={<DepositHistoryDetails />}
+            />
             <Route path="suggested-users" element={<SuggestedUsers />} />
             <Route path="album/:id" element={<AlbumDetail />} />
             <Route path="complaints" element={<ComplaintList />} />
@@ -192,6 +239,7 @@ export default function App() {
               </ProtectedRoute>
             }
           >
+            <Route path="home" element={<Home />} />
             <Route path="profile" element={<Profile />} />
             <Route path="edit-profile" element={<EditProfile />} />
             <Route path="mypost" element={<MyPost />} />
@@ -205,6 +253,7 @@ export default function App() {
             <Route path="admin" element={<AdminDashboard />} />
             <Route path="admin/account/:id" element={<AccountDetails />} />
             <Route path="admin/wallet" element={<WalletManagement />} />
+            <Route path="admin/deposits/:id" element={<DepositDetails />} />
             <Route
               path="admin/withdraw-requests"
               element={<WithdrawRequests />}
@@ -220,6 +269,7 @@ export default function App() {
             />
             <Route path="/settings" element={<Settings />} />
             <Route path="/report" element={<Report />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route
               path="admin/challenge"
               element={<AdminChallengeDashboard />}
@@ -231,8 +281,11 @@ export default function App() {
           </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+
+        {/* Toast Container */}
+        <ToastContainer position="bottom-right" />
       </Router>
     </AuthProvider>
   );

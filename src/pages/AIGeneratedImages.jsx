@@ -41,6 +41,9 @@ export default function AIGeneratedImages() {
   const [balance, setBalance] = useState(0);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  // Free usage (freemium) state
+  const [freeUsage, setFreeUsage] = useState({ remaining: 0, max: 0 });
+  const [loadingFreeUsage, setLoadingFreeUsage] = useState(false);
 
   // Form state
   const [promptForm, setPromptForm] = useState({
@@ -60,7 +63,42 @@ export default function AIGeneratedImages() {
   useEffect(() => {
     fetchImages();
     fetchUserBalance();
+    fetchFreeUsageCount();
+    // Poll free usage count every 30s so user sees live updates
+    const interval = setInterval(() => {
+      fetchFreeUsageCount();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const fetchFreeUsageCount = async () => {
+    setLoadingFreeUsage(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        "https://cakestory-be.onrender.com/api/ai/freeUsageCount",
+        {
+          headers: {
+            accept: "application/json",
+            Authorization: token ? `Bearer ${token}` : "",
+          },
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.data) {
+          setFreeUsage({
+            remaining: data.data.remainingFree ?? 0,
+            max: data.data.maxFree ?? 0,
+          });
+        }
+      }
+    } catch (e) {
+      // silent fail – don't block UX
+    } finally {
+      setLoadingFreeUsage(false);
+    }
+  };
 
   const fetchUserBalance = async () => {
     try {
@@ -159,7 +197,9 @@ export default function AIGeneratedImages() {
   };
 
   const handleGenerate = async () => {
-    if (balance < AI_GENERATION_COST) {
+    const hasFree = freeUsage.remaining > 0;
+    const wantImages = 3; // Mỗi lượt (dù miễn phí hay trả phí) tạo 3 ảnh
+    if (!hasFree && balance < AI_GENERATION_COST) {
       setShowBalanceWarning(true);
       return;
     }
@@ -175,76 +215,87 @@ export default function AIGeneratedImages() {
     }
 
     setGenerating(true);
-    setGeneratingImages([true, true, true]); // Set all 3 images to loading state
+    setGeneratingImages([true, true, true]);
     setError("");
 
     try {
       const token = localStorage.getItem("token");
       const newImages = [];
 
-      // Call API 3 times to generate 3 images
-      for (let i = 0; i < 3; i++) {
-        try {
-          // Call AI generation API
-          const response = await fetch(
-            "https://cakestory-be.onrender.com/api/ai/generate",
+      // Helper to poll for new image (shared by free & paid calls)
+      const pollForNewImage = async (indexLabel) => {
+        let found = false;
+        let pollCount = 0;
+        while (!found && pollCount < 30) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          pollCount++;
+          const imagesRes = await fetch(
+            "https://cakestory-be.onrender.com/api/ai/images",
             {
-              method: "POST",
               headers: {
-                "Content-Type": "application/json",
+                accept: "*/*",
                 Authorization: token ? `Bearer ${token}` : "",
               },
-              body: JSON.stringify({ prompt }),
             }
           );
-
-          if (!response.ok) {
-            throw new Error(`Không thể tạo ảnh AI thứ ${i + 1}`);
-          }
-
-          // Poll for the new image
-          let found = false;
-          let pollCount = 0;
-
-          while (!found && pollCount < 30) {
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            pollCount++;
-
-            const imagesRes = await fetch(
-              "https://cakestory-be.onrender.com/api/ai/images",
-              {
-                headers: {
-                  accept: "*/*",
-                  Authorization: token ? `Bearer ${token}` : "",
-                },
-              }
+          const imagesData = await imagesRes.json();
+          if (imagesData?.data?.length > 0) {
+            const latestImage = imagesData.data.find(
+              (img) =>
+                !images.some((existingImg) => existingImg.id === img.id) &&
+                !newImages.some((newImg) => newImg.id === img.id)
             );
-
-            const imagesData = await imagesRes.json();
-            if (imagesData?.data?.length > 0) {
-              // Check for new images that aren't already in our collected images
-              const latestImage = imagesData.data.find(
-                (img) =>
-                  !images.some((existingImg) => existingImg.id === img.id) &&
-                  !newImages.some((newImg) => newImg.id === img.id)
-              );
-
-              if (latestImage) {
-                newImages.push(latestImage);
-                found = true;
-
-                // Keep loading state until all 3 images are completed
-                // Loading state will be reset at the end of the function
-              }
+            if (latestImage) {
+              newImages.push(latestImage);
+              found = true;
             }
           }
+        }
+        if (!found)
+          throw new Error(`Tạo ảnh thứ ${indexLabel} mất quá nhiều thời gian`);
+      };
 
-          if (!found) {
-            throw new Error(`Tạo ảnh thứ ${i + 1} mất quá nhiều thời gian`);
+      let safetyViolated = false;
+      // Flow hợp nhất: nếu còn lượt free dùng endpoint free, hết dùng endpoint trả phí.
+      for (let i = 0; i < wantImages; i++) {
+        try {
+          const endpoint = hasFree
+            ? "https://cakestory-be.onrender.com/api/ai/freeGenerateImage"
+            : "https://cakestory-be.onrender.com/api/ai/generate";
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: token ? `Bearer ${token}` : "",
+            },
+            body: JSON.stringify({ prompt }),
+          });
+          if (!response.ok) {
+            let safetyRejected = false;
+            try {
+              const errJson = await response.json();
+              const errText =
+                errJson?.error || errJson?.message || JSON.stringify(errJson);
+              if (/safety|rejected|not allowed/i.test(errText)) {
+                safetyRejected = true;
+                safetyViolated = true;
+                setError(
+                  "Yêu cầu bị từ chối bởi hệ thống an toàn. Hãy chỉnh sửa prompt: tránh nội dung phân biệt chủng tộc, giới tính, bạo lực, thù hằn, khiêu dâm hoặc xúc phạm."
+                );
+              }
+            } catch (_) {
+              // ignore parse errors
+            }
+            if (safetyRejected) break; // stop further generations
+            throw new Error(
+              `Không thể tạo ảnh AI thứ ${i + 1} (${
+                hasFree ? "miễn phí" : "trả phí"
+              })`
+            );
           }
+          await pollForNewImage(i + 1);
         } catch (err) {
           console.error(`Error generating image ${i + 1}:`, err);
-          // Keep loading state - will be reset at the end
         }
       }
 
@@ -256,8 +307,9 @@ export default function AIGeneratedImages() {
         // Reset to first page when new images are added
         setCurrentPage(1);
 
-        // Update balance after successful generation
+        // Update balance & free usage after successful generation
         await fetchUserBalance();
+        await fetchFreeUsageCount();
 
         // Reset form
         setPromptForm({
@@ -270,17 +322,30 @@ export default function AIGeneratedImages() {
           customPrompt: "",
         });
 
-        if (newImages.length < 3) {
+        if (newImages.length < wantImages) {
           setError(
-            `Chỉ tạo được ${newImages.length}/3 ảnh. Vui lòng thử lại để tạo thêm.`
+            `Chỉ tạo được ${newImages.length}/${wantImages} ảnh. Vui lòng thử lại để tạo thêm.`
           );
         }
       } else {
-        setError("Không thể tạo ảnh nào. Vui lòng thử lại sau.");
+        // Chỉ đặt lỗi chung nếu không có vi phạm safety trước đó
+        if (!safetyViolated && !error) {
+          setError("Không thể tạo ảnh nào. Vui lòng thử lại sau.");
+        }
       }
     } catch (err) {
       console.error("Generation error:", err);
-      setError("Có lỗi xảy ra khi tạo ảnh AI.");
+      const rawMsg = err?.message || "";
+      if (/safety|rejected|not allowed/i.test(rawMsg)) {
+        if (!error) {
+          setError(
+            "Yêu cầu bị từ chối bởi hệ thống an toàn. Hãy chỉnh sửa prompt tránh nội dung vi phạm."
+          );
+        }
+      } else if (!error) {
+        // Không ghi đè nếu đã có lỗi đặt trước (ví dụ safety loop)
+        setError("Có lỗi xảy ra khi tạo ảnh AI.");
+      }
     } finally {
       setGenerating(false);
       setGeneratingImages([false, false, false]); // Reset all loading states
@@ -353,7 +418,7 @@ export default function AIGeneratedImages() {
         </div>
 
         {/* Balance Warning */}
-        {showBalanceWarning && (
+        {showBalanceWarning && freeUsage.remaining === 0 && (
           <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -395,7 +460,7 @@ export default function AIGeneratedImages() {
                 <h2 className="text-xl font-bold text-gray-800">Tạo Ảnh AI</h2>
               </div>
 
-              {/* Cost Display */}
+              {/* Cost Display (ẩn phần thông tin chi phí nếu còn lượt miễn phí) */}
               <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-lg p-4 mb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -404,12 +469,28 @@ export default function AIGeneratedImages() {
                       Chi phí mỗi lần:
                     </span>
                   </div>
-                  <span className="text-lg font-bold text-purple-600">
-                    {AI_GENERATION_COST.toLocaleString()} VND
-                  </span>
+                  {freeUsage.remaining === 0 && (
+                    <span className="text-lg font-bold text-purple-600">
+                      {AI_GENERATION_COST.toLocaleString()} VND
+                    </span>
+                  )}
                 </div>
                 <div className="mt-2 text-sm text-purple-700">
-                  Tạo được 3 ảnh mỗi lần • Số dư: {balance.toLocaleString()} VND
+                  {freeUsage.remaining === 0 ? (
+                    <>
+                      Tạo được 3 ảnh mỗi lần • Số dư: {balance.toLocaleString()}{" "}
+                      VND
+                    </>
+                  ) : (
+                    <>Bạn có 1 lượt tạo (3 ảnh) miễn phí 🎁</>
+                  )}
+                  {loadingFreeUsage ? (
+                    <span className="block mt-1 text-xs text-purple-600 animate-pulse">
+                      Đang kiểm tra lượt miễn phí...
+                    </span>
+                  ) : (
+                    <span className="block mt-1 text-xs text-purple-700"></span>
+                  )}
                 </div>
               </div>
 
@@ -553,7 +634,11 @@ export default function AIGeneratedImages() {
                 {/* Generate Button */}
                 <button
                   onClick={handleGenerate}
-                  disabled={generating || balance < AI_GENERATION_COST}
+                  // Disable only if currently generating OR (no free usage left AND balance insufficient)
+                  disabled={
+                    generating ||
+                    (freeUsage?.remaining <= 0 && balance < AI_GENERATION_COST)
+                  }
                   className="w-full py-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-lg hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   {generating ? (
@@ -564,7 +649,13 @@ export default function AIGeneratedImages() {
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      Tạo Ảnh AI ({AI_GENERATION_COST.toLocaleString()} VND)
+                      {freeUsage?.remaining > 0 ? (
+                        <>Tạo Ảnh AI (Miễn phí )</>
+                      ) : (
+                        <>
+                          Tạo Ảnh AI ({AI_GENERATION_COST.toLocaleString()} VND)
+                        </>
+                      )}
                     </>
                   )}
                 </button>

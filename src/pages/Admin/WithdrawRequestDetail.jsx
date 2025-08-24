@@ -86,6 +86,19 @@ export default function WithdrawRequestDetail() {
         withdrawData.user_id || withdrawData.userId,
         usersData
       );
+      // Normalize backend status into a small set for UI
+      const normalizeStatus = (s) => {
+        const v = (s || "").toString().trim().toLowerCase();
+        if (["pending", "processing", "in_progress"].includes(v))
+          return "pending";
+        if (["completed", "success", "successful", "approved"].includes(v))
+          return "completed";
+        if (["cancelled", "canceled"].includes(v)) return "cancelled";
+        if (["failed", "error", "rejected", "denied"].includes(v))
+          return "failed";
+        return v || "pending";
+      };
+
       const transformedRequest = {
         id: withdrawData.id,
         userId: withdrawData.user_id || withdrawData.userId,
@@ -104,19 +117,13 @@ export default function WithdrawRequestDetail() {
           userInfo.username ||
           "Chưa cập nhật",
         amount: parseFloat(withdrawData.amount) || 0,
-        status:
-          withdrawData.status === "pending"
-            ? "pending"
-            : withdrawData.status === "completed"
-            ? "completed"
-            : withdrawData.status === "cancelled"
-            ? "cancelled"
-            : withdrawData.status,
+        status: normalizeStatus(withdrawData.status),
         requestDate:
           withdrawData.created_at ||
           withdrawData.createdAt ||
           withdrawData.requestDate,
         processedDate:
+          withdrawData.processed_at ||
           withdrawData.updated_at ||
           withdrawData.updatedAt ||
           withdrawData.processedDate,
@@ -163,7 +170,9 @@ export default function WithdrawRequestDetail() {
         if (actionType === "approve") await confirmWithdrawRequest(id);
         else await cancelWithdrawRequest(id);
         alert(
-          `${actionType === "approve" ? "Duyệt" : "Hủy"} yêu cầu thành công!`
+          `${
+            actionType === "approve" ? "Duyệt" : "Từ chối"
+          } yêu cầu thành công!`
         );
         setRequest((prev) => ({
           ...prev,
@@ -186,7 +195,7 @@ export default function WithdrawRequestDetail() {
               status: actionType === "approve" ? "completed" : "cancelled",
               processedDate: new Date().toISOString(),
               adminNote: `[LOCAL UPDATE] ${
-                actionType === "approve" ? "Duyệt" : "Hủy"
+                actionType === "approve" ? "Duyệt" : "Từ chối"
               } tạm thời bởi admin lúc ${new Date().toLocaleString("vi-VN")}`,
             }));
             alert(
@@ -315,14 +324,15 @@ export default function WithdrawRequestDetail() {
                 ? "bg-yellow-100 text-yellow-700"
                 : request.status === "completed"
                 ? "bg-green-100 text-green-700"
-                : request.status === "cancelled"
-                ? "bg-gray-100 text-gray-700"
+                : request.status === "failed"
+                ? "bg-red-100 text-red-700"
                 : "bg-gray-100 text-gray-700"
             }`}
           >
             {request.status === "pending" && "Chờ xử lý"}
             {request.status === "completed" && "Hoàn thành"}
             {request.status === "cancelled" && "Đã hủy"}
+            {request.status === "failed" && "Thất bại"}
           </span>
         </div>
         <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -401,7 +411,7 @@ export default function WithdrawRequestDetail() {
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={actionLoading}
               >
-                {actionLoading ? "Đang xử lý..." : "Hủy"}
+                {actionLoading ? "Đang xử lý..." : "Từ chối"}
               </button>
             </div>
           </>
@@ -411,12 +421,13 @@ export default function WithdrawRequestDetail() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-6 w-full max-w-md">
               <div className="text-lg font-bold mb-4">
-                Xác nhận {actionType === "approve" ? "duyệt" : "hủy"} yêu cầu
+                Xác nhận {actionType === "approve" ? "duyệt" : "từ chối"} yêu
+                cầu
               </div>
               <div className="mb-6 text-gray-600">
                 Bạn có chắc chắn muốn{" "}
-                {actionType === "approve" ? "duyệt" : "hủy"} yêu cầu rút tiền #
-                {request.id} không?
+                {actionType === "approve" ? "duyệt" : "từ chối"} yêu cầu rút
+                tiền #{request.id} không?
               </div>
               <div className="flex gap-3">
                 <button
@@ -424,7 +435,7 @@ export default function WithdrawRequestDetail() {
                   className="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={actionLoading}
                 >
-                  Hủy
+                  Không
                 </button>
                 <button
                   onClick={handleConfirmAction}
@@ -439,7 +450,7 @@ export default function WithdrawRequestDetail() {
                     ? "Đang xử lý..."
                     : actionType === "approve"
                     ? "Duyệt"
-                    : "Hủy"}
+                    : "Từ chối"}
                 </button>
               </div>
             </div>

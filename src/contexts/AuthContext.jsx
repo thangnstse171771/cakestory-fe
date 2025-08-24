@@ -33,11 +33,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await authAPI.register(userData);
-      localStorage.setItem("token", response.token);
-      if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-        setUser(response.user);
-      }
+      // Không tự động đăng nhập sau khi đăng ký
       return response;
     } catch (error) {
       throw error;
@@ -49,12 +45,31 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Force re-fetch current user from API (e.g., after profile update)
+  const refreshUser = async () => {
+    try {
+      if (!user?.id) return null;
+      const data = await authAPI.getUserById(user.id);
+      const fresh = data.user || data; // backend may wrap user
+      if (fresh) {
+        localStorage.setItem("user", JSON.stringify(fresh));
+        setUser(fresh);
+      }
+      return fresh;
+    } catch (e) {
+      console.warn("refreshUser failed", e);
+      return null;
+    }
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
     logout,
+    refreshUser,
+    setUser, // optionally expose for advanced flows
     isAuthenticated: authAPI.isAuthenticated,
   };
 

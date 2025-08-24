@@ -132,12 +132,18 @@ export default function ChallengeGroup() {
           const data = res.likes;
           const totalLikes = res.total_likes || data.length;
           const liked = data.some((like) => like.user_id === currentUserId);
-          initialLikes[post.post_id] = { liked, count: totalLikes };
+
+          initialLikes[post.post_id] = {
+            liked,
+            count: totalLikes,
+            liking: false,
+          };
         } catch (error) {
           console.error("Failed to fetch likes for post", post.post_id, error);
           initialLikes[post.post_id] = {
             liked: false,
             count: post.total_likes || 0,
+            liking: false,
           };
         }
       }
@@ -150,23 +156,47 @@ export default function ChallengeGroup() {
   }, [posts]);
 
   const handleLike = async (postId) => {
+    if (challengeInfo?.status !== "onGoing") {
+      return;
+    }
     try {
+      // set loading = true for this post
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: true,
+        },
+      }));
+
       await authAPI.likePost(postId);
+
       setLikesData((prev) => {
         const wasLiked = prev[postId]?.liked;
         const newCount = wasLiked
           ? prev[postId].count - 1
           : prev[postId].count + 1;
+
         return {
           ...prev,
           [postId]: {
             liked: !wasLiked,
             count: newCount,
+            liking: false, // reset loading
           },
         };
       });
     } catch (error) {
       console.error("Failed to toggle like", error);
+
+      // reset loading on error
+      setLikesData((prev) => ({
+        ...prev,
+        [postId]: {
+          ...prev[postId],
+          liking: false,
+        },
+      }));
     }
   };
 
@@ -249,7 +279,7 @@ export default function ChallengeGroup() {
     } else if (now >= startDate && now <= endDate) {
       // Challenge is ongoing
       return {
-        status: "ongoing",
+        status: "onGoing",
         daysLeft: daysLeft > 0 ? daysLeft : 0,
         statusText: "Đang hoạt động",
         canPost: true,
@@ -500,7 +530,7 @@ export default function ChallengeGroup() {
                   </span>
                   <span
                     className={`px-3 py-1 rounded text-xs font-medium ${
-                      status === "ongoing"
+                      status === "onGoing"
                         ? "bg-green-100 text-green-700"
                         : status === "notStarted"
                         ? "bg-blue-100 text-blue-700"
@@ -723,7 +753,16 @@ export default function ChallengeGroup() {
                     <div className="flex items-center w-full">
                       <button
                         onClick={() => handleLike(challPost.post_id)}
-                        className="flex-1 flex items-center justify-center space-x-2 text-gray-600 hover:text-pink-500"
+                        disabled={
+                          likesData[challPost.post_id]?.liking ||
+                          challengeInfo?.status !== "onGoing" // ✅ only allow likes if ongoing
+                        }
+                        className={`flex-1 flex items-center justify-center space-x-2 
+                                    ${
+                                      challengeInfo?.status !== "onGoing"
+                                        ? "cursor-not-allowed opacity-50"
+                                        : "text-gray-600 hover:text-pink-500"
+                                    }`}
                       >
                         <Heart
                           className={`w-6 h-6 ${
@@ -737,7 +776,6 @@ export default function ChallengeGroup() {
                             challPost.post.total_likes}
                         </span>
                       </button>
-
                       <button
                         onClick={() => {
                           setSelectedPost(challPost);
@@ -789,6 +827,7 @@ export default function ChallengeGroup() {
         likesData={likesData}
         handleLike={handleLike}
         onClose={() => setIsPostDetailOpen(false)}
+        challInfo={challengeInfo}
       />
     </div>
   );

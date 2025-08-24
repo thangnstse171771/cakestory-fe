@@ -70,9 +70,7 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
         setUploading(true);
         try {
           imageUrl = await uploadMediaToFirebase(imageFile);
-          console.log("Image uploaded successfully:", imageUrl);
         } catch (uploadError) {
-          console.error("Lỗi upload ảnh:", uploadError);
           alert("Có lỗi khi upload ảnh. Complaint sẽ được tạo không có ảnh.");
         } finally {
           setUploading(false);
@@ -100,7 +98,6 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
       // Đóng modal
       onClose();
     } catch (error) {
-      console.error("Lỗi khi tạo complaint:", error);
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
