@@ -378,7 +378,22 @@ const ShopAnalystic = ({ onBack }) => {
     setShowAddModal(true);
     setLoadingUsers(true);
     fetchAllActiveUsers()
-      .then((users) => setActiveUsers(users))
+      .then((users) => {
+        // Chỉ giữ lại user thường (không phải admin, account_staff, complaint_handler)
+        const filtered = users.filter((u) => {
+          const role =
+            u.role ||
+            (u.is_admin
+              ? "admin"
+              : u.is_account_staff
+              ? "account_staff"
+              : u.is_complaint_handler
+              ? "complaint_handler"
+              : "user");
+          return role === "user"; // chỉ hiển thị user
+        });
+        setActiveUsers(filtered);
+      })
       .catch(() => setActiveUsers([]))
       .finally(() => setLoadingUsers(false));
   };
@@ -890,15 +905,24 @@ const ShopAnalystic = ({ onBack }) => {
                           },
                           {
                             title: "Vai trò",
-                            dataIndex: "role",
                             key: "role",
-                            render: (role) => {
-                              let color = "#f59e42";
-                              if (role === "admin") color = "#fadb14";
-                              if (role === "user") color = "#1890ff";
-                              if (role === "account_staff") color = "#52c41a";
+                            render: (_, record) => {
+                              // Derive role from boolean flags if explicit role field absent
+                              const role =
+                                record.role ||
+                                (record.is_admin
+                                  ? "admin"
+                                  : record.is_account_staff
+                                  ? "account_staff"
+                                  : record.is_complaint_handler
+                                  ? "complaint_handler"
+                                  : "user");
+                              let color = "#f59e42"; // default orange
+                              if (role === "admin") color = "#fadb14"; // yellow
+                              if (role === "user") color = "#1890ff"; // blue
+                              if (role === "account_staff") color = "#52c41a"; // green
                               if (role === "complaint_handler")
-                                color = "#ff7875";
+                                color = "#ff7875"; // red
                               return (
                                 <Tag
                                   style={{
@@ -906,6 +930,7 @@ const ShopAnalystic = ({ onBack }) => {
                                     color: "#fff",
                                     borderRadius: 8,
                                     fontWeight: 500,
+                                    textTransform: "none",
                                   }}
                                 >
                                   {role}
