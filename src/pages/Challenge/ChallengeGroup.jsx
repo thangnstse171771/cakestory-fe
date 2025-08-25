@@ -647,7 +647,10 @@ export default function ChallengeGroup() {
                   {/* Post Header */}
                   <div className="flex items-center space-x-3 mb-4">
                     <img
-                      src={challPost.post.user.avatar}
+                      src={
+                        challPost.post.user.avatar ||
+                        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                      }
                       alt="avatar"
                       className="w-10 h-10 rounded-full bg-pink-100 object-cover"
                     />
@@ -755,11 +758,13 @@ export default function ChallengeGroup() {
                         onClick={() => handleLike(challPost.post_id)}
                         disabled={
                           likesData[challPost.post_id]?.liking ||
-                          challengeInfo?.status !== "onGoing" // ✅ only allow likes if ongoing
+                          challengeInfo?.status !== "onGoing" ||
+                          challPost.post.user.role !== "user"
                         }
                         className={`flex-1 flex items-center justify-center space-x-2 
                                     ${
-                                      challengeInfo?.status !== "onGoing"
+                                      challengeInfo?.status !== "onGoing" ||
+                                      challPost.post.user.role !== "user"
                                         ? "cursor-not-allowed opacity-50"
                                         : "text-gray-600 hover:text-pink-500"
                                     }`}
