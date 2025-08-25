@@ -52,12 +52,25 @@ const Signup = () => {
     return confirmPassword && password === confirmPassword;
   };
 
+  // Full name: only disallow digits (allow other characters/spaces if user wants)
+  const isFullNameValid = (name) => name.trim().length > 0 && !/\d/.test(name);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // Sanitize fullName input: remove digits only
+    let newValue = value;
+    if (name === "fullName") {
+      // Remove any digits user types
+      newValue = newValue.replace(/\d+/g, "");
+    }
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: newValue,
     }));
+    // Clear error if user is correcting full name
+    if (name === "fullName" && error) {
+      setError("");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -70,6 +83,10 @@ const Signup = () => {
     }
     if (!formData.fullName.trim()) {
       setError("Họ và tên là bắt buộc.");
+      return;
+    }
+    if (!isFullNameValid(formData.fullName)) {
+      setError("Họ và tên không được chứa số.");
       return;
     }
     if (!formData.email.trim()) {
@@ -273,7 +290,14 @@ const Signup = () => {
                         className="w-full px-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400/50 focus:border-transparent transition-all"
                         placeholder="Nhập họ và tên"
                         required
+                        autoComplete="off"
                       />
+                      {formData.fullName &&
+                        !isFullNameValid(formData.fullName) && (
+                          <p className="mt-2 text-xs text-red-300">
+                            Không được chứa số.
+                          </p>
+                        )}
                     </div>
 
                     <div>
@@ -466,6 +490,7 @@ const Signup = () => {
                         loading ||
                         !formData.username.trim() ||
                         !formData.fullName.trim() ||
+                        !isFullNameValid(formData.fullName) ||
                         !formData.email.trim() ||
                         !/^\S+@\S+\.\S+$/.test(formData.email) ||
                         !isPasswordValid(formData.password) ||
