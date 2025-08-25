@@ -112,7 +112,10 @@ export default function MemberCard({
             }}
           >
             <img
-              src={user?.avatar || "/placeholder.svg"}
+              src={
+                user?.avatar ||
+                "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+              }
               alt={user?.username || user?.name || "User"}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
