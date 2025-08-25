@@ -41,12 +41,6 @@ export default function EditProfile() {
     const phone = values.phone?.trim();
     if (!name) e.name = "Họ tên bắt buộc";
     else if (name.length < 2) e.name = "Tối thiểu 2 ký tự";
-    if (!username) e.username = "Username bắt buộc";
-    else if (!/^[a-zA-Z0-9_\.]{3,20}$/.test(username))
-      e.username = "3-20 ký tự, chữ/số/_/.";
-    if (!email) e.email = "Email bắt buộc";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
-      e.email = "Email không hợp lệ";
     if (phone) {
       if (!/^0\d{9}$/.test(phone)) e.phone = "SĐT phải 10 số và bắt đầu bằng 0";
     }
