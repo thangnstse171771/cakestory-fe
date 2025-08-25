@@ -255,7 +255,7 @@ const ChatArea = () => {
   if (!timestamp) return "";
   const date = timestamp?.toDate ? timestamp.toDate() : timestamp;
   return dayjs(date).calendar(null, {
-    sameDay: "[Hôm nay] [lúc] HH:mm",       // Hôm nay
+    sameDay: "HH:mm",       // Hôm nay
     lastDay: "[Hôm qua] [lúc] HH:mm",       // Hôm qua
     lastWeek: "dddd [tuần trước] HH:mm",           // Tuần trước (Thứ Hai, Thứ Ba…)
     sameElse: "DD/MM/YYYY [lúc] HH:mm",     // Ngày khác
