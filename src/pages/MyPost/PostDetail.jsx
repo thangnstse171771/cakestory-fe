@@ -61,6 +61,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
   // Map fields from API response
   const { title, description, user, media, MemoryPost } = postDetail;
 
+  const eventDate = MemoryPost?.event_date || "";
   const eventType = MemoryPost?.event_type || "";
 
   return (
@@ -169,7 +170,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
               <MoreHorizontal className="w-5 h-5" />
             </button> */}
           </div>
-
+          <span className="text-pink-600">{dayjs(eventDate).format("D MMM, YYYY")}</span>
           <h2 className="text-lg md:text-2xl font-bold text-pink-600 mb-2">
             {title}
           </h2>
