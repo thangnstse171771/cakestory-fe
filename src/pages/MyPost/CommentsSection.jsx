@@ -118,7 +118,8 @@ const CommentsSection = ({ postId, challengeStatus }) => {
                 {/* Avatar */}
                 <img
                   src={
-                    comment.User?.avatar || "https://placehold.co/40x40?text=👤"
+                    comment.User?.avatar ||
+                    "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                   }
                   alt="avatar"
                   className="w-9 h-9 rounded-full object-cover mt-1"

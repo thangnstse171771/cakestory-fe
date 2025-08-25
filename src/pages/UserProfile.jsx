@@ -333,7 +333,10 @@ const UserProfile = () => {
         <div className="bg-white rounded-3xl shadow-xl border border-pink-100 p-8 mb-10 flex flex-col md:flex-row items-center md:items-start gap-8 relative">
           <div className="relative flex-shrink-0">
             <img
-              src={profile.avatar || "https://via.placeholder.com/150"}
+              src={
+                profile.avatar ||
+                "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+              }
               alt="Profile"
               className="w-44 h-44 rounded-full object-cover border-4 border-pink-200 shadow-lg"
             />

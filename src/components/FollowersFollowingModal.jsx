@@ -29,31 +29,44 @@ export default function FollowersFollowingModal({
         >
           ×
         </button>
-        <h2 className="text-2xl font-bold text-pink-500 mb-4 text-center">{title}</h2>
+        <h2 className="text-2xl font-bold text-pink-500 mb-4 text-center">
+          {title}
+        </h2>
         <div className="max-h-96 overflow-y-auto divide-y divide-pink-50">
           {users.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">Không có người dùng nào.</div>
+            <div className="text-center text-gray-400 py-8">
+              Không có người dùng nào.
+            </div>
           ) : (
             users.map((user) => {
               const isFollowing = localFollowing.includes(user.id);
               return (
                 <div key={user.id} className="flex items-center gap-4 py-3">
                   <img
-                    src={user.avatar || "https://via.placeholder.com/60"}
+                    src={
+                      user.avatar ||
+                      "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                    }
                     alt={user.username}
                     className="w-12 h-12 rounded-full object-cover border border-pink-200"
                   />
                   <div className="flex-1">
-                    <div className="font-semibold text-gray-800">{user.full_name || user.username}</div>
-                    <div className="text-gray-500 text-sm">@{user.username}</div>
+                    <div className="font-semibold text-gray-800">
+                      {user.full_name || user.username}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      @{user.username}
+                    </div>
                   </div>
-                  {user.id !== currentUserId && (
-                    isFollowing ? (
+                  {user.id !== currentUserId &&
+                    (isFollowing ? (
                       <button
                         className="px-4 py-2 rounded-lg bg-pink-100 text-pink-500 border border-pink-400 font-semibold hover:bg-pink-200 transition"
                         onClick={async () => {
                           await onUnfollow(user.id);
-                          setLocalFollowing((prev) => prev.filter((id) => id !== user.id));
+                          setLocalFollowing((prev) =>
+                            prev.filter((id) => id !== user.id)
+                          );
                         }}
                       >
                         Hủy theo dõi
@@ -68,8 +81,7 @@ export default function FollowersFollowingModal({
                       >
                         Theo dõi
                       </button>
-                    )
-                  )}
+                    ))}
                 </div>
               );
             })

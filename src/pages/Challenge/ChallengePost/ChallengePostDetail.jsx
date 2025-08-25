@@ -158,7 +158,8 @@ const ChallengePostDetail = ({
             <div className="flex items-center space-x-3">
               <img
                 src={
-                  post.user?.avatar || "https://placehold.co/100x100?text=User"
+                  post.user?.avatar ||
+                  "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
                 }
                 alt={post.user?.username}
                 className="w-11 h-11 rounded-full"
@@ -182,15 +183,17 @@ const ChallengePostDetail = ({
           </p>
 
           <div className="flex items-center gap-4 mb-4">
-            <div
+            <button
               className={`flex items-center gap-1 ${
-                challInfo?.status !== "onGoing"
-                  ? "cursor-not-allowed"
-                  : "text-gray-600 hover:text-pink-500 cursor-pointer"
+                challInfo?.status !== "onGoing" || post.user?.role !== "user"
+                  ? "cursor-not-allowed text-gray-400"
+                  : "text-gray-600 hover:text-pink-500"
               }`}
               onClick={() => handleLike(post.id)}
               disabled={
-                likesData[post.id]?.liking || challInfo?.status !== "onGoing"
+                likesData[post.id]?.liking ||
+                challInfo?.status !== "onGoing" ||
+                post.user?.role !== "user"
               }
             >
               <Heart
@@ -199,7 +202,7 @@ const ChallengePostDetail = ({
                 }`}
               />
               <span className="font-semibold">{likeInfo.count}</span>
-            </div>
+            </button>
             <div className="flex items-center gap-1 text-gray-500">
               <MessageCircle className="w-5 h-5" />
               <span>{post.total_comments || 0}</span>

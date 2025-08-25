@@ -161,7 +161,10 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <img
-                src={user?.avatar || "https://placehold.co/100x100?text=User"}
+                src={
+                  user?.avatar ||
+                  "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                }
                 alt={user?.username}
                 className="w-11 h-11 rounded-full"
               />
@@ -171,7 +174,7 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
                 </div>
                 <div className="text-gray-500 text-sm flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
-                  <span>{formatDate(created_at)}</span>
+                  <span>{dayjs(created_at).format("D MMM, YYYY")}</span>
                 </div>
               </div>
             </div>

@@ -18,11 +18,9 @@ const ChallengeLeaderboard = ({ challengeId }) => {
 
   const fetchLeaderboard = async () => {
     try {
-      // Fetch all challenge posts
       const response = await authAPI.getChallengeLeaderboardById(challengeId);
       const allUsers = response.leaderboard;
 
-      console.log("Leaderboard:", allUsers);
       setLeaderboard(allUsers);
     } catch (error) {
       console.error("Error fetching challenge posts:", error);
@@ -35,54 +33,6 @@ const ChallengeLeaderboard = ({ challengeId }) => {
   useEffect(() => {
     fetchLeaderboard();
   }, [challengeId]);
-
-  const competitors = [
-    {
-      id: 1,
-      name: "Alex Chen",
-      avatar: "/professional-avatar.png",
-      points: 2847,
-      time: "2h 34m",
-      rank: 1,
-      change: "+2",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      avatar: "/placeholder-hgsn1.png",
-      points: 2756,
-      time: "2h 41m",
-      rank: 2,
-      change: "+1",
-    },
-    {
-      id: 3,
-      name: "Marcus Rodriguez",
-      avatar: "/male-professional-avatar.png",
-      points: 2698,
-      time: "2h 52m",
-      rank: 3,
-      change: "-1",
-    },
-    {
-      id: 4,
-      name: "Emma Wilson",
-      avatar: "/professional-woman-avatar.png",
-      points: 2543,
-      time: "3h 12m",
-      rank: 4,
-      change: "0",
-    },
-    {
-      id: 5,
-      name: "David Kim",
-      avatar: "/asian-professional-avatar.png",
-      points: 2401,
-      time: "3h 28m",
-      rank: 5,
-      change: "+3",
-    },
-  ];
 
   const getRankStyle = (rank) => {
     switch (rank) {

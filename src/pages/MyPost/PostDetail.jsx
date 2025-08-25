@@ -61,6 +61,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
   // Map fields from API response
   const { title, description, user, media, MemoryPost } = postDetail;
 
+  const eventDate = MemoryPost?.event_date || "";
   const eventType = MemoryPost?.event_type || "";
 
   return (
@@ -149,7 +150,10 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <img
-                src={user?.avatar || "https://placehold.co/100x100?text=User"}
+                src={
+                  user?.avatar ||
+                  "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                }
                 alt={user?.username}
                 className="w-11 h-11 rounded-full"
               />
@@ -166,7 +170,7 @@ const PostDetail = ({ isOpen, post, likesData, handleLike, onClose }) => {
               <MoreHorizontal className="w-5 h-5" />
             </button> */}
           </div>
-
+          <span className="text-pink-600">{dayjs(eventDate).format("D MMM, YYYY")}</span>
           <h2 className="text-lg md:text-2xl font-bold text-pink-600 mb-2">
             {title}
           </h2>
