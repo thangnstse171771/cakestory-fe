@@ -174,7 +174,7 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
                 </div>
                 <div className="text-gray-500 text-sm flex items-center space-x-1">
                   <Calendar className="w-4 h-4" />
-                  <span>{formatDate(created_at)}</span>
+                  <span>{dayjs(created_at).format("D MMM, YYYY")}</span>
                 </div>
               </div>
             </div>
