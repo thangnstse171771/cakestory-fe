@@ -228,6 +228,7 @@ const Sidebar = () => {
       label: "Tất cả đơn hàng",
       path: "/admin/order-tracking",
     },
+    { icon: MessageCircle, label: "Tin nhắn", path: "/chat" },
     {
       icon: MessageSquareWarning,
       label: "Tất cả khiếu nại",
