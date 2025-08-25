@@ -62,12 +62,19 @@ const CakeDesign = () => {
   const [showImageModal, setShowImageModal] = useState(false); // New state for image modal
   const [currentPage, setCurrentPage] = useState(1); // Pagination state
   const [imagesPerPage] = useState(6); // Number of images per page
+  const [showNavigateWarning, setShowNavigateWarning] = useState(true); // Warning banner visibility
 
   // Wallet states
   const [balance, setBalance] = useState(0);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth(); // Get current user
+
+  // Session / resume constants for AI generation
+  const AI_SESSION_KEY = "cakeDesignAIGenSession";
+  const MAX_SESSION_MS = 180000; // 3 phút tối đa cho một lần tạo
+  const POLL_INTERVAL = 2000; // 2s
+  const pollRef = useRef(null);
 
   // Available design options
   const shapes = ["Round", "Square", "Heart"]; // Removed Rect as it's not in the image assets
@@ -256,6 +263,88 @@ const CakeDesign = () => {
       fetchUserBalance();
     }
   }, [user?.id]);
+
+  // Warn before closing / reloading if AI generation in progress
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isGeneratingAI || pendingAIGeneration) {
+        e.preventDefault();
+        e.returnValue =
+          "Đang tạo ảnh AI, vui lòng đợi hoàn tất trước khi rời trang.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isGeneratingAI, pendingAIGeneration]);
+
+  // Resume an unfinished AI generation session (after refresh / navigate back)
+  useEffect(() => {
+    if (!user?.id) return; // Wait for user id
+    try {
+      const raw = localStorage.getItem(AI_SESSION_KEY);
+      if (!raw) return;
+      const session = JSON.parse(raw);
+      if (!session?.startedAt || !session?.designId) return;
+      const age = Date.now() - session.startedAt;
+      if (age > MAX_SESSION_MS) {
+        localStorage.removeItem(AI_SESSION_KEY);
+        return;
+      }
+      // Start/resume placeholder & polling
+      setLastSavedDesignId(session.designId);
+      setIsGeneratingAI(true);
+      if (!pendingAIGeneration) {
+        setPendingAIGeneration({
+          id: `resuming-${session.designId}`,
+          isLoading: true,
+          description: session.prompt || "Đang tiếp tục tạo ảnh AI...",
+          created_at: new Date(session.startedAt).toISOString(),
+        });
+      }
+      startPollingForResult(session.designId, session.startedAt);
+    } catch (_) {
+      // ignore parse errors
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  const startPollingForResult = (designId, startedAt) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    const began =
+      typeof startedAt === "number" ? startedAt : Date.parse(startedAt);
+    const poll = async () => {
+      try {
+        // Fetch latest designs for user
+        const response = await getCakeDesignsByUserId(user.id, 1, 50, false);
+        if (response.success) {
+          const imagesWithAI = response.data.cakeDesigns.filter(
+            (d) => d.ai_generated
+          );
+          // Update state list
+          setAiGeneratedImages(imagesWithAI);
+          const target = imagesWithAI.find(
+            (d) => d.id === designId && d.ai_generated
+          );
+          if (target || Date.now() - began > MAX_SESSION_MS) {
+            // Completed or timed out
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+            setIsGeneratingAI(false);
+            setPendingAIGeneration(null);
+            localStorage.removeItem(AI_SESSION_KEY);
+          }
+        }
+      } catch (_) {
+        // silent
+      }
+    };
+    poll();
+    pollRef.current = setInterval(poll, POLL_INTERVAL);
+  };
 
   // Handle pagination when images change
   useEffect(() => {
@@ -669,6 +758,16 @@ Trang trí: ${
     setPendingAIGeneration(pendingItem);
     setCurrentPage(1); // Reset to first page to show pending generation
 
+    // Persist session to localStorage for resume
+    localStorage.setItem(
+      AI_SESSION_KEY,
+      JSON.stringify({
+        startedAt: Date.now(),
+        designId: lastSavedDesignId,
+        prompt: pendingItem.description,
+      })
+    );
+
     try {
       // Call API without description since it was already sent during design creation
       await generateAIImage(lastSavedDesignId);
@@ -682,6 +781,7 @@ Trang trí: ${
         setIsGeneratingAI(false);
         setPendingAIGeneration(null); // Remove loading placeholder
         setCurrentPage(1); // Reset to first page to show new image
+        localStorage.removeItem(AI_SESSION_KEY);
       }, 3000);
     } catch (error) {
       console.error("Error generating AI image:", error);
@@ -700,6 +800,7 @@ Trang trí: ${
       }
       setIsGeneratingAI(false);
       setPendingAIGeneration(null); // Remove loading placeholder on error
+      localStorage.removeItem(AI_SESSION_KEY);
     }
   };
 
@@ -889,6 +990,26 @@ Trang trí: ${
             </div>
           </div>
         </header>
+
+        {/* Navigation warning while AI generation is in progress */}
+        {(isGeneratingAI || pendingAIGeneration) && showNavigateWarning && (
+          <div className="max-w-[1400px] mx-auto px-6 mt-3">
+            <div className="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-4 py-3 rounded-lg flex items-start justify-between shadow-md">
+              <div className="pr-4 text-sm">
+                <strong className="font-semibold">Đang tạo ảnh AI:</strong> Vui
+                lòng không đóng, tải lại trang hoặc chuyển sang trang khác cho
+                đến khi hoàn tất để tránh bị gián đoạn.
+              </div>
+              <button
+                onClick={() => setShowNavigateWarning(false)}
+                className="text-white/80 hover:text-white ml-2"
+                title="Ẩn cảnh báo"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Balance Warning */}
         {showBalanceWarning && (

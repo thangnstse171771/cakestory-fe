@@ -59,6 +59,14 @@ export default function AIGeneratedImages() {
   // Modal states
   const [selectedImage, setSelectedImage] = useState(null);
   const [showImageModal, setShowImageModal] = useState(false);
+  // UI warning banner state
+  const [showNavigateWarning, setShowNavigateWarning] = useState(true);
+
+  // Resume polling refs
+  const RESUME_POLL_INTERVAL = 2000; // 2s
+  const MAX_SESSION_MS = 180000; // 3 phút (tối đa ~ thời gian poll 3 ảnh)
+  const EXPECTED_IMAGES_PER_SESSION = 3;
+  const resumePollRef = React.useRef(null);
 
   useEffect(() => {
     fetchImages();
@@ -70,6 +78,113 @@ export default function AIGeneratedImages() {
     }, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Warn user if they attempt to close / reload while generating
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (generating) {
+        e.preventDefault();
+        e.returnValue =
+          "Đang tạo ảnh AI, vui lòng đợi hoàn tất trước khi rời trang.";
+        return e.returnValue;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [generating]);
+
+  // Track tab visibility to optionally show a comeback notice
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && generating) {
+        // Mark that user left while generating
+        localStorage.setItem("aiGenTabHidden", "1");
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [generating]);
+
+  // Check if there is an unfinished generation session in localStorage to resume
+  useEffect(() => {
+    const resumeSessionIfNeeded = async () => {
+      try {
+        const sessionRaw = localStorage.getItem("aiGenSession");
+        if (!sessionRaw) return;
+        const session = JSON.parse(sessionRaw);
+        const { startedAt, expected = EXPECTED_IMAGES_PER_SESSION } =
+          session || {};
+        if (!startedAt) return;
+        const age = Date.now() - startedAt;
+        if (age > MAX_SESSION_MS) {
+          // Expired session
+          localStorage.removeItem("aiGenSession");
+          return;
+        }
+        // Ensure we have latest images first
+        await fetchImages();
+        setGenerating(true);
+        startResumePolling(startedAt, expected);
+      } catch (_) {}
+    };
+    resumeSessionIfNeeded();
+    // Cleanup on unmount
+    return () => {
+      if (resumePollRef.current) clearInterval(resumePollRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startResumePolling = (startedAt, expected) => {
+    if (resumePollRef.current) clearInterval(resumePollRef.current);
+    const startedTime =
+      typeof startedAt === "number" ? startedAt : Date.parse(startedAt);
+    const poll = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(
+          "https://cakestory-be.onrender.com/api/ai/images",
+          {
+            headers: {
+              accept: "*/*",
+              Authorization: token ? `Bearer ${token}` : "",
+            },
+          }
+        );
+        const data = await res.json();
+        if (data?.data) {
+          setImages(data.data);
+          // Determine how many new images appeared since startedAt
+          const newOnes = data.data.filter((img) => {
+            const created = Date.parse(img.created_at);
+            return created >= startedTime;
+          });
+          // Map to recentImages for display order (most recent first assumption)
+          setRecentImages(newOnes.slice(0, EXPECTED_IMAGES_PER_SESSION));
+          // Update generatingImages placeholders
+          const count = newOnes.length;
+          setGeneratingImages([
+            count >= 1 ? false : true,
+            count >= 2 ? false : true,
+            count >= 3 ? false : true,
+          ]);
+          if (count >= expected || Date.now() - startedTime > MAX_SESSION_MS) {
+            // Done or timeout
+            clearInterval(resumePollRef.current);
+            resumePollRef.current = null;
+            setGenerating(false);
+            localStorage.removeItem("aiGenSession");
+          }
+        }
+      } catch (e) {
+        // Silent
+      }
+    };
+    // Immediate run then interval
+    poll();
+    resumePollRef.current = setInterval(poll, RESUME_POLL_INTERVAL);
+  };
 
   const fetchFreeUsageCount = async () => {
     setLoadingFreeUsage(true);
@@ -218,6 +333,12 @@ export default function AIGeneratedImages() {
     setGeneratingImages([true, true, true]);
     setError("");
 
+    // Persist session so we can restore UI if user rời trang
+    localStorage.setItem(
+      "aiGenSession",
+      JSON.stringify({ startedAt: Date.now(), expected: 3 })
+    );
+
     try {
       const token = localStorage.getItem("token");
       const newImages = [];
@@ -349,6 +470,7 @@ export default function AIGeneratedImages() {
     } finally {
       setGenerating(false);
       setGeneratingImages([false, false, false]); // Reset all loading states
+      localStorage.removeItem("aiGenSession");
     }
   };
 
@@ -452,6 +574,25 @@ export default function AIGeneratedImages() {
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
+          {/* Navigation warning banner while generating */}
+          {generating && showNavigateWarning && (
+            <div className="lg:col-span-3 mb-4">
+              <div className="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-4 py-3 rounded-lg flex items-start justify-between shadow-md">
+                <div className="pr-4 text-sm">
+                  <strong className="font-semibold">Đang tạo ảnh AI:</strong>{" "}
+                  Vui lòng không đóng, tải lại trang hoặc chuyển sang trang khác
+                  cho đến khi hoàn tất để tránh bị gián đoạn.
+                </div>
+                <button
+                  onClick={() => setShowNavigateWarning(false)}
+                  className="text-white/80 hover:text-white ml-2"
+                  title="Ẩn cảnh báo"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          )}
           {/* Left Panel - AI Generation Form */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-8">
