@@ -98,6 +98,19 @@ const orderStatusBadgeClass = (key) => {
   }
 };
 
+// Localize mô tả giao dịch AI Generation
+const localizeAIDescription = (rawDesc = "", status) => {
+  const statusStr = String(status || "").toLowerCase();
+  const designMatch = rawDesc.match(/design ID\s*(\d+)/i) || rawDesc.match(/design\s*#?(\d+)/i);
+  const designId = designMatch ? designMatch[1] : null;
+  const action = designId ? `Tạo hình AI cho thiết kế #${designId}` : 'Tạo hình AI';
+  if (statusStr.includes('pend')) return `${action} đang xử lý`;
+  if (/(fail|error|reject|cancel)/i.test(statusStr) || /(fail|error|cancel)/i.test(rawDesc)) return `${action} thất bại`;
+  if (statusStr.includes('complete') || statusStr.includes('success')) return `${action} đã hoàn thành`;
+  if (/completed successfully/i.test(rawDesc)) return `${action} đã hoàn thành`;
+  return action;
+};
+
 export default function TransactionDetails() {
   const { transactionId } = useParams();
   const navigate = useNavigate();
@@ -299,9 +312,9 @@ export default function TransactionDetails() {
                       ? `#${tx.toWallet.id} • User ${tx.toWallet.user_id} (${
                           tx.toWallet.User?.full_name ||
                           tx.toWallet.User?.username ||
-                          "—"
+                          "Ví Hệ Thống"
                         })`
-                      : "—"}
+                      : "Ví Hệ Thống"}
                   </div>
                   {tx.type === "order_payment" && (
                     <div className="mt-2 text-gray-600">
@@ -318,23 +331,15 @@ export default function TransactionDetails() {
                 <h3 className="font-semibold text-gray-700 mb-2">Mô tả</h3>
                 <p className="text-sm text-gray-700">
                   {(() => {
-                    if (tx.type === "order_payment") {
-                      if (tx.status === "pending")
-                        return `Thanh toán đơn hàng #${tx.order_id} đang giữ tạm (escrow).`;
-                      if (tx.status === "completed")
-                        return `Thanh toán đơn hàng #${
-                          tx.order_id
-                        } đã giải ngân: Shop nhận ${fmt(
-                          tx.shopShare
-                        )}, Hệ thống nhận ${fmt(tx.systemShare)}.`;
-                      if (tx.status === "failed")
-                        return `Thanh toán đơn hàng #${
-                          tx.order_id
-                        } đã bị hủy/ thất bại và hoàn ${fmt(
-                          tx.amount
-                        )} về ví nguồn.`;
+                    if (tx.type === 'order_payment') {
+                      if (tx.status === 'pending') return `Thanh toán đơn hàng #${tx.order_id} đang giữ tạm (escrow).`;
+                      if (tx.status === 'completed') return `Thanh toán đơn hàng #${tx.order_id} đã giải ngân: Shop nhận ${fmt(tx.shopShare)}, Hệ thống nhận ${fmt(tx.systemShare)}.`;
+                      if (tx.status === 'failed') return `Thanh toán đơn hàng #${tx.order_id} đã bị hủy/ thất bại và hoàn ${fmt(tx.amount)} về ví nguồn.`;
                     }
-                    return tx.description || "—";
+                    if (tx.type === 'ai_generation') {
+                      return localizeAIDescription(tx.description, tx.status);
+                    }
+                    return tx.description || '—';
                   })()}
                 </p>
               </div>

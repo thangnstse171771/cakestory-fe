@@ -125,41 +125,7 @@ const WalletManagement = () => {
       // Unified list starts here
       let unifiedTransactions = [];
 
-      // Deposits -> transactions (giữ lại để hiển thị lịch sử nạp, không ảnh hưởng holding)
-      if (depositsResponse.status === "fulfilled") {
-        const depositsData = depositsResponse.value;
-        let deposits = [];
-        if (Array.isArray(depositsData)) deposits = depositsData;
-        else if (Array.isArray(depositsData?.data?.deposits))
-          deposits = depositsData.data.deposits;
-        else if (Array.isArray(depositsData?.deposits))
-          deposits = depositsData.deposits;
-        else if (Array.isArray(depositsData?.data))
-          deposits = depositsData.data;
-
-        const depositTx = (deposits || [])
-          .map((d) => ({
-            id: d.id,
-            userId: d.user_id ?? d.user?.id ?? d.user?.user_id ?? "",
-            userDisplay: resolveUserDisplay(
-              d.user_id ?? d.user?.id ?? d.user?.user_id,
-              d.user
-            ),
-            type: "deposit",
-            amount: parseFloat(d.amount) || 0,
-            status:
-              d.status === "completed"
-                ? "completed"
-                : d.status === "pending"
-                ? "pending"
-                : "failed",
-            timestamp: d.created_at || d.createdAt,
-            description: "Nạp tiền vào ví",
-          }))
-          // Exclude pending deposits from listing per request
-          .filter((tx) => tx.status !== "pending");
-        unifiedTransactions = [...unifiedTransactions, ...depositTx];
-      }
+  // Bỏ hoàn toàn giao dịch nạp tiền khỏi danh sách admin theo yêu cầu
 
       // AI revenue -> floating card
       if (aiRevenueResponse.status === "fulfilled") {
@@ -631,7 +597,7 @@ const WalletManagement = () => {
       case "pending":
         return "text-yellow-600 bg-yellow-100";
       case "failed":
-        return "text-red-600 bg-red-100";
+  return "text-red-600 bg-red-100"; // generic failed; special case handled at render for refunds
       default:
         return "text-gray-600 bg-gray-100";
     }
@@ -864,7 +830,8 @@ const WalletManagement = () => {
                       >
                         {transaction.status === "completed" && "Hoàn thành"}
                         {transaction.status === "pending" && "Đang xử lý"}
-                        {transaction.status === "failed" && "Thất bại"}
+                        {transaction.status === "failed" && transaction.type === 'order_payment' && /Hoàn tiền đơn/i.test(transaction.description) && 'Đã hoàn tiền'}
+                        {transaction.status === "failed" && !(transaction.type === 'order_payment' && /Hoàn tiền đơn/i.test(transaction.description)) && "Thất bại"}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
@@ -985,7 +952,7 @@ const WalletManagement = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                     >
                       <option value="">Tất cả</option>
-                      <option value="deposit">Nạp tiền</option>
+                      {/* Đã bỏ tùy chọn Nạp tiền */}
                       <option value="withdraw">Rút tiền</option>
                       <option value="order_payment">Thanh toán đơn hàng</option>
                       <option value="ai_generation">AI Generation</option>
@@ -1078,7 +1045,8 @@ const WalletManagement = () => {
                           >
                             {transaction.status === "completed" && "Hoàn thành"}
                             {transaction.status === "pending" && "Đang xử lý"}
-                            {transaction.status === "failed" && "Thất bại"}
+                            {transaction.status === "failed" && transaction.type === 'order_payment' && /Hoàn tiền đơn/i.test(transaction.description) && 'Đã hoàn tiền'}
+                            {transaction.status === "failed" && !(transaction.type === 'order_payment' && /Hoàn tiền đơn/i.test(transaction.description)) && "Thất bại"}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-600 whitespace-nowrap">
