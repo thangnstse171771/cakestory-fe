@@ -476,6 +476,18 @@ const AllPaymentHistory = () => {
           ) {
             normalized = "failed";
           }
+          // Determine presentation (prefix/color/type label)
+          let amountPrefix = "-";
+          let amountColor = "text-red-600";
+          let transactionType = "Mua bánh";
+          if (normalized === "pending") {
+            transactionType = "Mua bánh (giữ tạm)";
+          } else if (normalized === "failed") {
+            // Refund back to user wallet
+            amountPrefix = "+";
+            amountColor = "text-green-600";
+            transactionType = "Hoàn tiền mua bánh";
+          }
           const createdAtVal =
             order.created_at ||
             order.createdAt ||
@@ -486,10 +498,10 @@ const AllPaymentHistory = () => {
           return {
             id: order.id || order.order_id || `order-${amount}-${createdAtVal}`,
             type: "purchase", // canonical type for filters
-            transactionType: "Mua bánh",
+            transactionType,
             icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
-            amountPrefix: "-",
-            amountColor: "text-red-600",
+            amountPrefix,
+            amountColor,
             amount,
             status: normalized || "pending",
             created_at: createdAtVal,
@@ -563,7 +575,10 @@ const AllPaymentHistory = () => {
       pendingCount: 0,
       completedCount: 0,
       failedCount: 0,
-      totalPurchases: 0,
+      totalPurchases: 0, // tổng gross tất cả đơn mua (mọi trạng thái)
+      netPurchases: 0, // chỉ đơn đã hoàn thành (thực sự trừ khỏi ví)
+      purchaseHeld: 0, // tiền đang tạm giữ (pending)
+      purchaseRefunded: 0, // tiền đơn mua đã hoàn/ thất bại trả lại ví
       purchaseCount: 0,
       purchasePending: 0,
       purchaseCompleted: 0,
@@ -625,8 +640,7 @@ const AllPaymentHistory = () => {
           next.withdrawFailed++;
         }
       } else if (t.type === "purchase") {
-        next.totalWithdrawals += amount; // purchase also money out overall
-        next.totalPurchases += amount;
+        next.totalPurchases += amount; // luôn cộng vào tổng gross
         next.purchaseCount++;
         if (
           [
@@ -639,6 +653,9 @@ const AllPaymentHistory = () => {
             "thành công",
           ].includes(status)
         ) {
+          // Chỉ đơn hoàn thành mới thực sự trừ khỏi ví
+          next.totalWithdrawals += amount;
+          next.netPurchases += amount;
           next.completedCount++;
           next.purchaseCompleted++;
         } else if (
@@ -650,6 +667,8 @@ const AllPaymentHistory = () => {
             "đang xử lý",
           ].includes(status)
         ) {
+          // Tiền đang tạm giữ (escrow) chứ chưa trừ vĩnh viễn
+          next.purchaseHeld += amount;
           next.pendingCount++;
           next.purchasePending++;
         } else if (
@@ -662,6 +681,8 @@ const AllPaymentHistory = () => {
             "thất bại",
           ].includes(status)
         ) {
+          // Đơn thất bại: coi như hoàn, không tính vào totalWithdrawals
+          next.purchaseRefunded += amount;
           next.failedCount++;
           next.purchaseFailed++;
         }
@@ -961,9 +982,25 @@ const AllPaymentHistory = () => {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Tổng tiền ra</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatAmount(stats.totalWithdrawals)} đ
+                <p className="text-sm text-gray-600 mb-1">
+                  Tổng tiền ra (gồm giữ tạm)
+                </p>
+                {(() => {
+                  const totalOutDisplay =
+                    stats.totalWithdrawals + stats.purchaseHeld; // net + held
+                  return (
+                    <p
+                      className={`text-2xl font-bold ${
+                        totalOutDisplay > 0 ? "text-red-600" : "text-gray-500"
+                      }`}
+                    >
+                      {formatAmount(totalOutDisplay)} đ
+                    </p>
+                  );
+                })()}
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Đã trừ: {formatAmount(stats.totalWithdrawals)} đ | Giữ tạm:{" "}
+                  {formatAmount(stats.purchaseHeld)} đ
                 </p>
               </div>
               <div className="p-3 bg-red-50 rounded-lg">
@@ -1013,14 +1050,32 @@ const AllPaymentHistory = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Chi mua bánh</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatAmount(stats.totalPurchases)} đ
+                <p
+                  className={`text-2xl font-bold ${
+                    stats.netPurchases + stats.purchaseHeld > 0
+                      ? "text-red-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {formatAmount(stats.netPurchases + stats.purchaseHeld)} đ
                 </p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 mt-2">
                   <span>Số đơn: {stats.purchaseCount}</span>
                   <span>Thành công: {stats.purchaseCompleted}</span>
                   <span>Đang xử lý: {stats.purchasePending}</span>
                   <span>Thất bại: {stats.purchaseFailed}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+                  {stats.purchaseHeld > 0 && (
+                    <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
+                      Giữ tạm: {formatAmount(stats.purchaseHeld)} đ
+                    </span>
+                  )}
+                  {stats.purchaseRefunded > 0 && (
+                    <span className="px-2 py-1 rounded-full bg-green-100 text-green-700">
+                      Hoàn: {formatAmount(stats.purchaseRefunded)} đ
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="p-3 bg-red-50 rounded-lg">

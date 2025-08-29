@@ -234,7 +234,7 @@ const Sidebar = () => {
       label: "Tất cả khiếu nại",
       path: "/admin/complaints",
     },
-    { icon: Wallet, label: "Quản lý ví tiền", path: "/admin/wallet" },
+    { icon: Wallet, label: "Quản lý ví hệ thống", path: "/admin/wallet" },
     {
       icon: CreditCard,
       label: "Tất cả yêu cầu rút tiền",
