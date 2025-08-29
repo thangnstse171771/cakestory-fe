@@ -427,7 +427,7 @@ const UserProfile = () => {
                 <div className="font-bold text-2xl text-pink-500">
                   {postStat}
                 </div>
-                <div className="text-gray-500 text-sm">Bài viết</div>
+                <div className="text-gray-500 text-sm">Bài đăng</div>
               </div>
               <div className="text-center bg-pink-50 rounded-xl p-4 cursor-pointer">
                 <div className="font-bold text-2xl text-pink-500">
@@ -567,7 +567,7 @@ const UserProfile = () => {
                   <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Search className="w-8 h-8 text-pink-500" />
                   </div>
-                  <p className="text-gray-500 text-lg">No posts found.</p>
+                  <p className="text-gray-500 text-lg">Chưa có ảnh nào.</p>
                 </div>
               )
             ))}
@@ -622,7 +622,7 @@ const UserProfile = () => {
                   <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Search className="w-8 h-8 text-pink-500" />
                   </div>
-                  <p className="text-gray-500 text-lg">No albums found.</p>
+                  <p className="text-gray-500 text-lg">Chưa có album nào.</p>
                 </div>
               )
             ))}
