@@ -40,6 +40,7 @@ import WithdrawRequests from "./pages/Admin/WithdrawRequests";
 import AccountDetails from "./pages/AccountDetails";
 import WithdrawRequestDetail from "./pages/Admin/WithdrawRequestDetail";
 import DepositDetails from "./pages/Admin/DepositDetails";
+import TransactionDetails from "./pages/Admin/TransactionDetails";
 import EditProfile from "./pages/EditProfile";
 import Settings from "./pages/Settings";
 import Report from "./pages/Report";
@@ -254,6 +255,10 @@ export default function App() {
             <Route path="admin/account/:id" element={<AccountDetails />} />
             <Route path="admin/wallet" element={<WalletManagement />} />
             <Route path="admin/deposits/:id" element={<DepositDetails />} />
+            <Route
+              path="admin/transactions/:transactionId"
+              element={<TransactionDetails />}
+            />
             <Route
               path="admin/withdraw-requests"
               element={<WithdrawRequests />}
