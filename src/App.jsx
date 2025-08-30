@@ -59,7 +59,6 @@ import AllPaymentHistory from "./pages/Wallet/AllPaymentHistory";
 import UserTransactions from "./pages/Wallet/UserTransactions";
 import DepositHistoryDetails from "./pages/Wallet/DepositHistoryDetails";
 import CustomizedOrderDetails from "./pages/CustomizedOrderForm/CustomizedOrderDetails";
-import OrderDetailPayment from "./pages/CustomizedOrderForm/OrderDetailPayment";
 import "./App.css";
 import ToastNotify from "./components/ToastNotify";
 import SyncUserIdToStore from "./pages/Chat/libs/SyncUserIdToStore";
@@ -167,7 +166,6 @@ export default function App() {
               path="order/customize/:shopId"
               element={<CustomizedOrderDetails />}
             />
-            <Route path="order/payment" element={<OrderDetailPayment />} />
             <Route
               path="marketplace/shop-analytics"
               element={<ShopAnalystic onBack={() => window.history.back()} />}
