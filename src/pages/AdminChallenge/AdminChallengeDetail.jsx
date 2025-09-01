@@ -85,7 +85,7 @@ export default function AdminChallengeDetail() {
           avatar: c.avatar || "",
           host: {
             name: c.host_name || "Admin",
-            avatar: c.host_avatar || "",
+            avatar: c.host_avatar || "https://img.freepik.com/premium-vector/baker_1083548-22816.jpg?semt=ais_hybrid&w=740&q=80",
           },
           rules: Array.isArray(c.rules)
             ? c.rules.filter(Boolean)
