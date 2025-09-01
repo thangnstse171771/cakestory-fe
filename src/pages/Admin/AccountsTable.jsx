@@ -137,9 +137,19 @@ const AccountsTable = ({
               // Nếu đang ở view shops => dùng trạng thái của shop (shopInfo.is_active)
               let status;
               if (view === "shops" && account.shopInfo) {
-                const sv = account.shopInfo.is_active ?? account.shopInfo.isActive ?? account.shopInfo.status;
+                const sv =
+                  account.shopInfo.is_active ??
+                  account.shopInfo.isActive ??
+                  account.shopInfo.status;
                 const s = String(sv).trim().toLowerCase();
-                const activeValues = ["true", "1", "active", "activated", "enable", "enabled"]; 
+                const activeValues = [
+                  "true",
+                  "1",
+                  "active",
+                  "activated",
+                  "enable",
+                  "enabled",
+                ];
                 status = activeValues.includes(s) ? "active" : "restricted";
               } else {
                 status = getStatusValue(account); // user-level status

@@ -24,8 +24,34 @@ export const getStatusValue = (account) => {
 
   const normalize = (val) => {
     const s = String(val).trim().toLowerCase();
-  if (["1","true","active","activated","enable","enabled","yes","on"].includes(s)) return "active";
-  if (["0","false","inactive","disabled","disable","blocked","banned","restricted","off","no"].includes(s)) return "restricted";
+    if (
+      [
+        "1",
+        "true",
+        "active",
+        "activated",
+        "enable",
+        "enabled",
+        "yes",
+        "on",
+      ].includes(s)
+    )
+      return "active";
+    if (
+      [
+        "0",
+        "false",
+        "inactive",
+        "disabled",
+        "disable",
+        "blocked",
+        "banned",
+        "restricted",
+        "off",
+        "no",
+      ].includes(s)
+    )
+      return "restricted";
     return null;
   };
 
@@ -72,15 +98,26 @@ export const filterAccounts = (accountsWithShop, view, search) => {
     // Chuẩn hoá status: nếu đang ở view shops => ưu tiên trạng thái shop
     let statusValue;
     if (view === "shops" && account.shopInfo) {
-      const sv = account.shopInfo.is_active ?? account.shopInfo.isActive ?? account.shopInfo.status;
+      const sv =
+        account.shopInfo.is_active ??
+        account.shopInfo.isActive ??
+        account.shopInfo.status;
       const s = String(sv).trim().toLowerCase();
-      const activeVals = ["true","1","active","activated","enable","enabled"];
+      const activeVals = [
+        "true",
+        "1",
+        "active",
+        "activated",
+        "enable",
+        "enabled",
+      ];
       statusValue = activeVals.includes(s) ? "active" : "restricted";
     } else {
       statusValue = getStatusValue(account);
     }
     if (search.status) {
-      const wanted = search.status === "inactive" ? "restricted" : search.status; // chấp nhận cả inactive
+      const wanted =
+        search.status === "inactive" ? "restricted" : search.status; // chấp nhận cả inactive
       if (statusValue !== wanted) return false;
     }
     if (
