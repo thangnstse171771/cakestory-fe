@@ -52,7 +52,7 @@ function formatDateTime(dateString) {
 }
 
 const IMAGE_URL =
-  "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
+  "https://img.freepik.com/premium-vector/baker_1083548-22816.jpg?semt=ais_hybrid&w=740&q=80";
 
 export default function ChallengeDetailsPage() {
   // Lấy đúng param id từ useParams (route: /challenge/details/:id)

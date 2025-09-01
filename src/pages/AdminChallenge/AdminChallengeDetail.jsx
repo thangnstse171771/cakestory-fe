@@ -45,9 +45,20 @@ export default function AdminChallengeDetail() {
     try {
       setLoading(true);
       const res = await getChallengeById(id);
+
       if (res && res.challenge) {
         // Map API data to UI-friendly format
         const c = res.challenge;
+
+        const calculateDuration = (startDate, endDate) => {
+          if (!startDate || !endDate) return "30 ngày";
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          const diffTime = Math.abs(end - start);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          return `${diffDays} ngày`;
+        };
+
         const mapped = {
           id: c.id || c._id,
           title: c.title || "Untitled Challenge",
@@ -59,7 +70,7 @@ export default function AdminChallengeDetail() {
           endDate: c.end_date
             ? new Date(c.end_date).toLocaleDateString("vi-VN")
             : "",
-          duration: c.duration || "",
+          duration: calculateDuration(c.start_date, c.end_date),
           difficulty: c.difficulty || "",
           prize: c.prize_description || "",
           participants: c.participants_count || 0,
@@ -71,10 +82,10 @@ export default function AdminChallengeDetail() {
             ? [c.hashtag]
             : [],
           image: c.image_url || "",
-          avatar: c.avatar || "", 
+          avatar: c.avatar || "",
           host: {
             name: c.host_name || "Admin",
-            avatar: c.host_avatar || "",
+            avatar: c.host_avatar || "https://img.freepik.com/premium-vector/baker_1083548-22816.jpg?semt=ais_hybrid&w=740&q=80",
           },
           rules: Array.isArray(c.rules)
             ? c.rules.filter(Boolean)
