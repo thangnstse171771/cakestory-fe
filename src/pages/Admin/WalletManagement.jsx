@@ -25,7 +25,7 @@ import {
   getWalletConfig,
   getTransactionStatusStyle,
   generatePageList,
-} from "./walletUtils";
+} from "./WalletUtils";
 
 const WalletManagement = () => {
   const navigate = useNavigate();
