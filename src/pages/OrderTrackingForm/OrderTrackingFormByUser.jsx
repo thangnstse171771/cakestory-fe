@@ -1,6 +1,6 @@
 // NOTE: This file was originally for shop tracking but misnamed.
 // Use OrderTrackingFormShop.jsx instead for shop view.
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import ComplaintModal from "../ComplaintManagement/ComplaintModal";
 import { fetchOrderById, fetchMarketplacePostById } from "../../api/axios";
@@ -13,61 +13,45 @@ import {
   MessageSquareText,
   ClipboardCheck,
 } from "lucide-react";
+// Use shared statusMap + add icons locally (avoid duplicating labels/colors)
+import { statusMap as sharedStatusMap, buildOrderSummary } from "./orderUtils";
 
-const statusMap = {
-  pending: {
-    label: "Đang chờ xử lý",
-    icon: <Clock className="h-5 w-5" />,
-    color: "text-yellow-500",
-  },
-  ordered: {
-    label: "Đã tiếp nhận",
-    icon: <ClipboardCheck className="h-5 w-5" />,
-    color: "text-cyan-500",
-  },
-  preparedForDelivery: {
-    label: "Sẵn sàng giao hàng",
-    icon: <Package className="h-5 w-5" />,
-    color: "text-blue-500",
-  },
-  shipped: {
-    label: "Đang vận chuyển",
-    icon: <Truck className="h-5 w-5" />,
-    color: "text-orange-500",
-  },
-  completed: {
-    label: "Hoàn tất",
-    icon: <CheckCircle className="h-5 w-5" />,
-    color: "text-emerald-500",
-  },
-  complaining: {
-    label: "Đang khiếu nại",
-    icon: <MessageSquareText className="h-5 w-5" />,
-    color: "text-red-600",
-  },
-  cancelled: {
-    label: "Đã hủy",
-    icon: <Clock className="h-5 w-5" />,
-    color: "text-red-500",
-  },
+const iconFor = {
+  pending: <Clock className="h-5 w-5" />,
+  ordered: <ClipboardCheck className="h-5 w-5" />,
+  preparedForDelivery: <Package className="h-5 w-5" />,
+  shipped: <Truck className="h-5 w-5" />,
+  completed: <CheckCircle className="h-5 w-5" />,
+  complaining: <MessageSquareText className="h-5 w-5" />,
+  cancelled: <Clock className="h-5 w-5" />,
 };
+
+// Enrich shared map with icons (memoized)
+const useEnrichedStatusMap = () =>
+  useMemo(() => {
+    const enriched = {};
+    Object.entries(sharedStatusMap).forEach(([k, v]) => {
+      enriched[k] = { ...v, icon: iconFor[k] };
+    });
+    return enriched;
+  }, []);
 
 export default function OrderTrackingFormByUser({ order, onBackToList }) {
   const navigate = useNavigate();
   const { orderId } = useParams();
+  const statusMap = useEnrichedStatusMap();
 
   // Local state để hiển thị thông tin đơn hàng
-  const [orderDetail, setOrderDetail] = useState(order);
+  const [orderDetail, setOrderDetail] = useState(order || null);
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [hasComplaint, setHasComplaint] = useState(
     Boolean(
-      (order &&
+      order &&
         (order.status === "complaining" ||
           order.complaint_id ||
           order.complaintId ||
           order.has_complaint ||
-          order.hasComplaint)) ||
-        false
+          order.hasComplaint)
     )
   );
   const [loading, setLoading] = useState(false);
@@ -77,142 +61,32 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
   const [isLoadingMarketplace, setIsLoadingMarketplace] = useState(false);
   const hasFetchedMarketplaceRef = useRef(false);
 
-  // Helper: extract image url from a marketplace post object
-  const extractImageFromMarketplacePost = (mp) => {
-    if (!mp) return null;
-    const imageFields = [
-      "image_url",
-      "image",
-      "photo_url",
-      "photo",
-      "thumbnail",
-      "thumb",
-      "url",
-    ];
-    const isStr = (v) => typeof v === "string" && v.trim();
-    const pickFrom = (obj) => {
-      if (!obj || typeof obj !== "object") return null;
-      for (const f of imageFields) if (isStr(obj[f])) return obj[f].trim();
-      return null;
-    };
-
-    const direct = pickFrom(mp);
-    if (direct) return direct;
-    const containers = [mp.post, mp.data];
-    for (const c of containers) {
-      const val = pickFrom(c);
-      if (val) return val;
-    }
-    const mediaArrays = [mp.media, mp.post?.media, mp.data?.media];
-    for (const arr of mediaArrays) {
-      if (Array.isArray(arr)) {
-        for (const item of arr) {
-          const val =
-            pickFrom(item) || pickFrom(item?.image) || pickFrom(item?.data);
-          if (val) return val;
-        }
-      }
-    }
-    const seen = new Set();
-    const stack = [mp];
-    while (stack.length) {
-      const node = stack.pop();
-      if (!node || typeof node !== "object" || seen.has(node)) continue;
-      seen.add(node);
-      const picked = pickFrom(node);
-      if (picked) return picked;
-      if (Array.isArray(node)) stack.push(...node);
-      else stack.push(...Object.values(node));
-    }
-    return null;
-  };
-
-  // Fetch order detail nếu có orderId từ URL params
+  // Fetch order detail nếu có orderId từ URL và không truyền sẵn order
   useEffect(() => {
     if (orderId && !order) {
       fetchOrderDetail();
+    } else if (order && !orderDetail) {
+      setOrderDetail(order);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   const fetchOrderDetail = async () => {
     try {
       setLoading(true);
       const response = await fetchOrderById(orderId);
-      // --- Begin migrated logic from OrderTrackingFormByShop ---
-      const parseAmount = (v) => {
-        if (v === null || v === undefined || v === "") return 0;
-        const n = parseFloat(v);
-        return Number.isFinite(n) ? n : 0;
-      };
-      const baseRaw = parseAmount(response.base_price || response.basePrice);
-      const ingRaw = parseAmount(
-        response.ingredient_total || response.ingredientTotal
-      );
-      let totalRaw = parseAmount(
-        response.total_price || response.total || response.final_price
-      );
-      if (totalRaw === 0) totalRaw = baseRaw + ingRaw;
-      let basePrice = baseRaw;
-      let ingredientTotal = ingRaw;
-      if (totalRaw === baseRaw && ingRaw > 0 && baseRaw > ingRaw) {
-        basePrice = baseRaw - ingRaw;
-      }
-      const totalPrice = totalRaw;
-      const transformedOrder = {
-        id: response.id || response._id,
-        customerName: response.customer_id?.name || "Không có tên",
-        customerEmail: response.customer_id?.email || "Không có email",
-        customerPhone: response.customer_id?.phone || "Không có SĐT",
-        items: response.items || [],
-        basePrice,
-        ingredientTotal,
-        total: basePrice,
-        base_price: basePrice,
-        size:
-          response.size ||
-          response.order_details?.[0]?.size ||
-          response.orderDetails?.[0]?.size ||
-          "-",
-        status: response.status || "pending",
-        orderNumber: response.orderNumber || `ORD-${response.id}`,
-        placeDate:
-          response.created_at ||
-          response.createdAt ||
-          response.placeDate ||
-          new Date().toISOString(),
-        // marketplace reference (id + embed if available)
-        marketplace_post_id:
-          response.marketplace_post_id ||
-          response.order_details?.[0]?.marketplace_post?.id ||
-          response.orderDetails?.[0]?.marketplace_post_id ||
-          null,
-        marketplace_post:
-          response.marketplace_post ||
-          response.order_details?.[0]?.marketplace_post ||
-          null,
-        history: response.history || [
-          {
-            date: response.placeDate || new Date().toISOString().split("T")[0],
-            time: new Date().toLocaleTimeString("vi-VN", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            status: response.status || "pending",
-            note: "Đơn hàng được tạo",
-          },
-        ],
-      };
-      setOrderDetail(transformedOrder);
+      const raw = response?.order || response?.data || response;
+      const summary = buildOrderSummary(raw);
+      setOrderDetail(summary);
       setHasComplaint(
         Boolean(
-          transformedOrder.status === "complaining" ||
-            transformedOrder.complaint_id ||
-            transformedOrder.complaintId ||
-            transformedOrder.has_complaint ||
-            transformedOrder.hasComplaint
+          summary.status === "complaining" ||
+            summary.complaint_id ||
+            summary.complaintId ||
+            summary.has_complaint ||
+            summary.hasComplaint
         )
       );
-      // --- End migrated logic ---
     } catch (error) {
       console.error("Lỗi khi fetch order detail:", error);
       alert("Không thể tải thông tin đơn hàng");
@@ -389,7 +263,9 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
               </div>
               <div>
                 <span className="font-medium">Ngày đặt:</span>{" "}
-                {new Date(orderDetail.placeDate).toLocaleDateString("vi-VN")}
+                {new Date(
+                  orderDetail.placedDate || orderDetail.placeDate
+                ).toLocaleDateString("vi-VN")}
               </div>
               <div>
                 <span className="font-medium">Trạng thái:</span>{" "}
@@ -403,15 +279,11 @@ export default function OrderTrackingFormByUser({ order, onBackToList }) {
               </div>
               <div>
                 <span className="font-medium">Giá bánh:</span>{" "}
-                <span>{orderDetail.basePrice.toLocaleString("vi-VN")}đ</span>
+                <span>{orderDetail.base_price?.toLocaleString("vi-VN")}đ</span>
               </div>
               <div>
-                <span className="font-medium">Tổng nguyên liệu:</span>{" "}
-                <span>
-                  {orderDetail.ingredientTotal > 0
-                    ? orderDetail.ingredientTotal.toLocaleString("vi-VN") + "đ"
-                    : "-"}
-                </span>
+                <span className="font-medium">Địa chỉ giao:</span>{" "}
+                <span>{orderDetail.shippingAddress?.address || "-"}</span>
               </div>
               <div className="col-span-2">
                 <span className="font-medium">Tổng tiền:</span>{" "}

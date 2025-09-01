@@ -1,41 +1,21 @@
 "use client";
-// Đã loại bỏ các import không tồn tại, dùng thẻ div và TailwindCSS thay thế
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ListOrdered, CalendarDays, User, Package } from "lucide-react";
+import { ListOrdered } from "lucide-react";
 import OrderTrackingForm from "./OrderTrackingForm";
+import { statusMap, buildOrderSummary } from "./orderUtils";
 import {
   fetchShopOrders,
   updateOrderStatus,
-  fetchAllShops,
   fetchOrderById,
+  fetchShopByUserId,
 } from "../../api/axios";
 
-const statusMap = {
-  pending: { label: "Đang chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
-  ordered: { label: "Đã tiếp nhận", color: "bg-cyan-100 text-cyan-700" },
-  preparedForDelivery: {
-    label: "Sẵn sàng giao hàng",
-    color: "bg-blue-100 text-blue-700",
-  },
-  shipped: {
-    label: "Đang vận chuyển",
-    color: "bg-orange-100 text-orange-700",
-  },
-  completed: { label: "Hoàn tất", color: "bg-emerald-100 text-emerald-700" },
-  complaining: { label: "Đang khiếu nại", color: "bg-red-100 text-red-700" },
-  cancelled: { label: "Đã hủy", color: "bg-gray-100 text-gray-700" },
-};
-
-export default function OrderTrackingList({
-  orders = [],
-  onSelectOrder,
-  showOrderDetails = false,
-}) {
+export default function OrderTrackingList({ showOrderDetails = false }) {
   const { orderId } = useParams();
   const navigate = useNavigate();
 
-  const [realOrders, setRealOrders] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -52,47 +32,21 @@ export default function OrderTrackingList({
     }
   }, [orderId, showOrderDetails]);
 
-  // Lấy shop ID từ localStorage hoặc user context
-  const getShopId = async () => {
-    try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!user.id) {
-        throw new Error("User ID không tồn tại");
-      }
-
-      console.log("Current user:", user);
-
-      // Fetch tất cả shops để tìm shop của user hiện tại
-      const shopsData = await fetchAllShops();
-      // console.log("All shops data:", shopsData);
-
-      const userShop = (shopsData.shops || []).find(
-        (shop) => shop.user_id === user.id
-      );
-
-      if (!userShop) {
-        throw new Error("User chưa có shop");
-      }
-
-      // console.log("Found user shop:", userShop);
-      // console.log("Shop ID field check:", {
-      //   id: userShop.id,
-      //   shop_id: userShop.shop_id,
-      //   _id: userShop._id,
-      // });
-
-      // Thử các field khác nhau cho shop ID, ưu tiên shop_id
-      const shopId = userShop.shop_id || userShop.id || userShop._id;
-
-      if (!shopId) {
-        throw new Error("Không tìm thấy shop ID trong dữ liệu shop");
-      }
-
-      return shopId;
-    } catch (error) {
-      console.error("Lỗi khi lấy shop ID:", error);
-      throw error;
-    }
+  // Resolve viewer shop id (simplified)
+  const resolveShopId = async () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (!user.id) throw new Error("User chưa đăng nhập");
+    const res = await fetchShopByUserId(user.id);
+    const sid =
+      res?.shop?.shop_id ||
+      res?.shop_id ||
+      res?.id ||
+      res?.data?.shop?.shop_id ||
+      res?.data?.shop_id ||
+      res?.data?.id ||
+      null;
+    if (!sid) throw new Error("Không tìm thấy shop");
+    return sid;
   };
 
   // Fetch orders từ API
@@ -101,101 +55,15 @@ export default function OrderTrackingList({
       setLoading(true);
       setError(null);
 
-      const shopId = await getShopId();
-      console.log("Using shop ID:", shopId);
-
+      const shopId = await resolveShopId();
       const response = await fetchShopOrders(shopId);
-      // console.log("Orders response:", response);
-      // console.log("Response orders array:", response.orders);
-      // console.log("Response type:", typeof response);
-      // console.log("Is response.orders array?", Array.isArray(response.orders));
-
-      // Kiểm tra cấu trúc response và lấy orders
-      let ordersArray = [];
-      if (response && Array.isArray(response.orders)) {
-        ordersArray = response.orders;
-      } else if (response && Array.isArray(response)) {
-        ordersArray = response;
-      } else if (response && response.data && Array.isArray(response.data)) {
-        ordersArray = response.data;
-      }
-
-      // console.log("Orders array to transform:", ordersArray);
-
-      // Transform data từ API response để match với UI
-      const transformedOrders = ordersArray.map((order) => {
-        // Extract userObj from order
-        const userObj = order.User || order.user || {};
-        const customerName =
-          userObj.full_name ||
-          userObj.username ||
-          `Khách hàng #${order.customer_id || userObj.id || "N/A"}`;
-        const customerEmail = userObj.email || userObj.username || "";
-        const customerPhone = userObj.phone_number || userObj.phone || "";
-        const basePrice =
-          parseFloat(order.base_price) || parseFloat(order.total_price) || 0;
-
-        // Build items from either order_details or orderDetails
-        let items = [];
-        if (Array.isArray(order.order_details)) {
-          items = order.order_details.map((item) => ({
-            name:
-              item.cake?.name ||
-              item.marketplace_post?.title ||
-              `Bánh tùy chỉnh #${item.id || "N/A"}`,
-            quantity: parseInt(item.quantity) || 1,
-            price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-          }));
-        } else if (Array.isArray(order.orderDetails)) {
-          items = order.orderDetails.map((od) => {
-            const q = Number(od.quantity) || 1;
-            const total = parseFloat(od.total_price) || 0;
-            const unit = q > 0 ? total / q : total;
-            return {
-              name: `Nguyên liệu #${od.ingredient_id}`,
-              quantity: q,
-              price: unit,
-            };
-          });
-        }
-
-        return {
-          id: order.id,
-          orderNumber: `ORD-${String(order.id).padStart(3, "0")}`,
-          placedDate: order.created_at || order.createdAt || null,
-          placedDateFull: order.created_at
-            ? new Date(order.created_at).toLocaleString("vi-VN")
-            : order.createdAt
-            ? new Date(order.createdAt).toLocaleString("vi-VN")
-            : "-",
-          status: order.status,
-          customerName,
-          customerEmail,
-          customerPhone,
-          items,
-          total: parseFloat(order.total_price) || 0,
-          base_price: basePrice,
-          history: [
-            {
-              date: new Date(
-                order.created_at || order.createdAt
-              ).toLocaleDateString("vi-VN"),
-              time: new Date(
-                order.created_at || order.createdAt
-              ).toLocaleTimeString("vi-VN"),
-              datetime: new Date(
-                order.created_at || order.createdAt
-              ).toLocaleString("vi-VN"),
-              status: order.status,
-              note: "Đơn hàng được tạo",
-            },
-          ],
-        };
-      });
-
-      // console.log("Transformed orders:", transformedOrders);
-
-      setRealOrders(transformedOrders);
+      const raw = Array.isArray(response)
+        ? response
+        : response?.orders || response?.data || [];
+      const mapped = raw
+        .map(buildOrderSummary)
+        .filter((o) => o && o.status !== "pending"); // hide pending like before
+      setOrders(mapped);
     } catch (error) {
       console.error("Lỗi khi fetch orders:", error);
       if (error.message === "User chưa có shop") {
@@ -204,8 +72,6 @@ export default function OrderTrackingList({
         error.message === "Không tìm thấy shop ID trong dữ liệu shop"
       ) {
         setError("Dữ liệu shop không hợp lệ. Vui lòng liên hệ admin.");
-      } else if (error.message.includes("Invalid input syntax")) {
-        setError("Shop ID không hợp lệ. Vui lòng kiểm tra lại.");
       } else {
         setError("Không thể tải danh sách đơn hàng: " + error.message);
       }
@@ -218,177 +84,97 @@ export default function OrderTrackingList({
   useEffect(() => {
     fetchOrders();
   }, []);
-  // Fake data nếu không có orders truyền vào
-  // const fakeOrders = [
-  //   {
-  //     id: 1,
-  //     orderNumber: "ORD-2024-001",
-  //     placedDate: "2024-01-20T10:00:00Z",
-  //     status: "awaiting_shipment",
-  //     customerName: "Nguyễn Văn A",
-  //     customerEmail: "vana@example.com",
-  //     customerPhone: "0901234567",
-  //     items: [
-  //       { name: "Bánh kem dâu", quantity: 1, price: 250000 },
-  //       { name: "Bánh su kem", quantity: 1, price: 180000 },
-  //     ],
-  //     total: 430000,
-  //     history: [
-  //       {
-  //         date: "2024-01-20",
-  //         time: "10:00",
-  //         status: "pending",
-  //         note: "Đơn hàng được tạo",
-  //       },
-  //       {
-  //         date: "2024-01-20",
-  //         time: "12:00",
-  //         status: "awaiting_shipment",
-  //         note: "Đợi vận chuyển",
-  //       },
-  //     ],
-  //   },
-  //   {
-  //     id: 2,
-  //     orderNumber: "ORD-2024-002",
-  //     placedDate: "2024-01-22T14:30:00Z",
-  //     status: "processing",
-  //     customerName: "Trần Thị B",
-  //     customerEmail: "thib@example.com",
-  //     customerPhone: "0912345678",
-  //     items: [{ name: "Bánh cupcake", quantity: 2, price: 50000 }],
-  //     total: 100000,
-  //     history: [
-  //       {
-  //         date: "2024-01-22",
-  //         time: "14:30",
-  //         status: "pending",
-  //         note: "Đơn hàng được tạo",
-  //       },
-  //       {
-  //         date: "2024-01-22",
-  //         time: "15:00",
-  //         status: "processing",
-  //         note: "Đang chuẩn bị",
-  //       },
-  //     ],
-  //   },
-  // ];
 
-  // Chỉ sử dụng dữ liệu thực từ API hoặc props
-  const displayOrders = realOrders?.length > 0 ? realOrders : orders;
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchStatus =
+        statusFilter === "all" || order.status === statusFilter;
+      const searchTerm = search.toLowerCase();
+      const matchSearch =
+        !searchTerm ||
+        order.orderNumber.toLowerCase().includes(searchTerm) ||
+        (order.customerName || "").toLowerCase().includes(searchTerm);
+      let matchDate = true;
+      if (dateFrom) {
+        matchDate =
+          matchDate &&
+          new Date(order.placedDate) >= new Date(dateFrom + "T00:00:00");
+      }
+      if (dateTo) {
+        matchDate =
+          matchDate &&
+          new Date(order.placedDate) <= new Date(dateTo + "T23:59:59");
+      }
+      return matchStatus && matchSearch && matchDate;
+    });
+  }, [orders, statusFilter, search, dateFrom, dateTo]);
 
-  // Loại bỏ đơn hàng có trạng thái 'pending' khỏi danh sách shop
-  const filteredOrders = displayOrders.filter((o) => {
-    if (o.status === "pending") return false;
-    const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    const s = search.toLowerCase();
-    const matchSearch =
-      !s ||
-      o.orderNumber.toLowerCase().includes(s) ||
-      (o.customerName || "").toLowerCase().includes(s);
-    let matchDate = true;
-    if (dateFrom) {
-      matchDate =
-        matchDate && new Date(o.placedDate) >= new Date(dateFrom + "T00:00:00");
-    }
-    if (dateTo) {
-      matchDate =
-        matchDate && new Date(o.placedDate) <= new Date(dateTo + "T23:59:59");
-    }
-    return matchStatus && matchSearch && matchDate;
-  });
-
-  // Khi bấm vào xem chi tiết, fetch API để lấy thông tin chi tiết đơn hàng
+  // Xử lý select order để xem chi tiết
   const handleSelectOrder = async (orderId) => {
     try {
       setLoadingOrderDetail(true);
-      console.log("Fetching order detail for ID:", orderId);
 
-      // Fetch chi tiết order từ API
       const orderDetail = await fetchOrderById(orderId);
-      console.log("Order detail fetched:", orderDetail);
-
       const data = orderDetail?.order || orderDetail?.data || orderDetail;
-      const userObj = data.User || data.user || {};
-      const customerName =
-        userObj.full_name ||
-        userObj.username ||
-        `Khách hàng #${data.customer_id || userObj.id || "N/A"}`;
-      const customerEmail = userObj.email || userObj.username || "";
-      const customerPhone = userObj.phone_number || userObj.phone || "";
 
-      // Build items
-      let items = [];
-      if (Array.isArray(data.order_details)) {
-        items = data.order_details.map((item) => ({
-          name:
-            item.cake?.name ||
-            item.marketplace_post?.title ||
-            `Bánh tùy chỉnh #${item.id || "N/A"}`,
-          quantity: parseInt(item.quantity) || 1,
-          price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-          customization: {
-            size: item.size || data.size || "N/A",
-            special_instructions:
-              item.special_instructions || data.special_instructions || "",
-            toppings: [],
-          },
-        }));
-      } else if (Array.isArray(data.orderDetails)) {
-        items = data.orderDetails.map((od) => {
-          const q = Number(od.quantity) || 1;
-          const total = parseFloat(od.total_price) || 0;
-          const unit = q > 0 ? total / q : total;
-          return {
-            name: `Nguyên liệu #${od.ingredient_id}`,
-            quantity: q,
-            price: unit,
+      const transformedOrder = {
+        id: data.id,
+        orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
+        placedDate: data.created_at || data.createdAt,
+        placeDateFull: new Date(
+          data.created_at || data.createdAt
+        ).toLocaleString("vi-VN"),
+        status: data.status,
+        customerName:
+          data.User?.full_name ||
+          data.User?.username ||
+          `Khách hàng #${data.customer_id}`,
+        customerEmail: data.User?.email || "",
+        customerPhone: data.User?.phone_number || "",
+        base_price: parseFloat(data.base_price) || 0,
+        total: parseFloat(data.total_price) || 0,
+        size: data.size || "N/A",
+        special_instructions: data.special_instructions || "",
+        marketplace_post_id: data.marketplace_post_id,
+        shipped_at: data.shipped_at,
+        // Simplified items structure
+        items: [
+          {
+            name: `Bánh tùy chỉnh (${data.size || "N/A"})`,
+            quantity: 1,
+            price: parseFloat(data.base_price) || 0,
             customization: {
               size: data.size || "N/A",
               special_instructions: data.special_instructions || "",
               toppings: [],
             },
-          };
-        });
-      }
-
-      const createdRaw =
-        data.created_at ||
-        data.createdAt ||
-        data.placeDate ||
-        new Date().toISOString();
-      const transformedOrder = {
-        id: data.id,
-        orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
-        placeDate: createdRaw,
-        placeDateFull: new Date(createdRaw).toLocaleString("vi-VN"),
-        status: data.status,
-        customerName,
-        customerEmail,
-        customerPhone,
-        items,
-        total: parseFloat(data.total_price) || 0,
-        base_price:
-          parseFloat(data.base_price) || parseFloat(data.total_price) || 0,
-        size: data.size || items[0]?.customization?.size || "-",
-        ingredient_total:
-          data.ingredient_total || data.ingredients_total || "-",
-        note: data.note || data.special_instructions || "-",
-        shop_id: data.shop_id || data.shopId || "-",
-        marketplace_post_id:
-          data.marketplace_post_id || data.marketplacePostId || "-",
-        shippingAddress: {
-          address: data.shipped_at || "",
-        },
+          },
+        ],
         history: [
           {
-            date: new Date(createdRaw).toLocaleDateString("vi-VN"),
-            time: new Date(createdRaw).toLocaleTimeString("vi-VN"),
-            datetime: new Date(createdRaw).toLocaleString("vi-VN"),
+            date: new Date(
+              data.created_at || data.createdAt
+            ).toLocaleDateString("vi-VN"),
+            time: new Date(
+              data.created_at || data.createdAt
+            ).toLocaleTimeString("vi-VN"),
+            datetime: new Date(
+              data.created_at || data.createdAt
+            ).toLocaleString("vi-VN"),
             status: data.status,
             note: "Đơn hàng được tạo",
           },
+          ...(data.shipped_at
+            ? [
+                {
+                  date: new Date(data.shipped_at).toLocaleDateString("vi-VN"),
+                  time: new Date(data.shipped_at).toLocaleTimeString("vi-VN"),
+                  datetime: new Date(data.shipped_at).toLocaleString("vi-VN"),
+                  status: "shipped",
+                  note: "Đơn hàng đã được giao",
+                },
+              ]
+            : []),
         ],
       };
 
@@ -401,12 +187,15 @@ export default function OrderTrackingList({
     }
   };
 
-  // Function để xử lý việc xem chi tiết với navigation
+  // Navigation xử lý
   const handleViewOrderDetail = (orderId) => {
     if (showOrderDetails) {
       handleSelectOrder(orderId);
     } else {
-      navigate(`/order-tracking/${orderId}`);
+      const orderSummary = orders.find((o) => String(o.id) === String(orderId));
+      navigate(`/order-tracking/${orderId}`, {
+        state: { orderSummary },
+      });
     }
   };
 
@@ -423,90 +212,9 @@ export default function OrderTrackingList({
     try {
       await updateOrderStatus(orderId, newStatus);
 
-      // Thay vì quay về danh sách, refresh order detail hiện tại
+      // Refresh order detail nếu đang xem
       if (selectedOrder && selectedOrder.id === orderId) {
-        // Fetch lại order detail để có trạng thái mới
-        const updatedOrderDetail = await fetchOrderById(orderId);
-        const data =
-          updatedOrderDetail?.order ||
-          updatedOrderDetail?.data ||
-          updatedOrderDetail;
-        const userObj = data.User || data.user || {};
-        const customerName =
-          userObj.full_name ||
-          userObj.username ||
-          `Khách hàng #${data.customer_id || userObj.id || "N/A"}`;
-        const customerEmail = userObj.email || userObj.username || "";
-        const customerPhone = userObj.phone_number || userObj.phone || "";
-
-        // Transform data giống như trong handleSelectOrder
-        const transformedOrder = {
-          id: data.id,
-          orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
-          placedDate: data.created_at || data.createdAt,
-          status: data.status,
-          customerName,
-          customerEmail,
-          customerPhone,
-          items: Array.isArray(data.order_details)
-            ? data.order_details.map((item) => ({
-                name:
-                  item.cake?.name ||
-                  item.marketplace_post?.title ||
-                  `Bánh tùy chỉnh #${item.id || "N/A"}`,
-                quantity: parseInt(item.quantity) || 1,
-                price:
-                  parseFloat(item.price) || parseFloat(item.base_price) || 0,
-                customization: {
-                  size: item.size || data.size || "N/A",
-                  special_instructions:
-                    item.special_instructions ||
-                    data.special_instructions ||
-                    "",
-                  toppings: [],
-                },
-              }))
-            : Array.isArray(data.orderDetails)
-            ? data.orderDetails.map((od) => {
-                const q = Number(od.quantity) || 1;
-                const total = parseFloat(od.total_price) || 0;
-                const unit = q > 0 ? total / q : total;
-                return {
-                  name: `Nguyên liệu #${od.ingredient_id}`,
-                  quantity: q,
-                  price: unit,
-                  customization: {
-                    size: data.size || "N/A",
-                    special_instructions: data.special_instructions || "",
-                    toppings: [],
-                  },
-                };
-              })
-            : [],
-          total: parseFloat(data.total_price) || 0,
-          base_price:
-            parseFloat(data.base_price) || parseFloat(data.total_price) || 0,
-          history: [
-            {
-              date: new Date(
-                data.created_at || data.createdAt
-              ).toLocaleDateString("vi-VN"),
-              time: new Date(
-                data.created_at || data.createdAt
-              ).toLocaleTimeString("vi-VN"),
-              status: data.status,
-              note: "Đơn hàng được tạo",
-            },
-            {
-              date: new Date().toLocaleDateString("vi-VN"),
-              time: new Date().toLocaleTimeString("vi-VN"),
-              status: newStatus,
-              note: `Trạng thái được cập nhật thành: ${newStatus}`,
-            },
-          ],
-        };
-
-        setSelectedOrder(transformedOrder);
+        await handleSelectOrder(orderId);
       }
 
       // Refresh danh sách orders
@@ -517,6 +225,7 @@ export default function OrderTrackingList({
     }
   };
 
+  // Loading states
   if (selectedOrder) {
     return (
       <OrderTrackingForm
@@ -530,11 +239,9 @@ export default function OrderTrackingList({
   if (loadingOrderDetail) {
     return (
       <div className="p-8 bg-pink-50 min-h-screen">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center">
-            <div className="text-pink-600 text-lg">
-              Đang tải chi tiết đơn hàng...
-            </div>
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="text-pink-600 text-lg">
+            Đang tải chi tiết đơn hàng...
           </div>
         </div>
       </div>
@@ -544,11 +251,9 @@ export default function OrderTrackingList({
   if (loading) {
     return (
       <div className="p-8 bg-pink-50 min-h-screen">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center">
-            <div className="text-pink-600 text-lg">
-              Đang tải danh sách đơn hàng...
-            </div>
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="text-pink-600 text-lg">
+            Đang tải danh sách đơn hàng...
           </div>
         </div>
       </div>
@@ -558,16 +263,14 @@ export default function OrderTrackingList({
   if (error) {
     return (
       <div className="p-8 bg-pink-50 min-h-screen">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center">
-            <div className="text-red-600 text-lg mb-4">{error}</div>
-            <button
-              onClick={fetchOrders}
-              className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-lg"
-            >
-              Thử lại
-            </button>
-          </div>
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="text-red-600 text-lg mb-4">{error}</div>
+          <button
+            onClick={fetchOrders}
+            className="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-4 py-2 rounded-lg"
+          >
+            Thử lại
+          </button>
         </div>
       </div>
     );
@@ -576,11 +279,14 @@ export default function OrderTrackingList({
   return (
     <div className="p-8 bg-pink-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <h2 className="text-3xl font-bold text-pink-700 flex items-center gap-3">
               <ListOrdered className="h-7 w-7" /> Shop Orders
             </h2>
+
+            {/* Filters */}
             <div className="w-full lg:w-auto flex flex-col gap-3">
               <div className="text-xs font-semibold uppercase tracking-wide text-pink-600">
                 Bộ lọc
@@ -597,6 +303,7 @@ export default function OrderTrackingList({
                     className="h-10 px-3 rounded-lg border border-pink-200 focus:outline-none focus:border-pink-400 bg-white text-sm"
                   />
                 </div>
+
                 <div className="flex flex-col gap-1 min-w-[150px]">
                   <label className="text-xs font-medium text-gray-600">
                     Từ ngày
@@ -608,6 +315,7 @@ export default function OrderTrackingList({
                     className="h-10 px-3 rounded-lg border border-pink-200 bg-white text-sm focus:outline-none focus:border-pink-400"
                   />
                 </div>
+
                 <div className="flex flex-col gap-1 min-w-[150px]">
                   <label className="text-xs font-medium text-gray-600">
                     Đến ngày
@@ -619,6 +327,7 @@ export default function OrderTrackingList({
                     className="h-10 px-3 rounded-lg border border-pink-200 bg-white text-sm focus:outline-none focus:border-pink-400"
                   />
                 </div>
+
                 <div className="flex flex-col gap-1 min-w-[180px]">
                   <label className="text-xs font-medium text-gray-600">
                     Trạng thái
@@ -629,13 +338,14 @@ export default function OrderTrackingList({
                     className="h-10 px-3 rounded-lg border border-pink-200 bg-white text-sm focus:outline-none focus:border-pink-400"
                   >
                     <option value="all">Tất cả</option>
-                    {Object.keys(statusMap).map((k) => (
-                      <option key={k} value={k}>
-                        {statusMap[k].label}
+                    {Object.keys(statusMap).map((status) => (
+                      <option key={status} value={status}>
+                        {statusMap[status].label}
                       </option>
                     ))}
                   </select>
                 </div>
+
                 <div className="flex gap-2 pt-2 lg:pt-0">
                   <button
                     onClick={() => {
@@ -659,11 +369,13 @@ export default function OrderTrackingList({
               </div>
             </div>
           </div>
+
           <div className="text-sm text-gray-500">
-            Hiển thị {filteredOrders.length} / {displayOrders.length} đơn hàng
+            Hiển thị {filteredOrders.length} / {orders.length} đơn hàng
           </div>
         </div>
 
+        {/* Orders Table */}
         {filteredOrders.length === 0 ? (
           <div className="bg-white rounded-xl border border-pink-100 p-12 text-center text-gray-500">
             Không tìm thấy đơn hàng
@@ -677,9 +389,7 @@ export default function OrderTrackingList({
                     <th className="px-4 py-3 font-semibold">#</th>
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
                     <th className="px-4 py-3 font-semibold">Khách hàng</th>
-                    <th className="px-4 py-3 font-semibold">
-                      Số lượng topping
-                    </th>
+                    <th className="px-4 py-3 font-semibold">Kích thước</th>
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
                     <th className="px-4 py-3 font-semibold">Tổng giá</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
@@ -706,7 +416,7 @@ export default function OrderTrackingList({
                         {order.customerName}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        {order.items.length}
+                        {order.size || "-"}
                       </td>
                       <td className="px-4 py-3">
                         <span

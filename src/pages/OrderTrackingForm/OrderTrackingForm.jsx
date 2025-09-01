@@ -19,177 +19,14 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-
-const statusMap = {
-  pending: {
-    label: "Đang chờ xử lý",
-    icon: <Clock className="h-5 w-5" />,
-    color: "text-yellow-500",
-  },
-  ordered: {
-    label: "Đã tiếp nhận",
-    icon: <ClipboardCheck className="h-5 w-5" />,
-    color: "text-cyan-500",
-  },
-  preparedForDelivery: {
-    label: "Sẵn sàng giao hàng",
-    icon: <Package className="h-5 w-5" />,
-    color: "text-blue-500",
-  },
-  shipped: {
-    label: "Đang vận chuyển",
-    icon: <Truck className="h-5 w-5" />,
-    color: "text-orange-500",
-  },
-  completed: {
-    label: "Hoàn tất",
-    icon: <CheckCircle className="h-5 w-5" />,
-    color: "text-emerald-500",
-  },
-  complaining: {
-    label: "Đang khiếu nại",
-    icon: <MessageSquareText className="h-5 w-5" />,
-    color: "text-red-600",
-  },
-  cancelled: {
-    label: "Đã hủy",
-    icon: <Clock className="h-5 w-5" />,
-    color: "text-red-500",
-  },
-};
-
-// Helper to normalize various backend status strings to UI flow keys
-const normalizeStatus = (s = "") => {
-  const v = String(s).toLowerCase();
-  if (
-    ["accepted", "confirmed", "order_accepted", "received", "ordered"].includes(
-      v
-    )
-  )
-    return "ordered";
-  if (
-    [
-      "ready",
-      "ready_to_ship",
-      "prepared",
-      "preparing",
-      "preparedfordelivery",
-      "prepared_for_delivery",
-    ].includes(v)
-  )
-    return "preparedForDelivery";
-  if (["shipping", "delivering", "in_transit", "shipped"].includes(v))
-    return "shipped";
-  if (["done", "delivered", "completed", "complete"].includes(v))
-    return "completed";
-  if (["complaint", "complaining", "disputed"].includes(v))
-    return "complaining";
-  if (["cancel", "canceled", "cancelled"].includes(v)) return "cancelled";
-  if (["pending", "new"].includes(v)) return "pending";
-  return s;
-};
-
-// Helper: extract the customer (order owner) id from various response shapes
-const extractCustomerUserId = (data) => {
-  if (!data || typeof data !== "object") return null;
-  const customerNode = data.customer || data.Customer || {};
-  const u = data.User || data.user || customerNode || {};
-  const rawCustomerId = data.customer_id;
-  const fromCustomerId =
-    typeof rawCustomerId === "object" ? rawCustomerId?.id : rawCustomerId;
-
-  const candidates = [
-    data.customer_user_id,
-    data.customerUserId,
-    customerNode?.id,
-    customerNode?.user_id,
-    fromCustomerId,
-    u?.customer_id,
-    u?.id && (u?.role === "customer" || u?.is_customer) ? u.id : null,
-  ].filter((v) => v !== undefined && v !== null && v !== "");
-
-  if (!candidates.length) return null;
-  try {
-    return String(candidates[0]);
-  } catch (_) {
-    return null;
-  }
-};
-
-// Helper to extract shop ID from order data (covers multiple backend shapes)
-const extractShopId = (orderData) => {
-  if (!orderData || typeof orderData !== "object") return null;
-  const mpShop =
-    orderData?.marketplace_post?.shop_id ||
-    orderData?.marketplace_post?.shop?.id;
-  const candidates = [
-    orderData.shop_id,
-    orderData.shopId,
-    orderData.shop?.id,
-    orderData.shop?.shop_id,
-    orderData.Shop?.id,
-    orderData.Shop?.shop_id,
-    mpShop,
-  ].filter((v) => v !== undefined && v !== null && v !== "");
-  if (!candidates.length) return null;
-  return String(candidates[0]);
-};
-
-// Helper to extract marketplace image
-const extractImageFromMarketplacePost = (mp) => {
-  if (!mp) return null;
-  const imageFields = [
-    "image_url",
-    "image",
-    "photo_url",
-    "photo",
-    "thumbnail",
-    "thumb",
-    "url",
-  ];
-  const isStr = (v) => typeof v === "string" && v.trim();
-  const pickFrom = (obj) => {
-    if (!obj || typeof obj !== "object") return null;
-    for (const f of imageFields) if (isStr(obj[f])) return obj[f].trim();
-    return null;
-  };
-
-  const direct = pickFrom(mp);
-  if (direct) return direct;
-
-  const containers = [mp.post, mp.data];
-  for (const c of containers) {
-    const val = pickFrom(c);
-    if (val) return val;
-  }
-
-  const mediaArrays = [mp.media, mp.post?.media, mp.data?.media];
-  for (const arr of mediaArrays) {
-    if (Array.isArray(arr)) {
-      for (const item of arr) {
-        const val =
-          pickFrom(item) || pickFrom(item?.image) || pickFrom(item?.data);
-        if (val) return val;
-      }
-    }
-  }
-
-  const seen = new Set();
-  const stack = [mp];
-  while (stack.length) {
-    const node = stack.pop();
-    if (!node || typeof node !== "object" || seen.has(node)) continue;
-    seen.add(node);
-    const picked = pickFrom(node);
-    if (picked) return picked;
-    if (Array.isArray(node)) {
-      for (const el of node) stack.push(el);
-    } else {
-      for (const v of Object.values(node)) stack.push(v);
-    }
-  }
-  return null;
-};
+// Shared utils
+import {
+  statusMap,
+  normalizeStatus,
+  extractCustomerUserId,
+  extractShopId,
+  extractImageFromMarketplacePost,
+} from "./orderUtils";
 
 export default function OrderTrackingForm({
   order,
@@ -199,6 +36,11 @@ export default function OrderTrackingForm({
   const { orderId } = useParams();
   const { user } = useAuth();
   const location = useLocation();
+  // Order summary passed via navigation state (from list pages)
+  const passedOrderSummary = useMemo(
+    () => location.state?.orderSummary || location.state?.order || null,
+    [location.state]
+  );
   // Detect if viewing from user purchase history page; restrict shop transitions here
   const isUserHistoryPage = (location?.pathname || "").startsWith(
     "/order-tracking-user"
@@ -239,17 +81,39 @@ export default function OrderTrackingForm({
   }, [user]);
 
   const [viewerShopId, setViewerShopId] = useState(null);
-  const [orderDetail, setOrderDetail] = useState(
-    order
-      ? {
-          ...order,
-          status: normalizeStatus(order.status),
-          customer_user_id:
-            order.customer_user_id || extractCustomerUserId(order) || null,
-          shop_id: extractShopId(order),
-        }
-      : order
-  );
+  const [orderDetail, setOrderDetail] = useState(() => {
+    const base = order || passedOrderSummary;
+    if (!base) return base;
+    const userNode = base.User || base.user || {};
+    return {
+      ...base,
+      status: normalizeStatus(base.status),
+      customer_user_id:
+        base.customer_user_id || extractCustomerUserId(base) || null,
+      shop_id: extractShopId(base),
+      customerPhone:
+        base.customerPhone ||
+        userNode.phone ||
+        userNode.phone_number ||
+        base.phone_number ||
+        "",
+      customerAddress:
+        base.customerAddress ||
+        userNode.address ||
+        userNode.business_address ||
+        base.address ||
+        base.shipping_address ||
+        "",
+      shippingAddress: base.shippingAddress || {
+        address:
+          base.shipping_address ||
+          base.address ||
+          userNode.address ||
+          userNode.business_address ||
+          "",
+      },
+    };
+  });
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ingredientsMap, setIngredientsMap] = useState({});
@@ -298,20 +162,8 @@ export default function OrderTrackingForm({
   const fetchOrderDetail = async () => {
     try {
       setLoading(true);
-      if (isAdminOrdersPage) {
-        console.log("≈ ADMIN | Gọi fetchOrderById với orderId:", orderId);
-      }
       const response = await fetchOrderById(orderId);
       const data = response?.order || response?.data || response;
-
-      if (isAdminOrdersPage) {
-        console.log("≈ ADMIN | RAW RESPONSE (fetchOrderById):", response);
-        console.log("≈ ADMIN | RAW ORDER DATA:", data);
-        console.log(
-          "≈ ADMIN | RAW USER TRONG ORDER:",
-          data?.User || data?.user || null
-        );
-      }
 
       const customerUser = data.User || data.user || {};
       const customerName =
@@ -325,7 +177,23 @@ export default function OrderTrackingForm({
         customerUser.username ||
         data.customer_id?.email ||
         "";
-      const customerPhone = customerUser.phone || data.customer_id?.phone || "";
+      const customerPhone =
+        customerUser.phone ||
+        customerUser.phone_number ||
+        data.customer_id?.phone ||
+        data.customer_id?.phone_number ||
+        passedOrderSummary?.customerPhone ||
+        orderDetail?.customerPhone ||
+        "";
+      const customerAddress =
+        customerUser.address ||
+        customerUser.business_address ||
+        data.address ||
+        data.shipping_address ||
+        passedOrderSummary?.customerAddress ||
+        orderDetail?.customerAddress ||
+        passedOrderSummary?.shippingAddress?.address ||
+        "";
 
       let items = [];
       if (Array.isArray(data.order_details)) {
@@ -375,13 +243,14 @@ export default function OrderTrackingForm({
 
       // YÊU CẦU: log RAW data tại dòng này (không phải object đã transform)
       // Log nguyên bản object trả về từ API (không chỉnh sửa)
-      console.log("RAW ORDER API DATA (unmodified):", data);
+      // Debug (có thể comment khi stable)
 
       const transformedOrder = {
         id: data.id || data._id,
         customerName,
         customerEmail,
         customerPhone,
+        customerAddress,
         items,
         total: totalPrice,
         base_price: basePrice,
@@ -400,11 +269,50 @@ export default function OrderTrackingForm({
         shop_id: extractShopId(data),
         marketplace_post_id: data.marketplace_post_id || null,
         customer_user_id: extractCustomerUserId(data),
+        shippingAddress: {
+          address:
+            data.shipping_address ||
+            data.shippingAddress ||
+            data.delivery_address ||
+            data.deliveryAddress ||
+            customerAddress ||
+            passedOrderSummary?.shippingAddress?.address ||
+            "",
+        },
       };
 
-      // (Giữ lại nếu cần so sánh) console.log("TRANSFORMED ORDER (for UI):", transformedOrder);
-
-      setOrderDetail(transformedOrder);
+      setOrderDetail((prev) => {
+        const merged = { ...transformedOrder };
+        const fallbackSources = [passedOrderSummary, prev];
+        [
+          "customerName",
+          "customerEmail",
+          "customerPhone",
+          "customerAddress",
+          "shop_id",
+        ].forEach((field) => {
+          if (!merged[field]) {
+            for (const src of fallbackSources) {
+              if (src && src[field]) {
+                merged[field] = src[field];
+                break;
+              }
+            }
+          }
+        });
+        if (
+          (!merged.shippingAddress || !merged.shippingAddress.address) &&
+          (passedOrderSummary?.shippingAddress?.address ||
+            prev?.shippingAddress?.address)
+        ) {
+          merged.shippingAddress = {
+            address:
+              passedOrderSummary?.shippingAddress?.address ||
+              prev?.shippingAddress?.address,
+          };
+        }
+        return merged;
+      });
     } catch (error) {
       alert("Không thể tải thông tin đơn hàng");
     } finally {
@@ -419,25 +327,75 @@ export default function OrderTrackingForm({
     if (!orderId) return;
     const propMissingShopId = order && !extractShopId(order);
     if (isAdminOrdersPage || !order || propMissingShopId) {
-      if (propMissingShopId) {
-        console.log("⚠️ order prop thiếu shop_id -> refetch để bổ sung.");
-      }
       fetchOrderDetail();
     }
   }, [orderId, isAdminOrdersPage, order && extractShopId(order)]);
 
+  // Merge bổ sung thông tin summary chỉ khi summary thay đổi (tránh Maximum update depth)
+  useEffect(() => {
+    if (!passedOrderSummary) return;
+    setOrderDetail((prev) => {
+      if (!prev) return prev;
+      let changed = false;
+      const merged = { ...prev };
+      [
+        "customerName",
+        "customerEmail",
+        "customerPhone",
+        "customerAddress",
+      ].forEach((f) => {
+        if (!merged[f] && passedOrderSummary[f]) {
+          merged[f] = passedOrderSummary[f];
+          changed = true;
+        }
+      });
+      if (
+        (!merged.shippingAddress || !merged.shippingAddress.address) &&
+        (passedOrderSummary?.shippingAddress?.address ||
+          passedOrderSummary?.customerAddress)
+      ) {
+        merged.shippingAddress = {
+          address:
+            passedOrderSummary?.shippingAddress?.address ||
+            passedOrderSummary?.customerAddress,
+        };
+        changed = true;
+      }
+      return changed ? merged : prev;
+    });
+  }, [passedOrderSummary]);
+
   // Keep local detail in sync with parent order
   useEffect(() => {
     if (order) {
-      if (isAdminOrdersPage) {
-        console.log("≈ ADMIN | ORDER PROP PASSED TỪ PARENT:", order);
-      }
+      const userNode = order.User || order.user || {};
       setOrderDetail({
         ...order,
         status: normalizeStatus(order.status),
         customer_user_id:
           order.customer_user_id || extractCustomerUserId(order) || null,
         shop_id: extractShopId(order),
+        customerPhone:
+          order.customerPhone ||
+          userNode.phone ||
+          userNode.phone_number ||
+          order.phone_number ||
+          "",
+        customerAddress:
+          order.customerAddress ||
+          userNode.address ||
+          userNode.business_address ||
+          order.address ||
+          order.shipping_address ||
+          "",
+        shippingAddress: order.shippingAddress || {
+          address:
+            order.shipping_address ||
+            order.address ||
+            userNode.address ||
+            userNode.business_address ||
+            "",
+        },
       });
     }
   }, [order]);
@@ -910,6 +868,14 @@ export default function OrderTrackingForm({
                 {orderDetail.customerPhone || (
                   <span className="text-gray-500">Chưa cập nhật</span>
                 )}
+              </li>
+              <li>
+                <span className="font-medium">Địa chỉ:</span>{" "}
+                {orderDetail.customerAddress ||
+                  orderDetail?.shippingAddress?.address ||
+                  orderDetail?.address || (
+                    <span className="text-gray-500">Chưa cập nhật</span>
+                  )}
               </li>
             </ul>
           </div>
