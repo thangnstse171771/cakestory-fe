@@ -58,7 +58,7 @@ export const deleteUser = async (userId) => {
 };
 
 export const fetchAllShops = async () => {
-  const response = await axiosInstance.get("/shops");
+  const response = await axiosInstance.get("/shops/all");
   return response.data;
 };
 

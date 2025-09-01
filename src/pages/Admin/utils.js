@@ -7,12 +7,60 @@ export const getIsBaker = (account) =>
   account.is_baker ?? account.isBaker ?? account.is_Baker ?? false;
 
 export const getStatusValue = (account) => {
-  if (account.status) return account.status;
-  if (typeof account.is_active === "boolean")
-    return account.is_active ? "active" : "restricted";
-  if (typeof account.isActive === "boolean")
-    return account.isActive ? "active" : "restricted";
-  return "restricted";
+  if (!account || typeof account !== "object") return "restricted";
+
+  // Gom tất cả nguồn có thể có trạng thái (user + shopInfo)
+  const sources = [
+    account.status,
+    account.is_active,
+    account.isActive,
+    account.active,
+    account.enabled,
+    account?.shopInfo?.status,
+    account?.shopInfo?.is_active,
+    account?.shopInfo?.isActive,
+    account?.shopInfo?.active,
+  ];
+
+  const normalize = (val) => {
+    const s = String(val).trim().toLowerCase();
+    if (
+      [
+        "1",
+        "true",
+        "active",
+        "activated",
+        "enable",
+        "enabled",
+        "yes",
+        "on",
+      ].includes(s)
+    )
+      return "active";
+    if (
+      [
+        "0",
+        "false",
+        "inactive",
+        "disabled",
+        "disable",
+        "blocked",
+        "banned",
+        "restricted",
+        "off",
+        "no",
+      ].includes(s)
+    )
+      return "restricted";
+    return null;
+  };
+
+  for (const v of sources) {
+    if (v === undefined || v === null || v === "") continue;
+    const norm = normalize(v);
+    if (norm) return norm;
+  }
+  return "restricted"; // fallback
 };
 
 export const filterAccounts = (accountsWithShop, view, search) => {
@@ -47,8 +95,31 @@ export const filterAccounts = (accountsWithShop, view, search) => {
       !account.email?.toLowerCase().includes(search.email.toLowerCase())
     )
       return false;
-    const statusValue = getStatusValue(account);
-    if (search.status && statusValue !== search.status) return false;
+    // Chuẩn hoá status: nếu đang ở view shops => ưu tiên trạng thái shop
+    let statusValue;
+    if (view === "shops" && account.shopInfo) {
+      const sv =
+        account.shopInfo.is_active ??
+        account.shopInfo.isActive ??
+        account.shopInfo.status;
+      const s = String(sv).trim().toLowerCase();
+      const activeVals = [
+        "true",
+        "1",
+        "active",
+        "activated",
+        "enable",
+        "enabled",
+      ];
+      statusValue = activeVals.includes(s) ? "active" : "restricted";
+    } else {
+      statusValue = getStatusValue(account);
+    }
+    if (search.status) {
+      const wanted =
+        search.status === "inactive" ? "restricted" : search.status; // chấp nhận cả inactive
+      if (statusValue !== wanted) return false;
+    }
     if (
       search.premium &&
       ((search.premium === "premium" && !isPremium) ||

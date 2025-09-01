@@ -29,13 +29,7 @@ const SearchForm = ({ search, setSearch, view, setView }) => {
             onChange={(e) => setView(e.target.value)}
           >
             <option value="all">Tất cả tài khoản</option>
-            <option value="premium">Tài khoản Premium</option>
             <option value="shops">Tài khoản cửa hàng</option>
-            <option value="admin">Tài khoản Admin</option>
-            <option value="account_staff">Tài khoản Account Staff</option>
-            <option value="complaint_handler">
-              Tài khoản Complaint Handler
-            </option>
           </select>
           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-pink-400">
             ▼
@@ -82,22 +76,7 @@ const SearchForm = ({ search, setSearch, view, setView }) => {
           <option value="restricted">Bị hạn chế</option>
         </select>
       </div>
-      <div className="min-w-[120px]">
-        <label className="block text-xs font-semibold text-pink-600 mb-1">
-          Loại tài khoản
-        </label>
-        <select
-          className="border border-pink-200 rounded px-3 py-2 w-full"
-          value={search.premium}
-          onChange={(e) =>
-            setSearch((s) => ({ ...s, premium: e.target.value }))
-          }
-        >
-          <option value="">Tất cả</option>
-          <option value="premium">Premium</option>
-          <option value="regular">Thường</option>
-        </select>
-      </div>
+
       <div className="flex-1 min-w-[160px]">
         <label className="block text-xs font-semibold text-pink-600 mb-1">
           Tên cửa hàng

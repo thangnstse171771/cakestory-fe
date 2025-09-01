@@ -12,7 +12,7 @@ import useAdminLoader from "../hooks/useAdminLoader";
 
 // Import components
 import SearchForm from "./Admin/SearchForm";
-import ViewControls from "./Admin/ViewControls";
+// import ViewControls from "./Admin/ViewControls";
 import AccountsTable from "./Admin/AccountsTable";
 import AccountDetailModal from "./Admin/AccountDetailModal";
 import ConfirmDeleteModal from "./Admin/ConfirmDeleteModal";

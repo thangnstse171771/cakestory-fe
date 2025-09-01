@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchShopByUserId, deactivateShop } from "../../api/axios";
+import toast from "react-hot-toast";
 
 const AccountDetailModal = ({
   showModal,
@@ -240,18 +241,24 @@ const AccountDetailModal = ({
                             setActionError("");
                             setActionSuccess("");
                             setDeactivating(true);
+                            const toastId = toast.loading(
+                              "Đang vô hiệu hóa cửa hàng..."
+                            );
                             await deactivateShop(selectedAccount.id);
+                            toast.success("Đã vô hiệu hóa cửa hàng", {
+                              id: toastId,
+                            });
                             setActionSuccess("Đã vô hiệu hóa cửa hàng");
-                            // Optimistic update
                             setShopInfo((prev) =>
                               prev ? { ...prev, is_active: false } : prev
                             );
                           } catch (e) {
-                            setActionError(
+                            const msg =
                               e?.response?.data?.message ||
-                                e?.message ||
-                                "Không thể vô hiệu hóa cửa hàng"
-                            );
+                              e?.message ||
+                              "Không thể vô hiệu hóa cửa hàng";
+                            setActionError(msg);
+                            toast.error(msg);
                           } finally {
                             setDeactivating(false);
                           }

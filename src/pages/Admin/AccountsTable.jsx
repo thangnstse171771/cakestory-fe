@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { deactivateShop } from "../../api/axios";
+import toast from "react-hot-toast";
 
 const AccountsTable = ({
   paginatedAccounts,
@@ -133,7 +134,26 @@ const AccountsTable = ({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAccounts.map((account) => {
-              const status = getStatusValue(account);
+              // Nếu đang ở view shops => dùng trạng thái của shop (shopInfo.is_active)
+              let status;
+              if (view === "shops" && account.shopInfo) {
+                const sv =
+                  account.shopInfo.is_active ??
+                  account.shopInfo.isActive ??
+                  account.shopInfo.status;
+                const s = String(sv).trim().toLowerCase();
+                const activeValues = [
+                  "true",
+                  "1",
+                  "active",
+                  "activated",
+                  "enable",
+                  "enabled",
+                ];
+                status = activeValues.includes(s) ? "active" : "restricted";
+              } else {
+                status = getStatusValue(account); // user-level status
+              }
               const role = getRole(account); // Lấy role để kiểm tra
               return (
                 <tr key={account.id} className="hover:bg-gray-50">
@@ -264,7 +284,9 @@ const AccountsTable = ({
                             {status === "active" ? "Hạn chế" : "Kích hoạt"}
                           </button> */}
                           {view === "shops" &&
-                            account?.shopInfo?.business_name && (
+                            account?.shopInfo?.business_name &&
+                            (account.shopInfo.is_active === true ||
+                              account.shopInfo.isActive === true) && (
                               <button
                                 onClick={async (e) => {
                                   e.preventDefault();
@@ -279,12 +301,21 @@ const AccountsTable = ({
                                       ...prev,
                                       [account.id]: true,
                                     }));
+                                    const toastId = toast.loading(
+                                      "Đang vô hiệu hóa shop..."
+                                    );
                                     await deactivateShop(account.id);
+                                    toast.success("Đã vô hiệu hóa shop", {
+                                      id: toastId,
+                                    });
                                     if (typeof onShopRemoved === "function") {
                                       onShopRemoved(account.id);
                                     }
                                   } catch (e) {
-                                    console.error("Deactivate shop failed", e);
+                                    toast.error(
+                                      e?.response?.data?.message ||
+                                        "Vô hiệu hóa shop thất bại"
+                                    );
                                   } finally {
                                     setShopRemoving((prev) => ({
                                       ...prev,
