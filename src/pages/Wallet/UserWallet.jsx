@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   CheckCircle,
   Shield,
@@ -12,11 +12,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import {
-  depositToWallet,
-  fetchWalletBalance,
-  checkPaymentStatus,
-} from "../../api/axios";
+import { depositToWallet, fetchWalletBalance } from "../../api/axios";
 import PaymentHistory from "./PaymentHistory";
 
 const popularAmounts = [
@@ -89,63 +85,36 @@ export default function UserWallet() {
   const MAX_AMOUNT = 20000000;
   const MIN_AMOUNT = 10000;
 
+  // Helper to normalize balance from various possible API shapes
+  const extractBalance = (res) => {
+    if (!res || typeof res !== "object") return 0;
+    if (res.wallet && typeof res.wallet.balance !== "undefined") {
+      return typeof res.wallet.balance === "string"
+        ? parseFloat(res.wallet.balance) || 0
+        : res.wallet.balance || 0;
+    }
+    if (typeof res.balance === "number") return res.balance;
+    if (typeof res.balance === "string" && !isNaN(parseFloat(res.balance))) {
+      return parseFloat(res.balance) || 0;
+    }
+    if (res.data && typeof res.data.balance !== "undefined") {
+      return typeof res.data.balance === "string"
+        ? parseFloat(res.data.balance) || 0
+        : res.data.balance || 0;
+    }
+    return 0;
+  };
+
+  // Initial load & cooldown rehydrate
   useEffect(() => {
-    const fetchBalance = async () => {
+    (async () => {
       try {
-        console.log("Đang fetch balance cho user:", user);
         const res = await fetchWalletBalance();
-        console.log("Response từ fetchWalletBalance:", res);
-
-        // Kiểm tra cấu trúc response
-        if (res && typeof res === "object") {
-          let balanceValue = 0;
-
-          // Kiểm tra nếu có wallet.balance (cấu trúc từ API doc)
-          if (res.wallet && typeof res.wallet.balance !== "undefined") {
-            balanceValue =
-              typeof res.wallet.balance === "string"
-                ? parseFloat(res.wallet.balance)
-                : res.wallet.balance;
-            console.log("Balance tìm thấy trong wallet:", balanceValue);
-          }
-          // Kiểm tra nếu balance trực tiếp trong response
-          else if (typeof res.balance === "number") {
-            balanceValue = res.balance;
-            console.log("Balance tìm thấy (number):", balanceValue);
-          }
-          // Nếu balance là string và có thể parse thành number
-          else if (
-            typeof res.balance === "string" &&
-            !isNaN(parseFloat(res.balance))
-          ) {
-            balanceValue = parseFloat(res.balance);
-            console.log("Balance tìm thấy (string -> number):", balanceValue);
-          }
-          // Nếu response có cấu trúc khác trong data
-          else if (res.data && typeof res.data.balance !== "undefined") {
-            balanceValue =
-              typeof res.data.balance === "string"
-                ? parseFloat(res.data.balance)
-                : res.data.balance;
-            console.log("Balance tìm thấy trong data:", balanceValue);
-          } else {
-            console.log("Không tìm thấy balance trong response, set về 0");
-          }
-
-          console.log("Final balance value:", balanceValue);
-          setBalance(balanceValue);
-        } else {
-          console.log("Response không hợp lệ, set balance về 0");
-          setBalance(0);
-        }
-      } catch (e) {
-        console.error("Lỗi khi fetch balance:", e);
-        console.error("Error details:", e.response?.data || e.message);
+        setBalance(extractBalance(res));
+      } catch {
         setBalance(0);
       }
-    };
-    fetchBalance();
-    // Rehydrate cooldown from localStorage if exists
+    })();
     try {
       const untilRaw = localStorage.getItem(COOLDOWN_KEY);
       const until = untilRaw ? parseInt(untilRaw, 10) : 0;
@@ -202,60 +171,22 @@ export default function UserWallet() {
   // Status checking (polling balance every 5 seconds)
   useEffect(() => {
     if (showModal && paymentStatus === "pending" && orderId) {
-      console.log("Bắt đầu auto check balance cho orderId:", orderId);
-      console.log("Initial balance:", initialBalance);
-
       statusCheckRef.current = setInterval(async () => {
         try {
-          console.log("Checking balance change...");
           const balanceRes = await fetchWalletBalance();
-
-          let currentBalance = 0;
-          if (balanceRes?.wallet?.balance !== undefined) {
-            currentBalance =
-              typeof balanceRes.wallet.balance === "string"
-                ? parseFloat(balanceRes.wallet.balance)
-                : balanceRes.wallet.balance;
-          } else if (balanceRes?.balance !== undefined) {
-            currentBalance =
-              typeof balanceRes.balance === "string"
-                ? parseFloat(balanceRes.balance)
-                : balanceRes.balance;
-          } else if (balanceRes?.data?.balance !== undefined) {
-            currentBalance =
-              typeof balanceRes.data.balance === "string"
-                ? parseFloat(balanceRes.data.balance)
-                : balanceRes.data.balance;
-          }
-
-          console.log(
-            "Current balance:",
-            currentBalance,
-            "Initial balance:",
-            initialBalance
-          );
-
-          // Nếu balance tăng lên = thanh toán thành công
+          const currentBalance = extractBalance(balanceRes);
           if (currentBalance > initialBalance) {
-            console.log(
-              "✅ Thanh toán thành công! Balance tăng từ",
-              initialBalance,
-              "lên",
-              currentBalance
-            );
             setPaymentStatus("success");
-            setBalance(currentBalance); // Update balance ngay
-            setRefreshHistory((prev) => prev + 1); // Trigger refresh lịch sử giao dịch
+            setBalance(currentBalance);
+            setRefreshHistory((prev) => prev + 1);
           }
-        } catch (e) {
-          console.error("Error checking balance:", e);
-          // Không set error để tránh làm gián đoạn flow
+        } catch {
+          /* silent */
         }
-      }, 5000); // Check mỗi 5 giây
+      }, 5000);
     } else {
       clearInterval(statusCheckRef.current);
     }
-
     return () => clearInterval(statusCheckRef.current);
   }, [showModal, paymentStatus, orderId, initialBalance]);
 
@@ -271,55 +202,10 @@ export default function UserWallet() {
 
   const updateBalance = async () => {
     try {
-      console.log("Đang update balance...");
       const res = await fetchWalletBalance();
-      console.log("Response khi update balance:", res);
-
-      if (res && typeof res === "object") {
-        let balanceValue = 0;
-
-        // Kiểm tra nếu có wallet.balance (cấu trúc từ API doc)
-        if (res.wallet && typeof res.wallet.balance !== "undefined") {
-          balanceValue =
-            typeof res.wallet.balance === "string"
-              ? parseFloat(res.wallet.balance)
-              : res.wallet.balance;
-          console.log("Update balance từ wallet:", balanceValue);
-        }
-        // Kiểm tra nếu balance trực tiếp trong response
-        else if (typeof res.balance === "number") {
-          balanceValue = res.balance;
-          console.log("Update balance (number):", balanceValue);
-        }
-        // Nếu balance là string và có thể parse thành number
-        else if (
-          typeof res.balance === "string" &&
-          !isNaN(parseFloat(res.balance))
-        ) {
-          balanceValue = parseFloat(res.balance);
-          console.log("Update balance (string -> number):", balanceValue);
-        }
-        // Nếu response có cấu trúc khác trong data
-        else if (res.data && typeof res.data.balance !== "undefined") {
-          balanceValue =
-            typeof res.data.balance === "string"
-              ? parseFloat(res.data.balance)
-              : res.data.balance;
-          console.log("Update balance từ data:", balanceValue);
-        } else {
-          console.log("Không update được balance, giữ nguyên");
-          return;
-        }
-
-        console.log("Final update balance value:", balanceValue);
-        setBalance(balanceValue);
-      }
-    } catch (e) {
-      console.error("Error updating balance:", e);
-      console.error(
-        "Update balance error details:",
-        e.response?.data || e.message
-      );
+      setBalance(extractBalance(res));
+    } catch {
+      /* silent */
     }
   };
 
@@ -435,8 +321,6 @@ export default function UserWallet() {
 
     try {
       const res = await depositToWallet(amount);
-      console.log("Deposit response:", res);
-      console.log("Response data structure:", JSON.stringify(res, null, 2));
 
       // Kiểm tra các field có thể có trong response
       const qrCode =
@@ -458,16 +342,8 @@ export default function UserWallet() {
         res?.order_id ||
         res?.data?.depositRecord?.id;
 
-      console.log("Extracted values:", {
-        qrCode: qrCode ? `${qrCode.substring(0, 50)}...` : null,
-        paymentLink,
-        orderCode,
-      });
-
       if (qrCode || paymentLink) {
-        // Lưu balance hiện tại trước khi thanh toán
         setInitialBalance(balance);
-        console.log("Lưu initial balance:", balance);
 
         setPaymentUrl(paymentLink || "");
         setQrCodeUrl(qrCode || paymentLink || "");
@@ -475,26 +351,14 @@ export default function UserWallet() {
         setPaymentStatus("pending");
         setTimeLeft(300); // Reset timer to 5 minutes
         setShowModal(true);
-
-        // Debug QR code type
-        if (qrCode) {
-          console.log("QR Code type:", typeof qrCode);
-          console.log(
-            "QR Code starts with data:image?",
-            qrCode.startsWith("data:image")
-          );
-          console.log("QR Code length:", qrCode.length);
-        }
       } else {
         setError("Không lấy được link thanh toán. Vui lòng thử lại.");
       }
     } catch (e) {
-      console.error("Deposit error:", e);
       setError(humanizePaymentError(e));
     } finally {
       setLoading(false);
       depositLockRef.current = false; // release lock
-      // Set fixed cooldown and persist until timestamp so reloads can't bypass
       const until = Date.now() + COOLDOWN_SECONDS * 1000;
       setCooldownUntil(until);
       setCooldown(COOLDOWN_SECONDS);
@@ -514,13 +378,9 @@ export default function UserWallet() {
     setInitialBalance(0);
     setPaymentStatus("pending");
     setTimeLeft(300);
-
-    // Reset form
     setSelected(null);
     setCustom("");
     setError("");
-
-    // Luôn update balance khi đóng modal
     await updateBalance();
   };
 
@@ -616,21 +476,10 @@ export default function UserWallet() {
                         alt="QR Code thanh toán"
                         className="w-80 h-80 object-contain mx-auto border rounded-lg bg-white"
                         onError={(e) => {
-                          console.error("QR Code image error:", e);
-                          console.error(
-                            "QR URL:",
-                            qrCodeUrl?.substring(0, 100)
-                          );
                           e.target.style.display = "none";
                           e.target.nextSibling.style.display = "block";
                         }}
-                        onLoad={() => {
-                          console.log("QR Code loaded successfully");
-                        }}
-                        style={{
-                          maxWidth: "100%",
-                          maxHeight: "100%",
-                        }}
+                        style={{ maxWidth: "100%", maxHeight: "100%" }}
                       />
                       <div
                         className="text-center text-gray-500 py-20 hidden"
@@ -659,7 +508,7 @@ export default function UserWallet() {
                       📱 Mở ứng dụng ngân hàng và quét mã QR
                     </p>
                     <p className="mb-2 text-blue-700">
-                      � Kiểm tra số tiền: {getAmount().toLocaleString()} VND
+                      💰 Kiểm tra số tiền: {getAmount().toLocaleString()} VND
                     </p>
                     <p className="text-blue-700">
                       ✅ Xác nhận thanh toán trong ứng dụng
@@ -739,24 +588,11 @@ export default function UserWallet() {
           <div className="text-right">
             <div className="text-gray-600 text-sm">Số dư hiện tại</div>
             <div className="text-2xl font-bold text-pink-600">
-              {(() => {
-                console.log(
-                  "Hiển thị balance:",
-                  balance,
-                  "Type:",
-                  typeof balance
-                );
-                if (typeof balance === "number" && !isNaN(balance)) {
-                  return balance.toLocaleString();
-                } else if (
-                  typeof balance === "string" &&
-                  !isNaN(parseFloat(balance))
-                ) {
-                  return parseFloat(balance).toLocaleString();
-                } else {
-                  return "0";
-                }
-              })()}{" "}
+              {typeof balance === "number" && !isNaN(balance)
+                ? balance.toLocaleString()
+                : typeof balance === "string" && !isNaN(parseFloat(balance))
+                ? parseFloat(balance).toLocaleString()
+                : "0"}{" "}
               đ
             </div>
           </div>

@@ -24,7 +24,7 @@ const ShopStatsCard = ({
       suffix: "VND",
       icon: <DollarOutlined style={{ color: "#52c41a" }} />,
       color: "#52c41a",
-      formatter: (value) => `${parseFloat(value).toLocaleString()}`,
+      formatter: (value) => `${parseFloat(value * 0.95 || 0).toLocaleString()}`,
     },
     {
       title: "Đơn hàng",

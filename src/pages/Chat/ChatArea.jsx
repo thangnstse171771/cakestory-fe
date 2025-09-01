@@ -269,6 +269,7 @@ const ChatArea = () => {
     "Mình đặt hàng như thế nào?",
     "Shop thường mất bao lâu để làm và giao bánh?",
     "Best seller của shop mình là bánh nào ạ?",
+    "Bên mình có nhận làm bánh này không ạ?",
   ];
 
   return (

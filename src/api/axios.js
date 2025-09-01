@@ -326,6 +326,12 @@ export const fetchAllWalletTransactions = async (params = {}) => {
   }
 };
 
+// Lấy chi tiết 1 giao dịch ví theo id
+export const fetchWalletTransactionById = async (id) => {
+  const response = await axiosInstance.get(`/wallet/transactions/${id}`);
+  return response.data;
+};
+
 // Lấy lịch sử rút tiền cụ thể theo ID user
 export const fetchWithdrawHistoryByUserId = async (userId) => {
   try {
