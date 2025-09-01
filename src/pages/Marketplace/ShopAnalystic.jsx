@@ -219,11 +219,13 @@ const ShopAnalystic = ({ onBack }) => {
           }));
         }
 
-        // Fetch products count từ marketplace posts
+        // Fetch products count từ marketplace posts (đồng bộ với Summary)
         try {
           const postsData = await fetchMarketplacePosts();
-          const userPosts = (postsData.marketplacePosts || []).filter(
-            (post) => post.shop_id === currentShopId
+          const rawPosts = postsData.marketplacePosts || postsData.posts || [];
+          const currentIdNum = Number(currentShopId);
+          const userPosts = rawPosts.filter(
+            (post) => Number(post.shop_id) === currentIdNum
           );
           setShopStats((prev) => ({
             ...prev,
