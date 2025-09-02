@@ -132,9 +132,7 @@ export const deleteMarketplacePost = async (postId) => {
 
 export const depositToWallet = async (amount) => {
   try {
-    console.log("Gửi yêu cầu nạp tiền với amount:", amount);
     const response = await axiosInstance.post("/wallet/deposit", { amount });
-    console.log("Response từ /wallet/deposit:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi depositToWallet:", error);
@@ -145,10 +143,7 @@ export const depositToWallet = async (amount) => {
 
 export const fetchWalletBalance = async () => {
   try {
-    console.log("Gọi API fetchWalletBalance...");
     const response = await axiosInstance.get("/wallet/balance");
-    console.log("API response từ /wallet/balance:", response);
-    console.log("Response data:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchWalletBalance:", error);
@@ -165,7 +160,6 @@ export const fetchWalletBalanceByUserId = async (userId) => {
 // PayOS webhook để xử lý callback thanh toán
 export const handlePayOSWebhook = async (webhookData, signature) => {
   try {
-    console.log("Xử lý PayOS webhook:", webhookData);
     const response = await axiosInstance.post(
       "/wallet/payos-webhook",
       webhookData,
@@ -175,7 +169,6 @@ export const handlePayOSWebhook = async (webhookData, signature) => {
         },
       }
     );
-    console.log("PayOS webhook response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi xử lý PayOS webhook:", error);
@@ -187,9 +180,7 @@ export const handlePayOSWebhook = async (webhookData, signature) => {
 // Lấy thông tin PayOS webhook
 export const getPayOSWebhook = async () => {
   try {
-    console.log("Gọi API getPayOSWebhook...");
     const response = await axiosInstance.get("/wallet/payos-webhook");
-    console.log("PayOS webhook response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi getPayOSWebhook:", error);
@@ -201,11 +192,9 @@ export const getPayOSWebhook = async () => {
 // Kiểm tra trạng thái thanh toán qua deposit record
 export const checkDepositStatus = async (depositCode) => {
   try {
-    console.log("Kiểm tra trạng thái deposit cho depositCode:", depositCode);
     const response = await axiosInstance.get(
       `/wallet/deposit-status/${depositCode}`
     );
-    console.log("Deposit status response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi kiểm tra deposit status:", error);
@@ -217,11 +206,9 @@ export const checkDepositStatus = async (depositCode) => {
 // Kiểm tra trạng thái thanh toán
 export const checkPaymentStatus = async (orderId) => {
   try {
-    console.log("Kiểm tra trạng thái thanh toán cho orderId:", orderId);
     const response = await axiosInstance.get(
       `/wallet/payment-status/${orderId}`
     );
-    console.log("Payment status response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi kiểm tra payment status:", error);
@@ -233,9 +220,7 @@ export const checkPaymentStatus = async (orderId) => {
 // Lấy lịch sử giao dịch của user
 export const fetchWalletHistory = async () => {
   try {
-    console.log("Gọi API fetchWalletHistory...");
     const response = await axiosInstance.get("/wallet/AllDepositHistoryUser");
-    console.log("Wallet history response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchWalletHistory:", error);
@@ -251,13 +236,11 @@ export const createWithdrawRequest = async (
   accountNumber
 ) => {
   try {
-    console.log("Tạo yêu cầu rút tiền:", { amount, bankName, accountNumber });
     const response = await axiosInstance.post("/wallet/withdraw", {
       amount,
       bank_name: bankName,
       account_number: accountNumber,
     });
-    console.log("Withdraw request response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi tạo yêu cầu rút tiền:", error);
@@ -269,9 +252,7 @@ export const createWithdrawRequest = async (
 // Lấy lịch sử yêu cầu rút tiền của user
 export const fetchWithdrawHistory = async () => {
   try {
-    console.log("Gọi API fetchWithdrawHistory...");
     const response = await axiosInstance.get("/wallet/withdrawAll-historyUser");
-    console.log("Withdraw history response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchWithdrawHistory:", error);
@@ -283,11 +264,9 @@ export const fetchWithdrawHistory = async () => {
 // Admin: Lấy thông tin yêu cầu rút tiền cụ thể theo ID
 export const fetchWithdrawRequestById = async (id) => {
   try {
-    console.log("Gọi API fetchWithdrawRequestById với id:", id);
     const response = await axiosInstance.get(
       `/wallet/withdraw-historyAdmin/${id}`
     );
-    console.log("Withdraw request by ID response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchWithdrawRequestById:", error);
@@ -299,11 +278,9 @@ export const fetchWithdrawRequestById = async (id) => {
 // Admin: Lấy tất cả lịch sử rút tiền
 export const fetchAllWithdrawHistory = async () => {
   try {
-    console.log("Gọi API fetchAllWithdrawHistory...");
     const response = await axiosInstance.get(
       "/wallet/withdrawAll-historyAdmin"
     );
-    console.log("All withdraw history response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchAllWithdrawHistory:", error);
@@ -335,11 +312,9 @@ export const fetchWalletTransactionById = async (id) => {
 // Lấy lịch sử rút tiền cụ thể theo ID user
 export const fetchWithdrawHistoryByUserId = async (userId) => {
   try {
-    console.log("Gọi API fetchWithdrawHistoryByUserId với userId:", userId);
     const response = await axiosInstance.get(
       `/wallet/withdraw-historyUserId/${userId}`
     );
-    console.log("Withdraw history by user ID response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchWithdrawHistoryByUserId:", error);
@@ -352,7 +327,6 @@ export const fetchWithdrawHistoryByUserId = async (userId) => {
 export const confirmWithdrawRequest = async (withdrawId) => {
   try {
     if (!withdrawId) throw new Error("Thiếu withdrawId");
-    console.log("Confirm withdraw:", withdrawId);
     const response = await axiosInstance.put(
       `/wallet/confirmRequestByAdmin/${withdrawId}`
     );
@@ -370,7 +344,6 @@ export const confirmWithdrawRequest = async (withdrawId) => {
 export const cancelWithdrawRequest = async (withdrawId) => {
   try {
     if (!withdrawId) throw new Error("Thiếu withdrawId");
-    console.log("Reject withdraw by admin:", withdrawId);
     const response = await axiosInstance.put(
       `/wallet/rejectRequestbyAdmin/${withdrawId}`
     );
@@ -388,9 +361,7 @@ export const cancelWithdrawRequest = async (withdrawId) => {
 // Lấy tổng số tiền chờ rút của user hiện tại
 export const fetchTotalPendingWithdraw = async () => {
   try {
-    console.log("Gọi API fetchTotalPendingWithdraw...");
     const response = await axiosInstance.get("/wallet/totalWithdrawUser");
-    console.log("Total pending withdraw response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchTotalPendingWithdraw:", error);
@@ -402,9 +373,7 @@ export const fetchTotalPendingWithdraw = async () => {
 // Admin: Lấy tổng số dư ví admin
 export const fetchAdminWalletBalance = async () => {
   try {
-    console.log("Gọi API fetchAdminWalletBalance...");
     const response = await axiosInstance.get("/wallet/AdminWallet");
-    console.log("Admin wallet balance response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchAdminWalletBalance:", error);
@@ -416,9 +385,7 @@ export const fetchAdminWalletBalance = async () => {
 // Admin: Lấy tất cả ví của user
 export const fetchAllUserWallets = async () => {
   try {
-    console.log("Gọi API fetchAllUserWallets...");
     const response = await axiosInstance.get("/wallet/allWalletAdmin");
-    console.log("All user wallets response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchAllUserWallets:", error);
@@ -430,21 +397,15 @@ export const fetchAllUserWallets = async () => {
 // Admin: Lấy tổng số dư ví hệ thống (tạm giữ tiền của tất cả user)
 export const fetchSystemWalletBalance = async () => {
   try {
-    console.log("Gọi API fetchSystemWalletBalance...");
     const response = await axiosInstance.get("/wallet/allDepositsAdmin", {
       params: {
         page: 1,
         limit: 1, // Chỉ cần lấy summary, không cần data
       },
     });
-    console.log("System wallet balance response:", response.data);
-
     // Lấy completed_amount từ summary thay vì tính từ user wallets
     const completedAmount = response.data?.data?.summary?.completed_amount || 0;
     const totalDeposits = response.data?.data?.summary?.total_deposits || 0;
-
-    console.log("Completed amount from summary:", completedAmount);
-    console.log("Total deposits:", totalDeposits);
 
     return {
       totalSystemBalance: parseFloat(completedAmount),
@@ -461,11 +422,9 @@ export const fetchSystemWalletBalance = async () => {
 // Admin: Lấy thông tin ví của user cụ thể theo ID
 export const fetchUserWalletById = async (userId) => {
   try {
-    console.log("Gọi API fetchUserWalletById với userId:", userId);
     const response = await axiosInstance.get(
       `/wallet/getUserWalletbyId/${userId}`
     );
-    console.log("User wallet by ID response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchUserWalletById:", error);
@@ -477,7 +436,6 @@ export const fetchUserWalletById = async (userId) => {
 // Admin: Lấy tất cả giao dịch nạp tiền (fetch all không pagination)
 export const fetchAllDepositsAdmin = async (filters = {}) => {
   try {
-    console.log("Gọi API fetchAllDepositsAdmin với filters:", filters);
     const params = {
       page: filters.page || 1,
       limit: filters.limit || 999999,
@@ -487,7 +445,6 @@ export const fetchAllDepositsAdmin = async (filters = {}) => {
     const response = await axiosInstance.get("/wallet/allDepositsAdmin", {
       params,
     });
-    console.log("All deposits response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Lỗi khi gọi fetchAllDepositsAdmin:", error);
@@ -705,7 +662,6 @@ export const rejectComplaint = async (complaintId) => {
 export const updateComplaintAdminNote = async (complaintId, adminNote) => {
   try {
     if (!complaintId) throw new Error("Thiếu complaintId");
-    console.log("Update complaint admin note:", { complaintId, adminNote });
     const res = await axiosInstance.put(`/complaints/${complaintId}`, {
       admin_note: adminNote ?? "",
     });

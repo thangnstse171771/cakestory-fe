@@ -19,12 +19,7 @@ import ConfirmDeleteModal from "./Admin/ConfirmDeleteModal";
 import Pagination from "./Admin/Pagination";
 
 // Import utils
-import {
-  getIsPremium,
-  getIsBaker,
-  getStatusValue,
-  filterAccounts,
-} from "./Admin/utils";
+import { getStatusValue, filterAccounts } from "./Admin/utils";
 
 const AdminDashboard = () => {
   const [accounts, setAccounts] = useState([]);
@@ -49,7 +44,6 @@ const AdminDashboard = () => {
     username: "",
     email: "",
     status: "",
-    premium: "",
     shop: "",
   });
 
@@ -71,8 +65,6 @@ const AdminDashboard = () => {
 
           setAccounts(usersData.users || []);
           setShops(shopsData.shops || []);
-          console.log("All accounts data:", usersData.users || []);
-          console.log("All shops data:", shopsData.shops || []);
         } catch (err) {
           console.error("Failed to fetch data:", err);
           toast.error("Không thể tải dữ liệu. Vui lòng thử lại!");
@@ -215,8 +207,6 @@ const AdminDashboard = () => {
             paginatedAccounts={paginatedAccounts}
             view={view}
             getStatusValue={getStatusValue}
-            getIsPremium={getIsPremium}
-            getIsBaker={getIsBaker}
             handleViewDetails={handleViewDetails}
             handleToggleRestriction={handleToggleRestriction}
             handleRemoveAccount={handleRemoveAccount}
@@ -240,8 +230,6 @@ const AdminDashboard = () => {
             modalLoading={modalLoading}
             onClose={handleCloseModal}
             getStatusValue={getStatusValue}
-            getIsPremium={getIsPremium}
-            getIsBaker={getIsBaker}
           />
 
           {/* Confirm Delete Modal */}

@@ -9,8 +9,6 @@ const AccountDetailModal = ({
   modalLoading,
   onClose,
   getStatusValue,
-  getIsPremium,
-  getIsBaker,
 }) => {
   const [shopInfo, setShopInfo] = useState(null);
   const [shopLoading, setShopLoading] = useState(false);
@@ -19,7 +17,7 @@ const AccountDetailModal = ({
   const [actionSuccess, setActionSuccess] = useState("");
 
   useEffect(() => {
-    if (showModal && selectedAccount && getIsBaker(selectedAccount)) {
+    if (showModal && selectedAccount) {
       setShopLoading(true);
       fetchShopByUserId(selectedAccount.id)
         .then((data) => setShopInfo(data.shop))
@@ -28,7 +26,7 @@ const AccountDetailModal = ({
     } else {
       setShopInfo(null);
     }
-  }, [showModal, selectedAccount, getIsBaker]);
+  }, [showModal, selectedAccount]);
 
   if (!showModal || !selectedAccount) return null;
 
@@ -104,7 +102,7 @@ const AccountDetailModal = ({
                 <span className="font-semibold text-gray-700">Trạng thái:</span>
                 <span>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold mr-2 ${
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       getStatusValue(selectedAccount) === "active"
                         ? "bg-green-100 text-green-800"
                         : "bg-red-100 text-red-800"
@@ -112,22 +110,13 @@ const AccountDetailModal = ({
                   >
                     {getStatusValue(selectedAccount) === "active"
                       ? "Hoạt động"
-                      : "Bị hạn chế"}
-                  </span>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      getIsPremium(selectedAccount)
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {getIsPremium(selectedAccount) ? "Premium" : "Thường"}
+                      : "Ngừng hoạt động"}
                   </span>
                 </span>
               </div>
             </div>
-            {/* Shop Info Card */}
-            {getIsBaker(selectedAccount) && (
+            {/* Shop Info Card (fetch attempt regardless; shown if found) */}
+            {shopInfo && (
               <div className="bg-white border border-pink-200 rounded-xl shadow p-6">
                 <h3 className="text-xl font-bold text-pink-500 mb-4 text-center">
                   Thông tin cửa hàng
@@ -174,18 +163,7 @@ const AccountDetailModal = ({
                         )}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-gray-700">
-                        Chuyên môn:
-                      </span>
-                      <span className="text-gray-900">
-                        {shopInfo.specialty || (
-                          <span className="italic text-gray-400">
-                            Chưa có chuyên môn
-                          </span>
-                        )}
-                      </span>
-                    </div>
+
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold text-gray-700">Bio:</span>
                       <span className="text-gray-900">
@@ -201,23 +179,9 @@ const AccountDetailModal = ({
                         Hoạt động:
                       </span>
                       <span className="text-gray-900">
-                        {shopInfo.is_active ? "Có" : "Không"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-gray-700">
-                        Kinh độ:
-                      </span>
-                      <span className="text-gray-900">
-                        {shopInfo.longitude ?? "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-semibold text-gray-700">
-                        Vĩ độ:
-                      </span>
-                      <span className="text-gray-900">
-                        {shopInfo.latitude ?? "N/A"}
+                        {shopInfo.is_active
+                          ? "Đang hoạt động"
+                          : "Ngừng hoạt động"}
                       </span>
                     </div>
 
