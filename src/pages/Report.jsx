@@ -1,24 +1,3 @@
-const fakeReports = [
-  {
-    id: 1,
-    title: "Không đăng nhập được",
-    status: "Đã xử lý",
-    date: "2024-05-01",
-  },
-  {
-    id: 2,
-    title: "Lỗi giao diện trên mobile",
-    status: "Đang xử lý",
-    date: "2024-05-03",
-  },
-  {
-    id: 3,
-    title: "Không nhận được email xác thực",
-    status: "Chờ phản hồi",
-    date: "2024-05-05",
-  },
-];
-
 const Report = () => {
   return (
     <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow mt-8">

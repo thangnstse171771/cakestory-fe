@@ -7,80 +7,18 @@ const AccountsTable = ({
   paginatedAccounts,
   view,
   getStatusValue,
-  getIsPremium,
-  getIsBaker,
   handleViewDetails,
-  handleToggleRestriction,
-  handleRemoveAccount,
-  removeLoading,
   onShopRemoved,
 }) => {
-  // Thêm state cho filter role
-  const [roleFilter, setRoleFilter] = useState("");
-
-  // Hàm lấy role từ account
-  const getRole = (account) => {
-    return (
-      account.role ||
-      (account.is_admin || account.isAdmin
-        ? "admin"
-        : account.is_account_staff
-        ? "account_staff"
-        : account.is_complaint_handler
-        ? "complaint_handler"
-        : "user")
-    );
-  };
-
-  // Lọc accounts theo role nếu filter được chọn
-  const filteredAccounts = roleFilter
-    ? paginatedAccounts.filter((account) => getRole(account) === roleFilter)
-    : paginatedAccounts;
+  const filteredAccounts = paginatedAccounts; // role filtering removed (no longer used)
 
   // Local loading state for shop deactivation per account
   const [shopRemoving, setShopRemoving] = useState({});
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "restricted":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
-  const getPremiumBadge = (account) => {
-    const isPremium = getIsPremium(account);
-    return isPremium ? (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-        Premium
-      </span>
-    ) : (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-        Thường
-      </span>
-    );
-  };
-
-  const getBakerBadge = (account) => {
-    const isBaker = getIsBaker(account);
-    return isBaker ? (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-        Baker
-      </span>
-    ) : null;
-  };
-
-  const getAdminBadge = (account) => {
-    const isAdmin = account.is_admin ?? account.isAdmin;
-    return isAdmin ? (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-        Admin
-      </span>
-    ) : null;
-  };
+  const getStatusColor = (status) =>
+    status === "active"
+      ? "bg-green-100 text-green-800"
+      : "bg-red-100 text-red-800"; // inactive
 
   if (filteredAccounts.length === 0) {
     return (
@@ -88,11 +26,9 @@ const AccountsTable = ({
         <div className="text-gray-500 text-lg">
           {view === "all"
             ? "Không có tài khoản nào"
-            : view === "premium"
-            ? "Không có tài khoản premium nào"
             : view === "shops"
             ? "Không có cửa hàng nào"
-            : "Không có admin nào"}
+            : "Không có dữ liệu"}
         </div>
       </div>
     );
@@ -114,10 +50,7 @@ const AccountsTable = ({
                 Trạng thái
               </th>
               <th className="w-[10%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                Loại tài khoản
-              </th>
-              <th className="w-[10%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                Vai trò
+                Loại
               </th>
               {view === "shops" && (
                 <th className="w-[10%] px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
@@ -134,27 +67,10 @@ const AccountsTable = ({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredAccounts.map((account) => {
-              // Nếu đang ở view shops => dùng trạng thái của shop (shopInfo.is_active)
-              let status;
-              if (view === "shops" && account.shopInfo) {
-                const sv =
-                  account.shopInfo.is_active ??
-                  account.shopInfo.isActive ??
-                  account.shopInfo.status;
-                const s = String(sv).trim().toLowerCase();
-                const activeValues = [
-                  "true",
-                  "1",
-                  "active",
-                  "activated",
-                  "enable",
-                  "enabled",
-                ];
-                status = activeValues.includes(s) ? "active" : "restricted";
-              } else {
-                status = getStatusValue(account); // user-level status
-              }
-              const role = getRole(account); // Lấy role để kiểm tra
+              const status =
+                view === "shops" && account.shopInfo
+                  ? getStatusValue({ shopInfo: account.shopInfo })
+                  : getStatusValue(account);
               return (
                 <tr key={account.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap truncate w-full overflow-hidden overflow-ellipsis">
@@ -165,7 +81,7 @@ const AccountsTable = ({
                           src={
                             account.avatar ||
                             account.profile_picture ||
-                            "https://via.placeholder.com/40"
+                            "https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png?20150327203541"
                           }
                           alt=""
                         />
@@ -191,31 +107,11 @@ const AccountsTable = ({
                         status
                       )}`}
                     >
-                      {status === "active" ? "Hoạt động" : "Bị hạn chế"}
+                      {status === "active" ? "Hoạt động" : "Ngừng"}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-wrap gap-1">
-                      {getPremiumBadge(account)}
-                      {getBakerBadge(account)}
-                      {getAdminBadge(account)}
-                    </div>
-                  </td>
-                  {/* Hiển thị role */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {(() => {
-                      const role = getRole(account);
-                      switch (role) {
-                        case "admin":
-                          return "Admin";
-                        case "account_staff":
-                          return "Account Staff";
-                        case "complaint_handler":
-                          return "Complaint Handler";
-                        default:
-                          return "User";
-                      }
-                    })()}
+                    {view === "shops" && account.shopInfo ? "Shop" : "User"}
                   </td>
                   {view === "shops" && (
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -270,69 +166,54 @@ const AccountsTable = ({
                       >
                         Chi tiết
                       </button>
-                      {/* Ẩn các nút thao tác nếu là admin hoặc account_staff */}
-                      {!(role === "admin" || role === "account_staff") && (
-                        <>
-                          {/* <button
-                            onClick={() => handleToggleRestriction(account.id)}
-                            className={`${
-                              status === "active"
-                                ? "text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100"
-                                : "text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100"
-                            } px-3 py-1 rounded-md text-xs font-medium transition-colors`}
+                      {view === "shops" &&
+                        account?.shopInfo?.business_name &&
+                        (account.shopInfo.is_active === true ||
+                          account.shopInfo.isActive === true) && (
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (shopRemoving[account.id]) return;
+                              const ok = window.confirm(
+                                `Bạn có chắc muốn vô hiệu hóa shop của user #${account.id}?`
+                              );
+                              if (!ok) return;
+                              try {
+                                setShopRemoving((prev) => ({
+                                  ...prev,
+                                  [account.id]: true,
+                                }));
+                                const toastId = toast.loading(
+                                  "Đang vô hiệu hóa shop..."
+                                );
+                                await deactivateShop(account.id);
+                                toast.success("Đã vô hiệu hóa shop", {
+                                  id: toastId,
+                                });
+                                if (typeof onShopRemoved === "function") {
+                                  onShopRemoved(account.id);
+                                }
+                              } catch (e) {
+                                toast.error(
+                                  e?.response?.data?.message ||
+                                    "Vô hiệu hóa shop thất bại"
+                                );
+                              } finally {
+                                setShopRemoving((prev) => ({
+                                  ...prev,
+                                  [account.id]: false,
+                                }));
+                              }
+                            }}
+                            disabled={!!shopRemoving[account.id]}
+                            className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {status === "active" ? "Hạn chế" : "Kích hoạt"}
-                          </button> */}
-                          {view === "shops" &&
-                            account?.shopInfo?.business_name &&
-                            (account.shopInfo.is_active === true ||
-                              account.shopInfo.isActive === true) && (
-                              <button
-                                onClick={async (e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  if (shopRemoving[account.id]) return;
-                                  const ok = window.confirm(
-                                    `Bạn có chắc muốn xóa shop (vô hiệu hóa) của user #${account.id}?`
-                                  );
-                                  if (!ok) return;
-                                  try {
-                                    setShopRemoving((prev) => ({
-                                      ...prev,
-                                      [account.id]: true,
-                                    }));
-                                    const toastId = toast.loading(
-                                      "Đang vô hiệu hóa shop..."
-                                    );
-                                    await deactivateShop(account.id);
-                                    toast.success("Đã vô hiệu hóa shop", {
-                                      id: toastId,
-                                    });
-                                    if (typeof onShopRemoved === "function") {
-                                      onShopRemoved(account.id);
-                                    }
-                                  } catch (e) {
-                                    toast.error(
-                                      e?.response?.data?.message ||
-                                        "Vô hiệu hóa shop thất bại"
-                                    );
-                                  } finally {
-                                    setShopRemoving((prev) => ({
-                                      ...prev,
-                                      [account.id]: false,
-                                    }));
-                                  }
-                                }}
-                                disabled={!!shopRemoving[account.id]}
-                                className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                {shopRemoving[account.id]
-                                  ? "Đang xóa..."
-                                  : "Xóa shop"}
-                              </button>
-                            )}
-                        </>
-                      )}
+                            {shopRemoving[account.id]
+                              ? "Đang xử lý..."
+                              : "Vô hiệu hóa"}
+                          </button>
+                        )}
                     </div>
                   </td>
                 </tr>

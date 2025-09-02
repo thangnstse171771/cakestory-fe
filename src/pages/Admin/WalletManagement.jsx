@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAdminWallet } from "../../api/wallet";
 import {
-  fetchAdminWalletBalance,
-  fetchAllDepositsAdmin,
+  // fetchAdminWalletBalance, // (đã bỏ)
   fetchSystemWalletBalance,
   fetchTotalAmountAiGenerate,
   fetchAllWithdrawHistory,
@@ -26,6 +25,210 @@ import {
   getTransactionStatusStyle,
   generatePageList,
 } from "./WalletUtils";
+
+// === Local helper functions (could be moved to WalletUtils if reused) ===
+const buildUserMap = (usersResponse) => {
+  if (!usersResponse || usersResponse.status !== "fulfilled") return {};
+  const payload = usersResponse.value;
+  const arr = Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload)
+    ? payload
+    : [];
+  return arr.reduce((acc, user) => {
+    const id = user.id || user.user_id;
+    if (id != null) {
+      acc[id] =
+        user.full_name ||
+        user.fullName ||
+        user.username ||
+        user.email ||
+        `user${id}`;
+    }
+    return acc;
+  }, {});
+};
+
+const processWithdrawData = (withdrawResponse, usersMap = {}) => {
+  const stats = {
+    totalCompletedWithdraw: 0,
+    completedCount: 0,
+    totalPendingWithdraw: 0,
+    pendingCount: 0,
+  };
+
+  if (!withdrawResponse || withdrawResponse.status !== "fulfilled") {
+    return { transactions: [], stats };
+  }
+
+  const payload = withdrawResponse.value;
+  const rawList = Array.isArray(payload?.data)
+    ? payload.data
+    : Array.isArray(payload?.withdraws)
+    ? payload.withdraws
+    : Array.isArray(payload)
+    ? payload
+    : [];
+
+  const tx = rawList.map((w) => {
+    const amount = parseAmount(
+      w.amount || w.request_amount || w.money_withdraw
+    );
+    const normalizedStatus = normalizeTransactionStatus(w.status || w.state);
+    if (normalizedStatus === TRANSACTION_STATUS.COMPLETED) {
+      stats.totalCompletedWithdraw += amount;
+      stats.completedCount += 1;
+    } else if (normalizedStatus === TRANSACTION_STATUS.PENDING) {
+      stats.totalPendingWithdraw += amount;
+      stats.pendingCount += 1;
+    }
+    const userId = w.user_id || w.userId || w.owner_id;
+    return {
+      id:
+        w.id ||
+        w.withdraw_id ||
+        `wd-${userId}-${amount}-${w.created_at || Date.now()}`,
+      type: TRANSACTION_TYPES.WITHDRAW,
+      amount,
+      status: normalizedStatus,
+      userId,
+      userDisplay: resolveUserDisplayName(userId, w.User, usersMap),
+      timestamp: w.updated_at || w.created_at || w.createdAt || w.updatedAt,
+      description: `Yêu cầu rút tiền ${amount.toLocaleString("vi-VN")}đ`,
+    };
+  });
+
+  return { transactions: tx, stats };
+};
+
+const processUnifiedTransactions = (unifiedResponse, usersMap = {}) => {
+  if (!unifiedResponse || unifiedResponse.status !== "fulfilled") {
+    return {
+      transactions: [],
+      orderStats: {
+        escrowHold: 0,
+        shopPending: 0,
+        systemPending: 0,
+        shopReleased: 0,
+        systemReleased: 0,
+        refunded: 0,
+        escrowCount: 0,
+      },
+    };
+  }
+
+  const payload = unifiedResponse.value;
+  const rawTransactions = Array.isArray(payload?.transactions)
+    ? payload.transactions
+    : Array.isArray(payload?.data?.transactions)
+    ? payload.data.transactions
+    : Array.isArray(payload)
+    ? payload
+    : [];
+
+  const orderStatsCollector = {
+    escrowHold: 0,
+    shopPending: 0,
+    systemPending: 0,
+    shopReleased: 0,
+    systemReleased: 0,
+    refunded: 0,
+  };
+
+  let escrowCount = 0;
+
+  const processedTransactions = rawTransactions
+    .map((transaction) => {
+      const embeddedUser =
+        transaction?.fromWallet?.User || transaction?.toWallet?.User || null;
+      const rawId =
+        transaction?.fromWallet?.user_id ??
+        transaction?.toWallet?.user_id ??
+        null;
+      const amount = parseAmount(transaction.amount);
+      const status = normalizeTransactionStatus(transaction.status);
+
+      const baseTransaction = {
+        id:
+          transaction.id ||
+          transaction.transaction_id ||
+          transaction.code ||
+          transaction.reference ||
+          `${transaction.transaction_type || "tx"}-${amount}-${
+            transaction.created_at || ""
+          }`,
+        userId: rawId,
+        userDisplay: resolveUserDisplayName(rawId, embeddedUser, usersMap),
+        amount,
+        status,
+        timestamp:
+          transaction.created_at ||
+          transaction.createdAt ||
+          transaction.updated_at ||
+          transaction.updatedAt,
+      };
+
+      if (transaction.transaction_type === TRANSACTION_TYPES.ORDER_PAYMENT) {
+        const orderId = transaction.order_id || transaction.orderId || null;
+        const { shopShare, systemShare } = calculateCommission(amount);
+        if (status === TRANSACTION_STATUS.PENDING) {
+          escrowCount += 1;
+          orderStatsCollector.escrowHold += amount;
+          orderStatsCollector.shopPending += shopShare;
+          orderStatsCollector.systemPending += systemShare;
+          return {
+            ...baseTransaction,
+            type: TRANSACTION_TYPES.ORDER_PAYMENT,
+            orderId,
+            description: `Thanh toán đơn #${orderId} (Escrow) – Shop: ${shopShare.toLocaleString(
+              "vi-VN"
+            )}đ • Hệ thống: ${systemShare.toLocaleString("vi-VN")}đ`,
+          };
+        }
+        if (status === TRANSACTION_STATUS.COMPLETED) {
+          orderStatsCollector.shopReleased += shopShare;
+          orderStatsCollector.systemReleased += systemShare;
+          return {
+            ...baseTransaction,
+            type: TRANSACTION_TYPES.ORDER_PAYMENT,
+            orderId,
+            description: `Giải ngân đơn #${orderId} – Shop: ${shopShare.toLocaleString(
+              "vi-VN"
+            )}đ • Hệ thống: ${systemShare.toLocaleString("vi-VN")}đ`,
+          };
+        }
+        orderStatsCollector.refunded += amount;
+        return {
+          ...baseTransaction,
+          type: TRANSACTION_TYPES.ORDER_PAYMENT,
+          orderId,
+          description: `Hoàn tiền đơn #${orderId} – ${amount.toLocaleString(
+            "vi-VN"
+          )}đ`,
+        };
+      }
+
+      if (transaction.transaction_type === TRANSACTION_TYPES.AI_GENERATION) {
+        return {
+          ...baseTransaction,
+          type: TRANSACTION_TYPES.AI_GENERATION,
+          description: localizeTransactionDescription(transaction, status),
+        };
+      }
+
+      return {
+        ...baseTransaction,
+        type: transaction.transaction_type || "other",
+        description: localizeTransactionDescription(transaction, status),
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    transactions: processedTransactions,
+    orderStats: { ...orderStatsCollector, escrowCount },
+  };
+};
 
 const WalletManagement = () => {
   const navigate = useNavigate();
@@ -51,7 +254,8 @@ const WalletManagement = () => {
     withdraw: { balance: 0, currency: "VND", description: "Tổng tiền đã rút" },
   });
 
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState([]); // filtered list
+  const [allTransactions, setAllTransactions] = useState([]); // full unfiltered list
   const [selectedWallet, setSelectedWallet] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -68,233 +272,30 @@ const WalletManagement = () => {
     systemReleased: 0,
     refunded: 0,
   });
-
-  // Filter and pagination
+  // Missing UI/filters pagination states (restored)
   const [filters, setFilters] = useState({ status: "", user_id: "", type: "" });
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.ceil(
-    transactions.length / WALLET_CONFIG.ITEMS_PER_PAGE
+  const totalPages = useMemo(
+    () => Math.ceil(transactions.length / WALLET_CONFIG.ITEMS_PER_PAGE) || 0,
+    [transactions]
   );
 
-  // Extract user mapping logic
-  const buildUserMap = (usersResponse) => {
-    if (usersResponse?.status !== "fulfilled") return {};
-
-    const data = usersResponse.value;
-    const users = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.data)
-      ? data.data
-      : Array.isArray(data?.users)
-      ? data.users
-      : [];
-
-    const userMap = {};
-    users.forEach((user) => {
-      const id = user?.id ?? user?.user_id;
-      if (id != null) {
-        userMap[id] =
-          user?.full_name ||
-          user?.fullName ||
-          (user?.first_name && user?.last_name
-            ? `${user.first_name} ${user.last_name}`
-            : user?.name || user?.username || user?.email || "User");
-      }
-    });
-
-    return userMap;
+  // ==== Helpers inserted correctly (previous patch misplaced inside state) ====
+  const fetchIdRef = useRef(0);
+  const sortTransactions = (list) =>
+    list
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.timestamp || b.created_at) -
+          new Date(a.timestamp || a.created_at)
+      );
+  const applyAndSetFilters = (appliedFilters) => {
+    const filtered = applyFilters(allTransactions, appliedFilters);
+    setTransactions(sortTransactions(filtered));
   };
-
-  // Extract withdraw processing logic
-  const processWithdrawData = (withdrawResponse, usersMap) => {
-    if (withdrawResponse.status !== "fulfilled")
-      return { transactions: [], stats: {} };
-
-    const withdrawData = withdrawResponse.value;
-    const withdraws = Array.isArray(withdrawData?.data?.withdraws)
-      ? withdrawData.data.withdraws
-      : Array.isArray(withdrawData?.withdraws)
-      ? withdrawData.withdraws
-      : Array.isArray(withdrawData?.withdrawHistory)
-      ? withdrawData.withdrawHistory
-      : Array.isArray(withdrawData)
-      ? withdrawData
-      : [];
-
-    let pendingCount = 0,
-      completedCount = 0;
-    let totalPendingWithdraw = 0,
-      totalCompletedWithdraw = 0;
-
-    const withdrawTransactions = withdraws.map((w) => {
-      const amount = parseAmount(w?.amount);
-      const status = normalizeTransactionStatus(w?.status);
-
-      // Update counters
-      if (status === TRANSACTION_STATUS.PENDING) {
-        pendingCount += 1;
-        totalPendingWithdraw += amount;
-      } else if (status === TRANSACTION_STATUS.COMPLETED) {
-        completedCount += 1;
-        totalCompletedWithdraw += amount;
-      }
-
-      return {
-        id: w.id || w.withdraw_id || w.request_id || w.transaction_id,
-        userId: w.user_id ?? w.user?.id ?? w.user?.user_id ?? "",
-        userDisplay: resolveUserDisplayName(
-          w.user_id ?? w.user?.id ?? w.user?.user_id,
-          w.user,
-          usersMap
-        ),
-        type: TRANSACTION_TYPES.WITHDRAW,
-        amount,
-        status,
-        timestamp: w.created_at || w.createdAt || w.updated_at || w.updatedAt,
-        description: "Yêu cầu rút tiền",
-      };
-    });
-
-    return {
-      transactions: withdrawTransactions,
-      stats: {
-        pendingCount,
-        completedCount,
-        totalPendingWithdraw,
-        totalCompletedWithdraw,
-      },
-    };
-  };
-
-  // Extract unified transaction processing
-  const processUnifiedTransactions = (unifiedResponse, usersMap) => {
-    if (!unifiedResponse || unifiedResponse.status !== "fulfilled") {
-      return { transactions: [], orderStats: {} };
-    }
-
-    const payload = unifiedResponse.value;
-    const rawTransactions = Array.isArray(payload?.transactions)
-      ? payload.transactions
-      : Array.isArray(payload?.data?.transactions)
-      ? payload.data.transactions
-      : Array.isArray(payload)
-      ? payload
-      : [];
-
-    const orderStatsCollector = {
-      escrowHold: 0,
-      shopPending: 0,
-      systemPending: 0,
-      shopReleased: 0,
-      systemReleased: 0,
-      refunded: 0,
-    };
-
-    let escrowCount = 0;
-
-    const processedTransactions = rawTransactions
-      .map((transaction) => {
-        const embeddedUser =
-          transaction?.fromWallet?.User || transaction?.toWallet?.User || null;
-        const rawId =
-          transaction?.fromWallet?.user_id ??
-          transaction?.toWallet?.user_id ??
-          null;
-        const amount = parseAmount(transaction.amount);
-        const status = normalizeTransactionStatus(transaction.status);
-
-        const baseTransaction = {
-          id:
-            transaction.id ||
-            transaction.transaction_id ||
-            transaction.code ||
-            transaction.reference ||
-            `${transaction.transaction_type || "tx"}-${amount}-${
-              transaction.created_at || ""
-            }`,
-          userId: rawId,
-          userDisplay: resolveUserDisplayName(rawId, embeddedUser, usersMap),
-          amount,
-          status,
-          timestamp:
-            transaction.created_at ||
-            transaction.createdAt ||
-            transaction.updated_at ||
-            transaction.updatedAt,
-        };
-
-        // Process order payments
-        if (transaction.transaction_type === TRANSACTION_TYPES.ORDER_PAYMENT) {
-          const orderId = transaction.order_id || transaction.orderId || null;
-          const { shopShare, systemShare } = calculateCommission(amount);
-
-          if (status === TRANSACTION_STATUS.PENDING) {
-            escrowCount += 1;
-            orderStatsCollector.escrowHold += amount;
-            orderStatsCollector.shopPending += shopShare;
-            orderStatsCollector.systemPending += systemShare;
-
-            return {
-              ...baseTransaction,
-              type: TRANSACTION_TYPES.ORDER_PAYMENT,
-              orderId,
-              description: `Thanh toán đơn #${orderId} (Escrow) – Shop: ${shopShare.toLocaleString(
-                "vi-VN"
-              )}đ • Hệ thống: ${systemShare.toLocaleString("vi-VN")}đ`,
-            };
-          }
-
-          if (status === TRANSACTION_STATUS.COMPLETED) {
-            orderStatsCollector.shopReleased += shopShare;
-            orderStatsCollector.systemReleased += systemShare;
-
-            return {
-              ...baseTransaction,
-              type: TRANSACTION_TYPES.ORDER_PAYMENT,
-              orderId,
-              description: `Giải ngân đơn #${orderId} – Shop: ${shopShare.toLocaleString(
-                "vi-VN"
-              )}đ • Hệ thống: ${systemShare.toLocaleString("vi-VN")}đ`,
-            };
-          }
-
-          // Failed/cancelled orders - full refund
-          orderStatsCollector.refunded += amount;
-          return {
-            ...baseTransaction,
-            type: TRANSACTION_TYPES.ORDER_PAYMENT,
-            orderId,
-            description: `Hoàn tiền đơn #${orderId} – ${amount.toLocaleString(
-              "vi-VN"
-            )}đ`,
-          };
-        }
-
-        // Process AI generation
-        if (transaction.transaction_type === TRANSACTION_TYPES.AI_GENERATION) {
-          return {
-            ...baseTransaction,
-            type: TRANSACTION_TYPES.AI_GENERATION,
-            description: localizeTransactionDescription(transaction, status),
-          };
-        }
-
-        // Generic fallback
-        return {
-          ...baseTransaction,
-          type: transaction.transaction_type || "other",
-          description: localizeTransactionDescription(transaction, status),
-        };
-      })
-      .filter(Boolean);
-
-    return {
-      transactions: processedTransactions,
-      orderStats: { ...orderStatsCollector, escrowCount },
-    };
-  };
+  // (Removed duplicate/broken earlier version of fetchAdminWalletData & inline process code)
 
   // Main data fetching function - simplified
   const fetchAdminWalletData = async (appliedFilters = {}) => {
@@ -303,15 +304,13 @@ const WalletManagement = () => {
       setError(null);
 
       const [
-        systemBalanceResponse,
-        depositsResponse,
+        systemBalanceResponse, // hiện chưa sử dụng
         aiRevenueResponse,
         withdrawResponse,
         unifiedTxResponse,
         usersResponse,
       ] = await Promise.allSettled([
         fetchSystemWalletBalance(),
-        fetchAllDepositsAdmin(appliedFilters),
         fetchTotalAmountAiGenerate(),
         fetchAllWithdrawHistory(),
         fetchAllWalletTransactions(),
@@ -384,13 +383,14 @@ const WalletManagement = () => {
         appliedFilters
       );
 
-      // Sort and set transactions
-      filteredTransactions.sort(
+      // Sort and set transactions (also keep full list for modal quick filtering)
+      const sortedAll = filteredTransactions.sort(
         (a, b) =>
           new Date(b.timestamp || b.created_at) -
           new Date(a.timestamp || a.created_at)
       );
-      setTransactions(filteredTransactions);
+      setTransactions(sortedAll);
+      setAllTransactions(sortedAll); // keep reference
 
       // Fetch admin wallet (accounting)
       const adminWalletResponse = await getAdminWallet();
@@ -442,25 +442,17 @@ const WalletManagement = () => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleApplyFilters = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      await fetchAdminWalletData(filters);
-      setShowFilters(false);
-    } catch (error) {
-      console.error("Error applying filters:", error);
-      setError("Có lỗi khi áp dụng bộ lọc. Vui lòng thử lại.");
-      setTransactions([]);
-    } finally {
-      setLoading(false);
-    }
+  const handleApplyFilters = () => {
+    applyAndSetFilters(filters);
+    setShowFilters(false);
+    setCurrentPage(1);
   };
 
   const handleResetFilters = () => {
     const resetFilters = { status: "", user_id: "", type: "" };
     setFilters(resetFilters);
-    fetchAdminWalletData(resetFilters);
+    applyAndSetFilters(resetFilters);
+    setCurrentPage(1);
   };
 
   const handleViewTransactions = (walletType) => {
@@ -472,14 +464,19 @@ const WalletManagement = () => {
   // Load data on component mount
   useEffect(() => {
     fetchAdminWalletData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Computed values
   const totalRevenue =
     (walletData.floating?.balance || 0) + (walletData.accounting?.balance || 0);
-  const paginatedTransactions = transactions.slice(
-    (currentPage - 1) * WALLET_CONFIG.ITEMS_PER_PAGE,
-    currentPage * WALLET_CONFIG.ITEMS_PER_PAGE
+  const paginatedTransactions = useMemo(
+    () =>
+      transactions.slice(
+        (currentPage - 1) * WALLET_CONFIG.ITEMS_PER_PAGE,
+        currentPage * WALLET_CONFIG.ITEMS_PER_PAGE
+      ),
+    [transactions, currentPage]
   );
 
   // Transaction status display helper
