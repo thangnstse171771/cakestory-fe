@@ -95,45 +95,37 @@ export default function CakeShop() {
     );
   }, [productData]);
 
-  const cake = useMemo(() => {
-    if (!productData) {
-      return {
-        id: 1,
-        name: "Bánh Kem Dâu",
-        description:
-          "Bánh kem tươi với lớp phủ socola trắng, trang trí cherry và socola chips thơm ngon",
-        basePrice: 200000,
-        image: "/cake-strawberry.jpg",
-        toppings: ingredients,
-      };
-    }
-
-    const basePrice =
-      availableSizes.length > 0
-        ? normalizePrice(availableSizes[0].price)
-        : 200000;
-
-    return {
-      id: productData.post_id || productData.id,
-      name: productData.post?.title || productData.title || "Bánh Kem",
-      description:
-        productData.post?.description ||
-        productData.description ||
-        "Bánh thơm ngon được làm thủ công",
-      basePrice,
-      image: productData.post?.media?.[0]?.image_url || "/cake-strawberry.jpg",
-      toppings: ingredients,
-    };
-  }, [productData, ingredients, availableSizes]);
+  // Real product info only (no fake fallback)
+  const cakeName = useMemo(
+    () =>
+      productData?.post?.title ||
+      productData?.title ||
+      (productData ? "Bánh" : "Đang tải sản phẩm"),
+    [productData]
+  );
+  const cakeDescription = useMemo(
+    () =>
+      productData?.post?.description ||
+      productData?.description ||
+      (productData ? "" : ""),
+    [productData]
+  );
+  const cakeImage = useMemo(
+    () =>
+      productData?.post?.media?.[0]?.image_url || productData?.image || null,
+    [productData]
+  );
 
   const selectedSizePrice = useMemo(() => {
     const selectedSizeData = availableSizes.find(
       (s) => s.size === selectedSize
     );
-    return selectedSizeData
-      ? normalizePrice(selectedSizeData.price)
-      : cake.basePrice;
-  }, [availableSizes, selectedSize, cake.basePrice]);
+    if (selectedSizeData) return normalizePrice(selectedSizeData.price);
+    // fallback: product base price field if provided
+    return normalizePrice(
+      productData?.base_price || productData?.price || productData?.post?.price
+    );
+  }, [availableSizes, selectedSize, productData]);
 
   const totalPrice = useMemo(() => {
     const basePrice = selectedSizePrice * quantity;
@@ -215,13 +207,16 @@ export default function CakeShop() {
     setIsCheckingOut(true);
 
     try {
+      const baseCakePrice = selectedSizePrice * quantity; // chỉ giá bánh (không gồm topping)
       const orderData = {
         customer_id: user.id,
         shop_id: parseInt(shopId),
         marketplace_post_id: productData?.post_id || productData?.id || 0,
-        base_price: totalPrice,
         size: selectedSize,
+        quantity,
         status: "pending",
+        base_price: baseCakePrice,
+        total_price: totalPrice, // tổng có topping
         special_instructions: "string",
         order_details: selectedToppings.map((topping) => ({
           ingredient_id: topping.id,
@@ -324,12 +319,12 @@ export default function CakeShop() {
 
   // Render functions
   const renderCakeImage = () => (
-    <div className="aspect-square bg-gradient-to-br from-pink-100 to-rose-200 rounded-lg flex items-center justify-center mb-6">
-      {cake.image && cake.image !== "/cake-strawberry.jpg" ? (
+    <div className="aspect-square bg-gradient-to-br from-pink-100 to-rose-200 rounded-lg flex items-center justify-center mb-6 overflow-hidden">
+      {cakeImage ? (
         <img
-          src={cake.image}
-          alt={cake.name}
-          className="w-full h-full object-cover rounded-lg"
+          src={cakeImage}
+          alt={cakeName}
+          className="w-full h-full object-cover"
           onError={(e) => {
             e.target.style.display = "none";
             e.target.nextSibling.style.display = "flex";
@@ -337,16 +332,11 @@ export default function CakeShop() {
         />
       ) : null}
       <div
-        className="text-center"
-        style={{
-          display:
-            cake.image && cake.image !== "/cake-strawberry.jpg"
-              ? "none"
-              : "flex",
-        }}
+        className="flex flex-col items-center justify-center text-center"
+        style={{ display: cakeImage ? "none" : "flex" }}
       >
         <div className="text-6xl mb-4">🍰</div>
-        <p className="text-gray-600">{cake.name}</p>
+        <p className="text-gray-600">{cakeName}</p>
       </div>
     </div>
   );
@@ -522,7 +512,7 @@ export default function CakeShop() {
               Thử lại
             </button>
           </div>
-        ) : cake.toppings.length === 0 ? (
+        ) : ingredients.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-6xl mb-4">🍰</div>
             <div className="text-gray-500">
@@ -533,7 +523,7 @@ export default function CakeShop() {
             </p>
           </div>
         ) : (
-          cake.toppings.map(renderToppingItem)
+          ingredients.map(renderToppingItem)
         )}
       </div>
     </div>
@@ -702,7 +692,7 @@ export default function CakeShop() {
               Thông tin đơn hàng
             </div>
             <div className="text-sm text-gray-800 mb-1">
-              Tên bánh: <span className="font-bold">{cake.name}</span>
+              Tên bánh: <span className="font-bold">{cakeName}</span>
             </div>
             <div className="text-sm text-gray-800 mb-1">
               Kích thước: <span className="font-bold">{selectedSize}</span>
@@ -784,9 +774,9 @@ export default function CakeShop() {
               <div className="space-y-4">
                 <div>
                   <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                    {cake.name}
+                    {cakeName}
                   </h2>
-                  <p className="text-gray-600">{cake.description}</p>
+                  <p className="text-gray-600">{cakeDescription}</p>
                 </div>
 
                 <div className="flex items-center space-x-4">
@@ -851,7 +841,7 @@ export default function CakeShop() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
                   <button
-                    onClick={() => navigate("/")}
+                    onClick={() => navigate("/home")}
                     className="flex-1 px-6 py-3 rounded-lg border border-pink-300 text-pink-600 hover:bg-pink-50 font-medium transition-colors"
                   >
                     Về trang chủ

@@ -52,7 +52,7 @@ const getOrderStatusLabel = (s) => {
   )
     return "Sẵn sàng giao hàng";
   if (["shipping", "delivering", "in_transit", "shipped"].includes(v))
-    return "Đang vận chuyển";
+    return "Đã được vận chuyển";
   if (["complaint", "complaining", "complaning", "disputed"].includes(v))
     return "Đang khiếu nại";
   if (["completed", "complete", "done", "delivered"].includes(v))

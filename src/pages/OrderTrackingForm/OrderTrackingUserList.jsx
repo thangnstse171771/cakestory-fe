@@ -18,7 +18,7 @@ const statusMap = {
     color: "bg-blue-100 text-blue-700",
   },
   shipped: {
-    label: "Đang vận chuyển",
+    label: "Đã được vận chuyển",
     color: "bg-orange-100 text-orange-700",
   },
   completed: { label: "Hoàn tất", color: "bg-emerald-100 text-emerald-700" },
@@ -664,7 +664,7 @@ export default function OrderTrackingList({
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
 
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
-                    <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
+                    <th className="px-4 py-3 font-semibold">Tổng giá</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
                   </tr>
                 </thead>
@@ -700,7 +700,11 @@ export default function OrderTrackingList({
                       </td>
                       <td className="px-4 py-3 font-semibold text-pink-600 whitespace-nowrap">
                         {(() => {
-                          const raw = order?.base_price ?? order?.total ?? 0;
+                          const raw =
+                            order?.total_price ??
+                            order?.total ??
+                            order?.base_price ??
+                            0;
                           const num =
                             typeof raw === "number"
                               ? raw

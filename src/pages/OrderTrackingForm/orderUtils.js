@@ -7,7 +7,10 @@ export const statusMap = {
     label: "Sẵn sàng giao hàng",
     color: "bg-blue-100 text-blue-700",
   },
-  shipped: { label: "Đang vận chuyển", color: "bg-orange-100 text-orange-700" },
+  shipped: {
+    label: "Đã được vận chuyển",
+    color: "bg-orange-100 text-orange-700",
+  },
   completed: { label: "Hoàn tất", color: "bg-emerald-100 text-emerald-700" },
   complaining: { label: "Đang khiếu nại", color: "bg-red-100 text-red-700" },
   cancelled: { label: "Đã hủy", color: "bg-gray-100 text-gray-700" },
@@ -152,11 +155,12 @@ export const buildOrderSummary = (raw) => {
         name:
           item.cake?.name || item.marketplace_post?.title || `Bánh #${item.id}`,
         quantity: parseInt(item.quantity) || 1,
-        price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
+        price: parseFloat(item.price) || parseFloat(item._pricbasee) || 0,
       }))
     : [];
   const basePrice =
     parseFloat(raw.base_price) || parseFloat(raw.total_price) || 0;
+  const totalPrice = parseFloat(raw.total_price) || basePrice;
   const customerPhone =
     raw.customerPhone ||
     u.phone_number ||
@@ -213,7 +217,8 @@ export const buildOrderSummary = (raw) => {
     },
     items,
     base_price: basePrice,
-    total: parseFloat(raw.total_price) || basePrice,
+    total: totalPrice,
+    total_price: totalPrice, // alias so components expecting raw field still work
     history: [
       {
         date: raw.created_at

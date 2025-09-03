@@ -207,11 +207,11 @@ const Sidebar = () => {
       submenu: [
         { icon: ArrowDownToLine, label: "Yêu cầu rút tiền", path: "/withdraw" },
         { icon: Receipt, label: "Tất cả giao dịch", path: "/all-transactions" },
-        {
-          icon: Receipt,
-          label: "Giao dịch ví chi tiết",
-          path: "/wallet/transactions",
-        },
+        // {
+        //   icon: Receipt,
+        //   label: "Giao dịch ví chi tiết",
+        //   path: "/wallet/transactions",
+        // },
       ],
     },
   ];
