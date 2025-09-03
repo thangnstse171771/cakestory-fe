@@ -6,7 +6,6 @@ import {
   XCircle,
   AlertCircle,
   Calendar,
-  DollarSign,
   RefreshCw,
   FileText,
   TrendingUp,
@@ -15,7 +14,6 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Building,
-  CreditCard,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -26,6 +24,9 @@ import {
   fetchWalletHistory,
   fetchWithdrawHistory,
   fetchCakeOrdersByUserId,
+  fetchShopByUserId,
+  fetchShopOrders,
+  fetchWalletBalance, // unified balance endpoint
 } from "../../api/axios";
 
 // Helper: robust parse amount strings to number (keep decimals, drop thousand separators and currency symbols)
@@ -226,26 +227,31 @@ const AllPaymentHistory = () => {
 
   // Statistics (extended with purchase/withdraw split)
   const [stats, setStats] = useState({
-    totalDeposits: 0,
-    totalWithdrawals: 0, // withdraw + purchase (overall money out)
+    // totalDeposits removed -> now using walletBalance card
+    totalWithdrawals: 0,
     totalTransactions: 0,
     pendingCount: 0,
     completedCount: 0,
     failedCount: 0,
-
-    // Split
     totalPurchases: 0,
     purchaseCount: 0,
     purchasePending: 0,
     purchaseCompleted: 0,
     purchaseFailed: 0,
-
     totalWithdrawOnly: 0,
     withdrawCount: 0,
     withdrawPending: 0,
     withdrawCompleted: 0,
     withdrawFailed: 0,
+    // payout stats
+    payoutGross: 0,
+    payoutNet: 0,
+    systemFee: 0,
+    payoutCount: 0,
   });
+
+  // Wallet balance state (replaces totalDeposits card)
+  const [walletBalance, setWalletBalance] = useState(0);
 
   useEffect(() => {
     loadAllTransactions();
@@ -264,189 +270,142 @@ const AllPaymentHistory = () => {
     setLoading(true);
     setError("");
     try {
-      console.log("=== AllPaymentHistory - Starting loadAllTransactions ===");
-
       const userId = getCurrentUserId();
-
-      // Fetch deposit, withdraw, and purchase orders (if userId available)
-      const promises = [fetchWalletHistory(), fetchWithdrawHistory()];
-      if (userId) promises.push(fetchCakeOrdersByUserId(userId));
-
-      const [depositResponse, withdrawResponse, ordersResponse] =
-        await Promise.allSettled(promises);
-
-      console.log("=== AllPaymentHistory - API Responses ===");
-      console.log("Deposit Response Status:", depositResponse?.status);
-      console.log("Withdraw Response Status:", withdrawResponse?.status);
-      console.log("Orders Response Status:", ordersResponse?.status);
-
-      let allTransactions = [];
-
-      // Process deposit transactions
-      if (depositResponse.status === "fulfilled") {
-        let deposits = [];
-        const depositData = depositResponse.value;
-
-        console.log("=== PROCESSING DEPOSITS ===");
-        console.log("Raw deposit data:", depositData);
-
-        if (Array.isArray(depositData)) {
-          deposits = depositData;
-          console.log("Using direct array, length:", deposits.length);
-        } else if (depositData && Array.isArray(depositData.transactions)) {
-          deposits = depositData.transactions;
-          console.log(
-            "Using depositData.transactions, length:",
-            deposits.length
+      // resolve shop id
+      let shopId = null;
+      if (userId) {
+        try {
+          const shopRes = await fetchShopByUserId(userId);
+          shopId =
+            shopRes?.shop?.shop_id ||
+            shopRes?.shop_id ||
+            shopRes?.id ||
+            shopRes?.data?.shop?.shop_id ||
+            shopRes?.data?.shop_id ||
+            shopRes?.data?.id ||
+            null;
+        } catch {}
+      }
+      // fetch wallet balance (by user id)
+      if (userId) {
+        try {
+          const wb = await fetchWalletBalance();
+          const extracted = toNumber(
+            wb?.balance ??
+              wb?.data?.balance ??
+              wb?.wallet?.balance ??
+              wb?.wallet_balance ??
+              wb?.wallet?.amount ??
+              wb
           );
-        } else if (depositData && Array.isArray(depositData.deposits)) {
-          deposits = depositData.deposits;
-          console.log("Using depositData.deposits, length:", deposits.length);
-        } else {
-          console.log("=== DEPOSIT DATA STRUCTURE UNKNOWN ===");
-          console.log("Available properties:", Object.keys(depositData || {}));
-          // Thử tìm array trong object
-          if (depositData && typeof depositData === "object") {
-            const arrayProperty = Object.values(depositData).find((value) =>
-              Array.isArray(value)
-            );
-            if (arrayProperty) {
-              deposits = arrayProperty;
-              console.log("Found array property, length:", deposits.length);
-            }
-          }
+          setWalletBalance(extracted);
+        } catch (e) {
+          // silent fail; leave walletBalance at 0
         }
-
-        console.log("Final deposits array:", deposits);
-        console.log("Deposits count:", deposits.length);
-
-        if (deposits.length > 0) {
-          console.log("Sample deposit:", deposits[0]);
-        }
-
-        const processedDeposits = deposits.map((deposit) => ({
-          ...deposit,
-          // Ensure a stable id for list dedupe and keys
-          id:
-            deposit.id ||
-            deposit.deposit_id ||
-            deposit.payment_id ||
-            deposit.transaction_id ||
-            deposit.deposit_code ||
-            `dep-${
-              deposit.created_at || deposit.createdAt || Date.now().toString()
-            }`,
-          type: "deposit", // canonical type for filters
-          transactionType: "Nạp tiền",
-          icon: <ArrowDownLeft className="w-4 h-4 text-green-500" />,
-          amountPrefix: "+",
-          amountColor: "text-green-600",
-        }));
-
-        console.log("Processed deposits count:", processedDeposits.length);
-        allTransactions = [...allTransactions, ...processedDeposits];
-        console.log(
-          "After adding deposits, total transactions:",
-          allTransactions.length
-        );
       }
 
-      // Process withdrawal transactions
-      if (withdrawResponse.status === "fulfilled") {
+      const promises = [fetchWalletHistory(), fetchWithdrawHistory()];
+      if (userId) promises.push(fetchCakeOrdersByUserId(userId));
+      if (shopId) promises.push(fetchShopOrders(shopId));
+      const results = await Promise.allSettled(promises);
+      // unpack results respecting order
+      let depositResponse = results[0];
+      let withdrawResponse = results[1];
+      let ordersResponse = userId ? results[2] : null;
+      let shopOrdersResponse = shopId ? results[results.length - 1] : null;
+      let allTransactions = [];
+      // deposits
+      if (depositResponse?.status === "fulfilled") {
+        let deposits = [];
+        const depositData = depositResponse.value;
+        if (Array.isArray(depositData)) deposits = depositData;
+        else if (Array.isArray(depositData?.transactions))
+          deposits = depositData.transactions;
+        else if (Array.isArray(depositData?.deposits))
+          deposits = depositData.deposits;
+        else if (Array.isArray(depositData?.history))
+          deposits = depositData.history; // support { history: [...] }
+        else if (depositData && typeof depositData === "object") {
+          const arrayProperty = Object.values(depositData).find((v) =>
+            Array.isArray(v)
+          );
+          if (arrayProperty) deposits = arrayProperty;
+        }
+        const completedStatuses = [
+          "completed",
+          "success",
+          "hoàn thành",
+          "thành công",
+        ];
+        const processedDeposits = deposits
+          .filter((d) =>
+            completedStatuses.includes(
+              String(d.status || "")
+                .toLowerCase()
+                .trim()
+            )
+          )
+          .map((d) => ({
+            ...d,
+            id:
+              d.id ||
+              d.deposit_id ||
+              d.payment_id ||
+              d.transaction_id ||
+              d.deposit_code ||
+              `dep-${d.created_at || d.createdAt || Date.now()}`,
+            type: "deposit",
+            transactionType: "Nạp tiền",
+            icon: <ArrowDownLeft className="w-4 h-4 text-green-500" />,
+            amountPrefix: "+",
+            amountColor: "text-green-600",
+          }));
+        allTransactions.push(...processedDeposits);
+      }
+      // withdrawals
+      if (withdrawResponse?.status === "fulfilled") {
         let withdrawals = [];
         const withdrawData = withdrawResponse.value;
-
-        console.log("=== PROCESSING WITHDRAWALS ===");
-        console.log("Raw withdraw data:", withdrawData);
-
-        if (
-          withdrawData?.success &&
-          Array.isArray(withdrawData.withdrawHistory)
-        ) {
+        if (Array.isArray(withdrawData?.withdrawHistory))
           withdrawals = withdrawData.withdrawHistory;
-          console.log(
-            "Using withdrawData.withdrawHistory, length:",
-            withdrawals.length
-          );
-        } else if (Array.isArray(withdrawData?.withdrawHistory)) {
-          withdrawals = withdrawData.withdrawHistory;
-          console.log(
-            "Using withdrawData?.withdrawHistory, length:",
-            withdrawals.length
-          );
-        } else if (Array.isArray(withdrawData)) {
-          withdrawals = withdrawData;
-          console.log("Using direct array, length:", withdrawals.length);
-        } else {
-          console.log("=== WITHDRAW DATA STRUCTURE UNKNOWN ===");
-          console.log("Available properties:", Object.keys(withdrawData || {}));
-        }
-
-        console.log("Final withdrawals array:", withdrawals);
-        console.log("Withdrawals count:", withdrawals.length);
-
-        const processedWithdrawals = withdrawals.map((withdrawal) => ({
-          ...withdrawal,
-          // Ensure a stable id for list dedupe and keys
+        else if (Array.isArray(withdrawData)) withdrawals = withdrawData;
+        const processedWithdrawals = withdrawals.map((w) => ({
+          ...w,
           id:
-            withdrawal.id ||
-            withdrawal.withdraw_id ||
-            withdrawal.transaction_id ||
-            withdrawal.request_id ||
-            `wd-${
-              withdrawal.created_at ||
-              withdrawal.createdAt ||
-              Date.now().toString()
-            }`,
-          type: "withdraw", // canonical type for filters
+            w.id ||
+            w.withdraw_id ||
+            w.transaction_id ||
+            w.request_id ||
+            `wd-${w.created_at || w.createdAt || Date.now()}`,
+          type: "withdraw",
           transactionType: "Rút tiền",
           icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
           amountPrefix: "-",
           amountColor: "text-red-600",
         }));
-
-        console.log(
-          "Processed withdrawals count:",
-          processedWithdrawals.length
-        );
-        allTransactions = [...allTransactions, ...processedWithdrawals];
-        console.log(
-          "After adding withdrawals, total transactions:",
-          allTransactions.length
-        );
+        allTransactions.push(...processedWithdrawals);
       }
-
-      // Process purchase (cake orders) transactions
+      // user purchase orders
       if (ordersResponse && ordersResponse.status === "fulfilled") {
         let orders = [];
         const ordersData = ordersResponse.value;
-        console.log("=== PROCESSING PURCHASE ORDERS ===");
-        console.log("Raw orders data:", ordersData);
-
-        // Normalize orders array from various shapes
-        if (Array.isArray(ordersData)) {
-          orders = ordersData;
-        } else if (Array.isArray(ordersData?.orders)) {
-          orders = ordersData.orders;
-        } else if (Array.isArray(ordersData?.data)) {
-          orders = ordersData.data;
-        } else if (ordersData && typeof ordersData === "object") {
-          // Single order object case
-          if (ordersData.id || ordersData.order_id) {
-            orders = [ordersData];
-          } else {
+        if (Array.isArray(ordersData)) orders = ordersData;
+        else if (Array.isArray(ordersData?.orders)) orders = ordersData.orders;
+        else if (Array.isArray(ordersData?.data)) orders = ordersData.data;
+        else if (ordersData && typeof ordersData === "object") {
+          if (ordersData.id || ordersData.order_id) orders = [ordersData];
+          else {
             const arrayProperty = Object.values(ordersData).find((v) =>
               Array.isArray(v)
             );
             if (arrayProperty) orders = arrayProperty;
           }
         }
-
-        const processedOrders = orders.map((order) => {
+        const processedOrders = orders.map((o) => {
           const amount = toNumber(
-            order.total ?? order.total_price ?? order.totalPrice ?? order.amount
+            o.total ?? o.total_price ?? o.totalPrice ?? o.amount
           );
-          const rawStatus = (order.status || order.payment_status || "")
+          const rawStatus = (o.status || o.payment_status || "")
             .toString()
             .toLowerCase();
           let normalized = rawStatus;
@@ -459,9 +418,9 @@ const AllPaymentHistory = () => {
               "shipped",
               "success",
             ].includes(rawStatus)
-          ) {
+          )
             normalized = "completed";
-          } else if (
+          else if (
             [
               "pending",
               "processing",
@@ -469,35 +428,31 @@ const AllPaymentHistory = () => {
               "created",
               "ordered",
             ].includes(rawStatus)
-          ) {
+          )
             normalized = "pending";
-          } else if (
+          else if (
             ["failed", "rejected", "cancelled", "canceled"].includes(rawStatus)
-          ) {
+          )
             normalized = "failed";
-          }
-          // Determine presentation (prefix/color/type label)
-          let amountPrefix = "-";
-          let amountColor = "text-red-600";
-          let transactionType = "Mua bánh";
-          if (normalized === "pending") {
-            transactionType = "Mua bánh (giữ tạm)";
-          } else if (normalized === "failed") {
-            // Refund back to user wallet
+          let amountPrefix = "-",
+            amountColor = "text-red-600",
+            transactionType = "Mua bánh";
+          if (normalized === "pending") transactionType = "Mua bánh (giữ tạm)";
+          else if (normalized === "failed") {
             amountPrefix = "+";
             amountColor = "text-green-600";
             transactionType = "Hoàn tiền mua bánh";
           }
           const createdAtVal =
-            order.created_at ||
-            order.createdAt ||
-            order.updated_at ||
-            order.updatedAt ||
-            order.payment_time ||
+            o.created_at ||
+            o.createdAt ||
+            o.updated_at ||
+            o.updatedAt ||
+            o.payment_time ||
             new Date().toISOString();
           return {
-            id: order.id || order.order_id || `order-${amount}-${createdAtVal}`,
-            type: "purchase", // canonical type for filters
+            id: o.id || o.order_id || `order-${amount}-${createdAtVal}`,
+            type: "purchase",
             transactionType,
             icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
             amountPrefix,
@@ -505,19 +460,72 @@ const AllPaymentHistory = () => {
             amount,
             status: normalized || "pending",
             created_at: createdAtVal,
-            description:
-              order.note ||
-              order.size ||
-              `Đơn hàng #${order.id ?? order.order_id}`,
-            // Keep original for potential drilldown
-            orderRaw: order,
+            description: o.note || o.size || `Đơn hàng #${o.id ?? o.order_id}`,
+            orderRaw: o,
           };
         });
-
-        allTransactions = [...allTransactions, ...processedOrders];
+        allTransactions.push(...processedOrders);
       }
-
-      // Robust dedupe by stable key
+      // synthetic payouts for shop completed orders
+      if (shopOrdersResponse && shopOrdersResponse.status === "fulfilled") {
+        let shopOrders = [];
+        const raw = shopOrdersResponse.value;
+        if (Array.isArray(raw)) shopOrders = raw;
+        else if (Array.isArray(raw?.orders)) shopOrders = raw.orders;
+        else if (Array.isArray(raw?.data)) shopOrders = raw.data;
+        else if (raw && typeof raw === "object") {
+          const arrProp = Object.values(raw).find((v) => Array.isArray(v));
+          if (Array.isArray(arrProp)) shopOrders = arrProp;
+        }
+        const payoutStatuses = [
+          "completed",
+          "success",
+          "paid",
+          "delivered",
+          "shipped",
+          "hoàn thành",
+          "thành công",
+        ];
+        const payoutTx = shopOrders
+          .filter((o) =>
+            payoutStatuses.includes(String(o.status || "").toLowerCase())
+          )
+          .map((o) => {
+            const gross =
+              toNumber(
+                o.total_price || o.total || o.totalPrice || o.base_price || 0
+              ) || 0;
+            const net = Math.round(gross * 0.95);
+            const fee = gross - net;
+            const timeRef =
+              o.updated_at ||
+              o.updatedAt ||
+              o.completed_at ||
+              o.created_at ||
+              o.createdAt;
+            return {
+              id: `payout-${o.id || o.order_id}`,
+              type: "order_payout",
+              transactionType: "Doanh thu thực nhận",
+              icon: <ArrowDownLeft className="w-4 h-4 text-green-500" />,
+              amountPrefix: "+",
+              amountColor: "text-green-600",
+              amount: net,
+              status: "completed",
+              created_at: timeRef,
+              grossAmount: gross,
+              feeAmount: fee,
+              originalOrderId: o.id || o.order_id,
+              note: `Payout 95% đơn #${
+                o.id || o.order_id
+              } (phí 5%: ${fee.toLocaleString("vi-VN")}đ)`,
+              orderRaw: o,
+              synthetic: true,
+            };
+          });
+        allTransactions.push(...payoutTx);
+      }
+      // dedupe existing
       const dedupedMap = new Map();
       const buildKey = (t) => {
         const type = t.type || "unknown";
@@ -529,38 +537,26 @@ const AllPaymentHistory = () => {
           t.request_id ||
           t.orderRaw?.id ||
           t.orderRaw?.order_id;
-        if (idCandidate != null) {
+        if (idCandidate != null)
           return `${type}::${String(idCandidate).toLowerCase()}`;
-        }
-        // Fallback: amount + minute bucket + extra marker
         const amount = toNumber(t.amount);
         const d = new Date(t.created_at || t.createdAt || Date.now());
         const minuteBucket = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
         const extra = String(t.bank_name || t.description || "").toLowerCase();
         return `${type}::${amount}::${minuteBucket}::${extra}`;
       };
-
       for (const t of allTransactions) {
         const key = buildKey(t);
         if (!dedupedMap.has(key)) dedupedMap.set(key, t);
       }
-      const dedupedTransactions = Array.from(dedupedMap.values());
-
-      // Sort by date (newest first)
-      dedupedTransactions.sort((a, b) => {
-        const dateA = new Date(a.created_at || a.createdAt || 0);
-        const dateB = new Date(b.created_at || b.createdAt || 0);
-        return dateB - dateA;
-      });
-
-      console.log("=== FINAL SUMMARY ===");
-      console.log("Total transactions after sorting:", allTransactions.length);
-      console.log("First 3 transactions:", allTransactions.slice(0, 3));
-
+      const dedupedTransactions = Array.from(dedupedMap.values()).sort(
+        (a, b) =>
+          new Date(b.created_at || b.createdAt || 0) -
+          new Date(a.created_at || a.createdAt || 0)
+      );
       setTransactions(dedupedTransactions);
       calculateStats(dedupedTransactions);
-    } catch (error) {
-      console.error("Error loading transactions:", error);
+    } catch (e) {
       setError("Không thể tải lịch sử giao dịch. Vui lòng thử lại.");
     } finally {
       setLoading(false);
@@ -569,16 +565,16 @@ const AllPaymentHistory = () => {
 
   const calculateStats = (transactions) => {
     const next = {
-      totalDeposits: 0,
+      // totalDeposits removed
       totalWithdrawals: 0,
       totalTransactions: transactions.length,
       pendingCount: 0,
       completedCount: 0,
       failedCount: 0,
-      totalPurchases: 0, // tổng gross tất cả đơn mua (mọi trạng thái)
-      netPurchases: 0, // chỉ đơn đã hoàn thành (thực sự trừ khỏi ví)
-      purchaseHeld: 0, // tiền đang tạm giữ (pending)
-      purchaseRefunded: 0, // tiền đơn mua đã hoàn/ thất bại trả lại ví
+      totalPurchases: 0,
+      netPurchases: 0,
+      purchaseHeld: 0,
+      purchaseRefunded: 0,
       purchaseCount: 0,
       purchasePending: 0,
       purchaseCompleted: 0,
@@ -588,17 +584,26 @@ const AllPaymentHistory = () => {
       withdrawPending: 0,
       withdrawCompleted: 0,
       withdrawFailed: 0,
+      payoutGross: 0,
+      payoutNet: 0,
+      systemFee: 0,
+      payoutCount: 0,
     };
-
     transactions.forEach((t) => {
       const amount = toNumber(t.amount);
       const status = t.status?.toLowerCase();
-
+      if (t.type === "order_payout") {
+        next.payoutCount++;
+        next.payoutNet += amount;
+        next.payoutGross += toNumber(t.grossAmount || amount / 0.95);
+        next.systemFee += toNumber(t.feeAmount || 0);
+        next.completedCount++;
+        return;
+      }
       if (t.type === "deposit") {
         if (
           ["completed", "success", "hoàn thành", "thành công"].includes(status)
         ) {
-          next.totalDeposits += amount;
           next.completedCount++;
         } else if (["pending", "đang xử lý"].includes(status)) {
           next.pendingCount++;
@@ -688,7 +693,6 @@ const AllPaymentHistory = () => {
         }
       }
     });
-
     setStats(next);
   };
 
@@ -962,14 +966,14 @@ const AllPaymentHistory = () => {
 
       <div className="max-w-7xl mx-auto p-4">
         {/* Top-level Statistics Dashboard */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {/* Tổng tiền vào */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          {/* Số dư ví hiện tại (wallet balance) */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600 mb-1">Tổng tiền vào</p>
+                <p className="text-sm text-gray-600 mb-1">Số dư ví hiện tại</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {formatAmount(stats.totalDeposits)} đ
+                  {formatAmount(walletBalance)} đ
                 </p>
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
@@ -1024,7 +1028,31 @@ const AllPaymentHistory = () => {
             </div>
           </div>
 
-          {/* Thành công + breakdown small */}
+          {/* Doanh thu đơn hàng (Payout Net) */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">
+                  Doanh thu thực nhận
+                </p>
+                <p className="text-2xl font-bold text-green-600">
+                  {formatAmount(stats.payoutNet)} đ
+                </p>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  <li>Doanh thu: {formatAmount(stats.payoutGross)} đ</li>
+                  <li> Phí: {formatAmount(stats.systemFee)} đ</li>
+                </p>
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Số đơn: {stats.payoutCount}
+                </p>
+              </div>
+              <div className="p-3 bg-green-50 rounded-lg">
+                <ArrowDownLeft className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Thành công */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -1032,10 +1060,6 @@ const AllPaymentHistory = () => {
                 <p className="text-2xl font-bold text-green-600">
                   {stats.completedCount}
                 </p>
-                {/* <div className="flex gap-4 text-xs text-gray-500 mt-2">
-                  <span>Chờ: {stats.pendingCount}</span>
-                  <span>Lỗi: {stats.failedCount}</span>
-                </div> */}
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -1188,6 +1212,15 @@ const AllPaymentHistory = () => {
                         transaction.orderRaw?.order_id ||
                         transaction.id;
                       if (orderId) navigate(`/order-tracking-user/${orderId}`);
+                      return;
+                    }
+                    if (transaction.type === "order_payout") {
+                      const orderId =
+                        transaction.originalOrderId ||
+                        transaction.orderRaw?.id ||
+                        transaction.orderRaw?.order_id;
+                      if (orderId) navigate(`/order-tracking-user/${orderId}`);
+                      return;
                     }
                   };
 
@@ -1212,6 +1245,11 @@ const AllPaymentHistory = () => {
                               <span className="px-2 py-0.5 rounded-full text-[10px] uppercase bg-gray-100 text-gray-500">
                                 {transaction.type}
                               </span>
+                              {transaction.type === "order_payout" && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] bg-green-100 text-green-600">
+                                  Thực nhận
+                                </span>
+                              )}
                               <span
                                 className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color}`}
                               >
@@ -1237,6 +1275,12 @@ const AllPaymentHistory = () => {
                                 </span>
                               )}
                             </div>
+                            {transaction.type === "order_payout" &&
+                              transaction.note && (
+                                <div className="mt-1 text-xs text-green-700">
+                                  {transaction.note}
+                                </div>
+                              )}
                           </div>
                         </div>
 
@@ -1247,10 +1291,8 @@ const AllPaymentHistory = () => {
                             {transaction.amountPrefix}
                             {formatAmount(transaction.amount)} đ
                           </div>
-                          {/* <div className="text-xs text-gray-400">
-                            #{transaction.id || startIndex + index + 1}
-                          </div> */}
-                          {transaction.type !== "deposit" && (
+                          {(transaction.type === "purchase" ||
+                            transaction.type === "order_payout") && (
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1258,9 +1300,23 @@ const AllPaymentHistory = () => {
                                 goToDetails();
                               }}
                               className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium text-pink-600 hover:bg-pink-50"
-                              aria-label="Xem chi tiết giao dịch"
+                              aria-label="Xem chi tiết đơn hàng"
                             >
                               Xem chi tiết
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+                          )}
+                          {transaction.type === "withdraw" && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToDetails();
+                              }}
+                              className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium text-pink-600 hover:bg-pink-50"
+                              aria-label="Xem chi tiết rút tiền"
+                            >
+                              Chi tiết
                               <ChevronRight className="w-4 h-4" />
                             </button>
                           )}

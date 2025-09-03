@@ -28,19 +28,11 @@ import {
   extractImageFromMarketplacePost,
 } from "./orderUtils";
 
-export default function OrderTrackingForm({
-  order,
-  onUpdateStatus,
-  onBackToList,
-}) {
+export default function OrderTrackingForm({ order, onUpdateStatus }) {
   const { orderId } = useParams();
   const { user } = useAuth();
   const location = useLocation();
-  // Order summary passed via navigation state (from list pages)
-  const passedOrderSummary = useMemo(
-    () => location.state?.orderSummary || location.state?.order || null,
-    [location.state]
-  );
+  // (Removed navigation state summary: fetch by id now returns full address/phone)
   // Detect if viewing from user purchase history page; restrict shop transitions here
   const isUserHistoryPage = (location?.pathname || "").startsWith(
     "/order-tracking-user"
@@ -81,41 +73,9 @@ export default function OrderTrackingForm({
   }, [user]);
 
   const [viewerShopId, setViewerShopId] = useState(null);
-  const [orderDetail, setOrderDetail] = useState(() => {
-    const base = order || passedOrderSummary;
-    if (!base) return base;
-    const userNode = base.User || base.user || {};
-    return {
-      ...base,
-      status: normalizeStatus(base.status),
-      customer_user_id:
-        base.customer_user_id || extractCustomerUserId(base) || null,
-      shop_id: extractShopId(base),
-      customerPhone:
-        base.customerPhone ||
-        userNode.phone ||
-        userNode.phone_number ||
-        base.phone_number ||
-        "",
-      customerAddress:
-        base.customerAddress ||
-        userNode.address ||
-        userNode.business_address ||
-        base.address ||
-        base.shipping_address ||
-        "",
-      shippingAddress: base.shippingAddress || {
-        address:
-          base.shipping_address ||
-          base.address ||
-          userNode.address ||
-          userNode.business_address ||
-          "",
-      },
-    };
-  });
+  const [orderDetail, setOrderDetail] = useState(null); // always fetched
   const [showComplaintModal, setShowComplaintModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [ingredientsMap, setIngredientsMap] = useState({});
   const [loadingIngredients, setLoadingIngredients] = useState(false);
   const [marketplacePost, setMarketplacePost] = useState(null);
@@ -182,17 +142,12 @@ export default function OrderTrackingForm({
         customerUser.phone_number ||
         data.customer_id?.phone ||
         data.customer_id?.phone_number ||
-        passedOrderSummary?.customerPhone ||
-        orderDetail?.customerPhone ||
         "";
       const customerAddress =
         customerUser.address ||
         customerUser.business_address ||
         data.address ||
         data.shipping_address ||
-        passedOrderSummary?.customerAddress ||
-        orderDetail?.customerAddress ||
-        passedOrderSummary?.shippingAddress?.address ||
         "";
 
       let items = [];
@@ -276,43 +231,10 @@ export default function OrderTrackingForm({
             data.delivery_address ||
             data.deliveryAddress ||
             customerAddress ||
-            passedOrderSummary?.shippingAddress?.address ||
             "",
         },
       };
-
-      setOrderDetail((prev) => {
-        const merged = { ...transformedOrder };
-        const fallbackSources = [passedOrderSummary, prev];
-        [
-          "customerName",
-          "customerEmail",
-          "customerPhone",
-          "customerAddress",
-          "shop_id",
-        ].forEach((field) => {
-          if (!merged[field]) {
-            for (const src of fallbackSources) {
-              if (src && src[field]) {
-                merged[field] = src[field];
-                break;
-              }
-            }
-          }
-        });
-        if (
-          (!merged.shippingAddress || !merged.shippingAddress.address) &&
-          (passedOrderSummary?.shippingAddress?.address ||
-            prev?.shippingAddress?.address)
-        ) {
-          merged.shippingAddress = {
-            address:
-              passedOrderSummary?.shippingAddress?.address ||
-              prev?.shippingAddress?.address,
-          };
-        }
-        return merged;
-      });
+      setOrderDetail(transformedOrder);
     } catch (error) {
       alert("Không thể tải thông tin đơn hàng");
     } finally {
@@ -320,85 +242,11 @@ export default function OrderTrackingForm({
     }
   };
 
-  // Fetch order detail:
-  // - Admin: luôn fetch để có RAW log.
-  // - Các trang khác: fetch nếu không có prop order hoặc prop thiếu shop_id.
+  // Always fetch detail when orderId changes (API provides full data)
   useEffect(() => {
     if (!orderId) return;
-    const propMissingShopId = order && !extractShopId(order);
-    if (isAdminOrdersPage || !order || propMissingShopId) {
-      fetchOrderDetail();
-    }
-  }, [orderId, isAdminOrdersPage, order && extractShopId(order)]);
-
-  // Merge bổ sung thông tin summary chỉ khi summary thay đổi (tránh Maximum update depth)
-  useEffect(() => {
-    if (!passedOrderSummary) return;
-    setOrderDetail((prev) => {
-      if (!prev) return prev;
-      let changed = false;
-      const merged = { ...prev };
-      [
-        "customerName",
-        "customerEmail",
-        "customerPhone",
-        "customerAddress",
-      ].forEach((f) => {
-        if (!merged[f] && passedOrderSummary[f]) {
-          merged[f] = passedOrderSummary[f];
-          changed = true;
-        }
-      });
-      if (
-        (!merged.shippingAddress || !merged.shippingAddress.address) &&
-        (passedOrderSummary?.shippingAddress?.address ||
-          passedOrderSummary?.customerAddress)
-      ) {
-        merged.shippingAddress = {
-          address:
-            passedOrderSummary?.shippingAddress?.address ||
-            passedOrderSummary?.customerAddress,
-        };
-        changed = true;
-      }
-      return changed ? merged : prev;
-    });
-  }, [passedOrderSummary]);
-
-  // Keep local detail in sync with parent order
-  useEffect(() => {
-    if (order) {
-      const userNode = order.User || order.user || {};
-      setOrderDetail({
-        ...order,
-        status: normalizeStatus(order.status),
-        customer_user_id:
-          order.customer_user_id || extractCustomerUserId(order) || null,
-        shop_id: extractShopId(order),
-        customerPhone:
-          order.customerPhone ||
-          userNode.phone ||
-          userNode.phone_number ||
-          order.phone_number ||
-          "",
-        customerAddress:
-          order.customerAddress ||
-          userNode.address ||
-          userNode.business_address ||
-          order.address ||
-          order.shipping_address ||
-          "",
-        shippingAddress: order.shippingAddress || {
-          address:
-            order.shipping_address ||
-            order.address ||
-            userNode.address ||
-            userNode.business_address ||
-            "",
-        },
-      });
-    }
-  }, [order]);
+    fetchOrderDetail();
+  }, [orderId]);
 
   // Load ingredients for the order's shop
   useEffect(() => {
@@ -567,12 +415,10 @@ export default function OrderTrackingForm({
   useEffect(() => {
     if (orderDetail?.status !== "pending") return;
     const interval = setInterval(() => {
-      if (orderId && !order) {
-        fetchOrderDetail();
-      }
+      if (orderId) fetchOrderDetail();
     }, 30000);
     return () => clearInterval(interval);
-  }, [orderDetail?.status, orderId, order]);
+  }, [orderDetail?.status, orderId]);
 
   // Permission calculations
   const currentUserIdStr = user?.id != null ? String(user.id) : null;
@@ -664,9 +510,8 @@ export default function OrderTrackingForm({
         "Có lỗi khi cập nhật trạng thái đơn hàng";
       alert(errorMessage);
 
-      if (order) {
-        setOrderDetail({ ...order, status: normalizeStatus(order.status) });
-      }
+      // Reload from API on failure to ensure UI consistency
+      fetchOrderDetail();
     }
   };
 

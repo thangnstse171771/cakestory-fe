@@ -152,11 +152,12 @@ export const buildOrderSummary = (raw) => {
         name:
           item.cake?.name || item.marketplace_post?.title || `Bánh #${item.id}`,
         quantity: parseInt(item.quantity) || 1,
-        price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
+        price: parseFloat(item.price) || parseFloat(item._pricbasee) || 0,
       }))
     : [];
   const basePrice =
     parseFloat(raw.base_price) || parseFloat(raw.total_price) || 0;
+  const totalPrice = parseFloat(raw.total_price) || basePrice;
   const customerPhone =
     raw.customerPhone ||
     u.phone_number ||
@@ -213,7 +214,8 @@ export const buildOrderSummary = (raw) => {
     },
     items,
     base_price: basePrice,
-    total: parseFloat(raw.total_price) || basePrice,
+    total: totalPrice,
+    total_price: totalPrice, // alias so components expecting raw field still work
     history: [
       {
         date: raw.created_at

@@ -429,7 +429,13 @@ export default function OrderTrackingList({ showOrderDetails = false }) {
                         </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-pink-600 whitespace-nowrap">
-                        {order.base_price.toLocaleString("vi-VN")}đ
+                        {(
+                          order.total_price ??
+                          order.total ??
+                          order.base_price ??
+                          0
+                        ).toLocaleString("vi-VN")}
+                        đ
                       </td>
                       <td className="px-4 py-3">
                         <button

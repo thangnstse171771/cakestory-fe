@@ -252,7 +252,7 @@ export default function OrderTrackingAdminAllList({
                       Số lượng topping
                     </th> */}
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
-                    <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
+                    <th className="px-4 py-3 font-semibold">Tổng giá</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
                   </tr>
                 </thead>
@@ -290,7 +290,10 @@ export default function OrderTrackingAdminAllList({
                         </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-pink-600 whitespace-nowrap">
-                        {o.base_price.toLocaleString("vi-VN")}đ
+                        {(o.total_price ?? o.total ?? 0).toLocaleString(
+                          "vi-VN"
+                        )}
+                        đ
                       </td>
                       <td className="px-4 py-3">
                         <button
