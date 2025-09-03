@@ -7,7 +7,10 @@ export const statusMap = {
     label: "Sẵn sàng giao hàng",
     color: "bg-blue-100 text-blue-700",
   },
-  shipped: { label: "Đang vận chuyển", color: "bg-orange-100 text-orange-700" },
+  shipped: {
+    label: "Đã được vận chuyển",
+    color: "bg-orange-100 text-orange-700",
+  },
   completed: { label: "Hoàn tất", color: "bg-emerald-100 text-emerald-700" },
   complaining: { label: "Đang khiếu nại", color: "bg-red-100 text-red-700" },
   cancelled: { label: "Đã hủy", color: "bg-gray-100 text-gray-700" },

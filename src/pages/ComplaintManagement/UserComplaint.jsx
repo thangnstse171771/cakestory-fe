@@ -103,7 +103,7 @@ export default function ComplaintList({ userId }) {
               c.customerName ||
               currentUser?.name ||
               "Khách hàng",
-            subject: c.subject || c.title || "Không có tiêu đề",
+            subject: c.subject || c.title || "Khiếu nại",
             description: c.description || c.content || c.reason || "",
             status: normalizedStatus,
             date: created

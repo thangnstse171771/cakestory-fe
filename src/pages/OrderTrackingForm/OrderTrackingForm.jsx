@@ -775,7 +775,7 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
                   : "Chưa cập nhật"}
               </li>
               <li>
-                <span className="font-medium">Base Price:</span>{" "}
+                <span className="font-medium">Giá cơ bản:</span>{" "}
                 {orderDetail.base_price
                   ? Number(orderDetail.base_price).toLocaleString("vi-VN") + "đ"
                   : "Chưa cập nhật"}

@@ -18,7 +18,7 @@ const statusMap = {
     color: "bg-blue-100 text-blue-700",
   },
   shipped: {
-    label: "Đang vận chuyển",
+    label: "Đã được vận chuyển",
     color: "bg-orange-100 text-orange-700",
   },
   completed: { label: "Hoàn tất", color: "bg-emerald-100 text-emerald-700" },

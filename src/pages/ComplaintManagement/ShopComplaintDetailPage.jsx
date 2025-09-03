@@ -77,7 +77,7 @@ export default function ShopComplaintDetailPage() {
             data.order?.id ||
             "N/A",
           customerName: data.customer_name || data.customerName || "Khách hàng",
-          subject: data.subject || data.title || "Không có tiêu đề",
+          subject: data.subject || data.title || "Khiếu nại",
           description: data.description || data.content || data.reason || "",
           status: normalizedStatus,
           date: data?.created_at
