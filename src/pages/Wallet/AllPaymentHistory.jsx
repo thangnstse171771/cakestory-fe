@@ -16,7 +16,6 @@ import {
   Building,
   ChevronLeft,
   ChevronRight,
-  Search,
   RotateCcw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -62,13 +61,7 @@ const toNumber = (v) => {
 };
 
 // Filter Form Component
-const FilterForm = ({
-  filterForm,
-  onFormChange,
-  onApply,
-  onReset,
-  appliedFilters,
-}) => {
+const FilterForm = ({ filterForm, onFormChange, onReset, appliedFilters }) => {
   const hasChanges =
     JSON.stringify(filterForm) !== JSON.stringify(appliedFilters);
 
@@ -162,19 +155,6 @@ const FilterForm = ({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-3">
-        <button
-          onClick={onApply}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-            hasChanges
-              ? "bg-pink-500 text-white hover:bg-pink-600"
-              : "bg-gray-100 text-gray-400 cursor-not-allowed"
-          }`}
-          disabled={!hasChanges}
-        >
-          <Search className="w-4 h-4" />
-          Áp dụng
-        </button>
-
         <button
           onClick={onReset}
           className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
@@ -276,28 +256,15 @@ const AllPaymentHistory = () => {
       if (userId) {
         try {
           const shopRes = await fetchShopByUserId(userId);
-          shopId =
-            shopRes?.shop?.shop_id ||
-            shopRes?.shop_id ||
-            shopRes?.id ||
-            shopRes?.data?.shop?.shop_id ||
-            shopRes?.data?.shop_id ||
-            shopRes?.data?.id ||
-            null;
+          shopId = shopRes?.shop?.shop_id;
+          null;
         } catch {}
       }
       // fetch wallet balance (by user id)
       if (userId) {
         try {
           const wb = await fetchWalletBalance();
-          const extracted = toNumber(
-            wb?.balance ??
-              wb?.data?.balance ??
-              wb?.wallet?.balance ??
-              wb?.wallet_balance ??
-              wb?.wallet?.amount ??
-              wb
-          );
+          const extracted = toNumber(wb?.wallet?.balance);
           setWalletBalance(extracted);
         } catch (e) {
           // silent fail; leave walletBalance at 0
@@ -319,10 +286,6 @@ const AllPaymentHistory = () => {
         let deposits = [];
         const depositData = depositResponse.value;
         if (Array.isArray(depositData)) deposits = depositData;
-        else if (Array.isArray(depositData?.transactions))
-          deposits = depositData.transactions;
-        else if (Array.isArray(depositData?.deposits))
-          deposits = depositData.deposits;
         else if (Array.isArray(depositData?.history))
           deposits = depositData.history; // support { history: [...] }
         else if (depositData && typeof depositData === "object") {
@@ -347,13 +310,7 @@ const AllPaymentHistory = () => {
           )
           .map((d) => ({
             ...d,
-            id:
-              d.id ||
-              d.deposit_id ||
-              d.payment_id ||
-              d.transaction_id ||
-              d.deposit_code ||
-              `dep-${d.created_at || d.createdAt || Date.now()}`,
+            id: d.id,
             type: "deposit",
             transactionType: "Nạp tiền",
             icon: <ArrowDownLeft className="w-4 h-4 text-green-500" />,
@@ -371,12 +328,7 @@ const AllPaymentHistory = () => {
         else if (Array.isArray(withdrawData)) withdrawals = withdrawData;
         const processedWithdrawals = withdrawals.map((w) => ({
           ...w,
-          id:
-            w.id ||
-            w.withdraw_id ||
-            w.transaction_id ||
-            w.request_id ||
-            `wd-${w.created_at || w.createdAt || Date.now()}`,
+          id: w.id,
           type: "withdraw",
           transactionType: "Rút tiền",
           icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
@@ -491,10 +443,7 @@ const AllPaymentHistory = () => {
             payoutStatuses.includes(String(o.status || "").toLowerCase())
           )
           .map((o) => {
-            const gross =
-              toNumber(
-                o.total_price || o.total || o.totalPrice || o.base_price || 0
-              ) || 0;
+            const gross = toNumber(o.total_price) || 0;
             const net = Math.round(gross * 0.95);
             const fee = gross - net;
             const timeRef =
@@ -516,9 +465,9 @@ const AllPaymentHistory = () => {
               grossAmount: gross,
               feeAmount: fee,
               originalOrderId: o.id || o.order_id,
-              note: `Payout 95% đơn #${
+              note: `Thực nhận doanh thu 95% giá trị đơn #${
                 o.id || o.order_id
-              } (phí 5%: ${fee.toLocaleString("vi-VN")}đ)`,
+              } (Hoa hồng hệ thống thu 5%: ${fee.toLocaleString("vi-VN")}đ)`,
               orderRaw: o,
               synthetic: true,
             };
@@ -1003,8 +952,8 @@ const AllPaymentHistory = () => {
                   );
                 })()}
                 <p className="mt-1 text-[11px] text-gray-500">
-                  Đã trừ: {formatAmount(stats.totalWithdrawals)} đ | Giữ tạm:{" "}
-                  {formatAmount(stats.purchaseHeld)} đ
+                  <li>Đã trừ: {formatAmount(stats.totalWithdrawals)} đ</li>
+                  <li>Giữ tạm: {formatAmount(stats.purchaseHeld)} đ</li>
                 </p>
               </div>
               <div className="p-3 bg-red-50 rounded-lg">
@@ -1039,8 +988,10 @@ const AllPaymentHistory = () => {
                   {formatAmount(stats.payoutNet)} đ
                 </p>
                 <p className="mt-1 text-[11px] text-gray-500">
-                  <li>Doanh thu: {formatAmount(stats.payoutGross)} đ</li>
-                  <li> Phí: {formatAmount(stats.systemFee)} đ</li>
+                  <li>
+                    Doanh thu thực nhận: {formatAmount(stats.payoutGross)} đ
+                  </li>
+                  <li> Hoa hồng hệ thống: {formatAmount(stats.systemFee)} đ</li>
                 </p>
                 <p className="mt-1 text-[11px] text-gray-400">
                   Số đơn: {stats.payoutCount}
@@ -1242,14 +1193,14 @@ const AllPaymentHistory = () => {
                               <span className="font-semibold text-gray-800">
                                 {transaction.transactionType}
                               </span>
-                              <span className="px-2 py-0.5 rounded-full text-[10px] uppercase bg-gray-100 text-gray-500">
+                              {/* <span className="px-2 py-0.5 rounded-full text-[10px] uppercase bg-gray-100 text-gray-500">
                                 {transaction.type}
-                              </span>
-                              {transaction.type === "order_payout" && (
+                              </span> */}
+                              {/* {transaction.type === "order_payout" && (
                                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-green-100 text-green-600">
                                   Thực nhận
                                 </span>
-                              )}
+                              )} */}
                               <span
                                 className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color}`}
                               >
