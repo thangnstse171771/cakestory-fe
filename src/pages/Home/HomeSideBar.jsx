@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, use } from "react";
-import { generateTrendingTopics } from "../../data/mockData";
 import { Link } from "react-router-dom";
 import { authAPI } from "../../api/auth";
 import { getAllChallenges } from "../../api/challenge";
@@ -60,25 +59,9 @@ const HomeSideBar = () => {
 
     if (user?.id) fetchUsers();
   }, [user?.id]);
-  const trendingTopics = generateTrendingTopics(5);
 
   return (
     <div className="w-45 lg:w-60 xl:w-80 space-y-4">
-      {/* Trending Topics */}
-      {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <h3 className="font-bold text-gray-800 mb-4">Đang Xu Hướng</h3>
-        <div className="space-y-2">
-          {trendingTopics.map((topic, index) => (
-            <div key={index} className="flex justify-between items-center">
-              <span className="text-pink-600 font-medium">{topic.name}</span>
-              <span className="text-gray-500 text-sm">{topic.posts}</span>
-            </div>
-          ))}
-        </div>
-        <button className="text-pink-500 text-sm mt-2 hover:text-pink-600">
-          View all topics
-        </button>
-      </div> */}
 
       {/* Suggestion Groups */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
