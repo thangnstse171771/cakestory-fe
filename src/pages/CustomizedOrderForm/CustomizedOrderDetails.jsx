@@ -549,6 +549,7 @@ export default function CakeShop() {
         <input
           type="number"
           value={quantity}
+          disabled
           onChange={(e) =>
             handleQuantityChange(parseInt(e.target.value) || MIN_QUANTITY)
           }
