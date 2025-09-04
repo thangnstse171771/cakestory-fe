@@ -71,7 +71,7 @@ const FilterForm = ({ filterForm, onFormChange, onReset, appliedFilters }) => {
         Bộ lọc giao dịch
       </h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         {/* Date Filter */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -121,6 +121,22 @@ const FilterForm = ({ filterForm, onFormChange, onReset, appliedFilters }) => {
             <option value="deposit">Nạp tiền</option>
             <option value="withdraw">Rút tiền</option>
             <option value="purchase">Mua bánh</option>
+            <option value="order_payout">Doanh thu thực nhận</option>
+          </select>
+        </div>
+        {/* Actor Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Đối tượng
+          </label>
+          <select
+            value={filterForm.actorFilter}
+            onChange={(e) => onFormChange("actorFilter", e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+          >
+            <option value="all">Tất cả</option>
+            <option value="user">Ví người dùng</option>
+            <option value="shop">Doanh thu shop</option>
           </select>
         </div>
       </div>
@@ -185,6 +201,7 @@ const AllPaymentHistory = () => {
     dateFilter: "all",
     statusFilter: "all",
     typeFilter: "all",
+    actorFilter: "all",
     customDateFrom: "",
     customDateTo: "",
   });
@@ -194,6 +211,7 @@ const AllPaymentHistory = () => {
     dateFilter: "all",
     statusFilter: "all",
     typeFilter: "all",
+    actorFilter: "all",
     customDateFrom: "",
     customDateTo: "",
   });
@@ -316,6 +334,7 @@ const AllPaymentHistory = () => {
             icon: <ArrowDownLeft className="w-4 h-4 text-green-500" />,
             amountPrefix: "+",
             amountColor: "text-green-600",
+            actor: "user",
           }));
         allTransactions.push(...processedDeposits);
       }
@@ -334,6 +353,7 @@ const AllPaymentHistory = () => {
           icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
           amountPrefix: "-",
           amountColor: "text-red-600",
+          actor: "user",
         }));
         allTransactions.push(...processedWithdrawals);
       }
@@ -414,6 +434,7 @@ const AllPaymentHistory = () => {
             created_at: createdAtVal,
             description: o.note || o.size || `Đơn hàng #${o.id ?? o.order_id}`,
             orderRaw: o,
+            actor: "user",
           };
         });
         allTransactions.push(...processedOrders);
@@ -470,6 +491,7 @@ const AllPaymentHistory = () => {
               } (Hoa hồng hệ thống thu 5%: ${fee.toLocaleString("vi-VN")}đ)`,
               orderRaw: o,
               synthetic: true,
+              actor: "shop",
             };
           });
         allTransactions.push(...payoutTx);
@@ -807,6 +829,13 @@ const AllPaymentHistory = () => {
     ) {
       return false;
     }
+    // Actor filter
+    if (
+      appliedFilters.actorFilter !== "all" &&
+      transaction.actor !== appliedFilters.actorFilter
+    ) {
+      return false;
+    }
 
     return true;
   });
@@ -829,6 +858,7 @@ const AllPaymentHistory = () => {
       dateFilter: "all",
       statusFilter: "all",
       typeFilter: "all",
+      actorFilter: "all",
       customDateFrom: "",
       customDateTo: "",
     };
