@@ -659,6 +659,25 @@ export default function ChallengeDetailsPage() {
                       }}
                     ></div>
                   </div>
+                  {(() => {
+                    const minReq =
+                      challenge.min_participants ||
+                      challenge.minParticipants ||
+                      0;
+                    const remaining = minReq - participantCount;
+                    if (minReq > 0 && remaining > 0) {
+                      return (
+                        <div className="mt-3 text-xs flex items-start gap-2 bg-amber-50 text-amber-800 border border-amber-200 px-3 py-2 rounded">
+                          <span>⚠️</span>
+                          <span>
+                            Cần thêm <b>{remaining}</b> người để đạt tối thiểu (
+                            {minReq})
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
 
                 {hasJoined ? (

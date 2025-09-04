@@ -1143,7 +1143,7 @@ const AllPaymentHistory = () => {
                         transaction.id ||
                         transaction.deposit_code ||
                         transaction.transaction_id;
-                      if (depId) navigate(`/wallet/deposits/${depId}`);
+                      if (depId) navigate(`/wallet`);
                       return;
                     }
                     if (transaction.type === "withdraw") {

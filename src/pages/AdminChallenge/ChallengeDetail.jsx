@@ -683,7 +683,14 @@ export default function ChallengeDetail({
                     (e.target.style.backgroundColor = "#3b82f6")
                   }
                 >
-                  👥 Xem thành viên ({loadingCount ? "..." : participantCount})
+                  {(() => {
+                    const maxAllowed =
+                      challenge.max_participants ?? challenge.maxParticipants;
+                    const current = loadingCount ? "..." : participantCount;
+                    return `👥 Xem thành viên (${current}${
+                      maxAllowed ? "/" + maxAllowed : ""
+                    })`;
+                  })()}
                 </button>
                 {challenge.adminStatus === "Sắp diễn ra" && (
                   <button
@@ -807,7 +814,10 @@ export default function ChallengeDetail({
                   >
                     <span style={{ color: "#6b7280" }}>Tiến độ đăng ký</span>
                     <span style={{ fontWeight: "500" }}>
-                      {participantCount}/{challenge.maxParticipants}
+                      {participantCount}/
+                      {challenge.max_participants ??
+                        challenge.maxParticipants ??
+                        "?"}
                     </span>
                   </div>
                   <div
@@ -824,43 +834,56 @@ export default function ChallengeDetail({
                         height: "100%",
                         background: "#f472b6",
                         transition: "width 0.3s",
-                        width: `${
-                          challenge.maxParticipants > 0
-                            ? (participantCount / challenge.maxParticipants) *
-                              100
-                            : 0
-                        }%`,
+                        width: `${(() => {
+                          const maxAllowed =
+                            challenge.max_participants ??
+                            challenge.maxParticipants;
+                          if (!maxAllowed || maxAllowed <= 0) return 0;
+                          return Math.min(
+                            100,
+                            (participantCount / maxAllowed) * 100
+                          );
+                        })()}%`,
                       }}
                     ></div>
                   </div>
                 </div>
-
-                {challenge.participants < challenge.minParticipants && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "12px",
-                      background: "#fffbeb",
-                      border: "1px solid #fed7aa",
-                      borderRadius: "6px",
-                    }}
-                  >
-                    <span style={{ color: "#d97706" }}>⚠️</span>
-                    <span
-                      style={{
-                        fontSize: "14px",
-                        color: "#92400e",
-                        fontWeight: "500",
-                      }}
-                    >
-                      Cần thêm{" "}
-                      {challenge.minParticipants - challenge.participants} người
-                      để bắt đầu
-                    </span>
-                  </div>
-                )}
+                {(() => {
+                  const minRequired =
+                    challenge.min_participants ??
+                    challenge.minParticipants ??
+                    0;
+                  const current = participantCount;
+                  const remaining = minRequired - current;
+                  if (minRequired > 0 && remaining > 0) {
+                    return (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "12px",
+                          background: "#fffbeb",
+                          border: "1px solid #fed7aa",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        <span style={{ color: "#d97706" }}>⚠️</span>
+                        <span
+                          style={{
+                            fontSize: "14px",
+                            color: "#92400e",
+                            fontWeight: "500",
+                          }}
+                        >
+                          Cần thêm <strong>{remaining}</strong> người để đạt tối
+                          thiểu ({minRequired})
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
 
