@@ -265,24 +265,32 @@ export default function ChallengeCard({
         </div>
 
         {/* Min Participants Warning */}
-        {challenge.participants < challenge.minParticipants && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "8px",
-              background: "#fef3c7",
-              borderRadius: "6px",
-            }}
-          >
-            <span style={{ color: "#d97706" }}>⚠️</span>
-            <span style={{ fontSize: "12px", color: "#92400e" }}>
-              Cần thêm {challenge.minParticipants - challenge.participants}{" "}
-              người để bắt đầu
-            </span>
-          </div>
-        )}
+        {(() => {
+          const minRequired =
+            challenge.min_participants ?? challenge.minParticipants ?? 0;
+          const current = participantCount ?? challenge.participants ?? 0; // ưu tiên số fetch thực tế
+          const remaining = minRequired - current;
+          if (minRequired > 0 && remaining > 0) {
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "8px",
+                  background: "#fef3c7",
+                  borderRadius: "6px",
+                }}
+              >
+                <span style={{ color: "#d97706" }}>⚠️</span>
+                <span style={{ fontSize: "12px", color: "#92400e" }}>
+                  Cần thêm <strong>{remaining}</strong> người để đạt tối thiểu
+                </span>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* Hashtags */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
@@ -405,7 +413,13 @@ export default function ChallengeCard({
               e.target.style.color = "#374151";
             }}
           >
-            👥 Thành viên ({participantCount})
+            {(() => {
+              const maxAllowed =
+                challenge.max_participants ?? challenge.maxParticipants;
+              return `👥 Thành viên(${participantCount}${
+                maxAllowed ? "/" + maxAllowed : ""
+              })`;
+            })()}
           </button>
 
           {challenge.adminStatus === "Chờ duyệt" && (

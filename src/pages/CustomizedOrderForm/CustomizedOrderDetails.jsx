@@ -127,13 +127,18 @@ export default function CakeShop() {
     );
   }, [availableSizes, selectedSize, productData]);
 
-  const totalPrice = useMemo(() => {
-    const basePrice = selectedSizePrice * quantity;
-    const toppingsPrice =
-      selectedToppings.reduce((sum, topping) => {
-        return sum + normalizePrice(topping.price) * topping.quantity;
-      }, 0) * quantity;
-    return basePrice + toppingsPrice;
+  // Pricing (toppings counted once for whole order, NOT per cake)
+  const { baseCakeSubtotal, toppingsSubtotal, totalPrice } = useMemo(() => {
+    const baseCakeSubtotal = selectedSizePrice * quantity; // size price * number of cakes
+    const toppingsSubtotal = selectedToppings.reduce(
+      (sum, topping) => sum + normalizePrice(topping.price) * topping.quantity,
+      0
+    ); // total toppings for entire order (independent of quantity)
+    return {
+      baseCakeSubtotal,
+      toppingsSubtotal,
+      totalPrice: baseCakeSubtotal + toppingsSubtotal,
+    };
   }, [selectedSizePrice, quantity, selectedToppings]);
 
   const userContactInfo = useMemo(() => {
@@ -207,7 +212,7 @@ export default function CakeShop() {
     setIsCheckingOut(true);
 
     try {
-      const baseCakePrice = selectedSizePrice * quantity; // chỉ giá bánh (không gồm topping)
+      const baseCakePrice = baseCakeSubtotal; // already size * quantity
       const orderData = {
         customer_id: user.id,
         shop_id: parseInt(shopId),
@@ -216,10 +221,11 @@ export default function CakeShop() {
         quantity,
         status: "pending",
         base_price: baseCakePrice,
-        total_price: totalPrice, // tổng có topping
+        total_price: totalPrice, // includes toppingsSubtotal (not multiplied by quantity)
         special_instructions: "string",
         order_details: selectedToppings.map((topping) => ({
           ingredient_id: topping.id,
+          // quantity represents total units of this topping for the whole order
           quantity: topping.quantity,
         })),
       };
@@ -565,13 +571,14 @@ export default function CakeShop() {
         <span>
           Giá bánh ({quantity} cái - {selectedSize}):
         </span>
-        <span>{formatCurrency(selectedSizePrice * quantity)}</span>
+        <span>{formatCurrency(baseCakeSubtotal)}</span>
       </div>
 
       {selectedToppings.length > 0 && (
         <div>
           <div className="flex justify-between font-medium mb-2">
-            <span>Topping đã chọn:</span>
+            <span>Topping đã chọn (tổng):</span>
+            <span>{formatCurrency(toppingsSubtotal)}</span>
           </div>
           {selectedToppings.map((topping) => (
             <div
@@ -579,11 +586,11 @@ export default function CakeShop() {
               className="flex justify-between text-sm text-gray-600 ml-4"
             >
               <span>
-                • {topping.name} (x{topping.quantity} x {quantity} bánh)
+                • {topping.name} (x{topping.quantity})
               </span>
               <span>
                 {formatCurrency(
-                  normalizePrice(topping.price) * topping.quantity * quantity
+                  normalizePrice(topping.price) * topping.quantity
                 )}
               </span>
             </div>
@@ -702,7 +709,7 @@ export default function CakeShop() {
             </div>
             {selectedToppings.length > 0 && (
               <div className="text-sm text-gray-800 mb-1">
-                Topping trên mỗi bánh:
+                Topping đã chọn:
                 <ul className="ml-4 list-disc">
                   {selectedToppings.map((t) => (
                     <li key={t.id}>
