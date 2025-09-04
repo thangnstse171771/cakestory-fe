@@ -283,7 +283,7 @@ export default function OrderTrackingList({ showOrderDetails = false }) {
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <h2 className="text-3xl font-bold text-pink-700 flex items-center gap-3">
-              <ListOrdered className="h-7 w-7" /> Shop Orders
+              <ListOrdered className="h-7 w-7" /> Đơn hàng
             </h2>
 
             {/* Filters */}

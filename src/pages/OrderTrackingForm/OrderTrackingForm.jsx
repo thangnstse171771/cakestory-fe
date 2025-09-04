@@ -82,6 +82,9 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
   const [marketplaceImage, setMarketplaceImage] = useState(null);
   const [isLoadingMarketplace, setIsLoadingMarketplace] = useState(false);
   const hasFetchedMarketplaceRef = useRef(false);
+  // Derived quantity & unit price for marketplace cake when backend doesn't send quantity
+  const [derivedCakeQuantity, setDerivedCakeQuantity] = useState(null);
+  const [derivedCakeUnitPrice, setDerivedCakeUnitPrice] = useState(null);
 
   // Fetch viewer shop ID
   useEffect(() => {
@@ -409,6 +412,56 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
     marketplacePost,
     marketplaceImage,
     isLoadingMarketplace,
+  ]);
+
+  // Derive cake quantity from base_price and marketplace cakeSizes when quantity missing
+  useEffect(() => {
+    if (!orderDetail || !marketplacePost) return;
+    const base = parseFloat(orderDetail.base_price);
+    if (!base || base <= 0) return;
+
+    const cakeSizes =
+      marketplacePost.cakeSizes ||
+      marketplacePost.cake_sizes ||
+      marketplacePost.post?.cakeSizes ||
+      [];
+    if (!Array.isArray(cakeSizes) || cakeSizes.length === 0) return;
+
+    const sizeRaw =
+      orderDetail.size || orderDetail.items?.[0]?.customization?.size || null;
+
+    let matched =
+      (sizeRaw &&
+        cakeSizes.find(
+          (cs) =>
+            (cs.size || cs.name || cs.label || "").toString() ===
+            sizeRaw.toString()
+        )) ||
+      null;
+    if (!matched && cakeSizes.length === 1) matched = cakeSizes[0];
+
+    const sizePrice = matched
+      ? parseFloat(matched.price)
+      : parseFloat(cakeSizes[0]?.price);
+    if (!sizePrice || sizePrice <= 0) return;
+
+    const rawQty = base / sizePrice;
+    const rounded = Math.round(rawQty);
+    const accurate =
+      (isFinite(rawQty) &&
+        rawQty > 0 &&
+        Math.abs(rawQty - rounded) < 0.01 * rawQty) ||
+      Math.abs(rawQty - rounded) < 0.1;
+
+    if (rounded >= 1 && accurate) {
+      setDerivedCakeQuantity(rounded);
+      setDerivedCakeUnitPrice(sizePrice);
+    }
+  }, [
+    orderDetail?.base_price,
+    orderDetail?.size,
+    orderDetail?.items,
+    marketplacePost,
   ]);
 
   // Auto-reload for pending orders
@@ -768,22 +821,46 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
                 <span className="font-medium">Số điện thoại:</span>{" "}
                 {orderDetail.customerPhone || "Chưa cập nhật"}
               </li>
-              <li>
+              {/* <li>
                 <span className="font-medium">Tổng tiền:</span>{" "}
-                {orderDetail.total
-                  ? Number(orderDetail.total).toLocaleString("vi-VN") + "đ"
-                  : "Chưa cập nhật"}
-              </li>
-              <li>
-                <span className="font-medium">Giá cơ bản:</span>{" "}
-                {orderDetail.base_price
-                  ? Number(orderDetail.base_price).toLocaleString("vi-VN") + "đ"
-                  : "Chưa cập nhật"}
-              </li>
+                {orderDetail.base_price.toLocaleString("vi-VN")} đ
+              </li> */}
+
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
+                Chi tiết bánh
+              </h3>
+              {derivedCakeQuantity && (
+                <>
+                  <li></li>
+                  <li>
+                    <span className="font-medium">Đơn giá:</span>{" "}
+                    {derivedCakeUnitPrice
+                      ? Number(derivedCakeUnitPrice).toLocaleString("vi-VN") +
+                        "đ"
+                      : "—"}{" "}
+                  </li>
+                  <li></li>
+                  <li>
+                    <span className="font-medium">Số lượng bánh:</span>{" "}
+                    {derivedCakeQuantity}
+                  </li>
+                  <li></li>
+                  <li>
+                    <span className="font-medium">Tổng giá bánh:</span>{" "}
+                    {orderDetail.base_price
+                      ? Number(orderDetail.base_price).toLocaleString("vi-VN") +
+                        "đ"
+                      : "Chưa cập nhật"}
+                  </li>
+                </>
+              )}
             </ul>
 
             {/* Order Items */}
             <ul className="divide-y divide-pink-100 mt-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
+                Chi tiết topping
+              </h3>
               {orderDetail.items &&
                 orderDetail.items.map((item, idx) => (
                   <li
@@ -793,7 +870,10 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
                     <div>
                       <p className="font-medium text-gray-800">{item.name}</p>
                       <p className="text-sm text-gray-600">
-                        Số lượng: x{item.quantity}
+                        Số lượng: x
+                        {item.quantity && Number(item.quantity) > 0
+                          ? item.quantity
+                          : derivedCakeQuantity || 1}
                       </p>
                       {Number(item.price) > 0 && (
                         <p className="text-sm text-gray-600">
@@ -854,9 +934,12 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
                       )}
                     </div>
                     <span className="font-semibold text-pink-600">
-                      {"Tổng tiền topping: "}
+                      {"Tổng tiền: "}
                       {(
-                        Number(item.price || 0) * Number(item.quantity || 0)
+                        Number(item.price || 0) *
+                        (item.quantity && Number(item.quantity) > 0
+                          ? Number(item.quantity)
+                          : derivedCakeQuantity || 1)
                       ).toLocaleString("vi-VN")}
                       đ
                     </span>
@@ -865,7 +948,12 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
             </ul>
             <div className="flex justify-between items-center mt-4 p-4 bg-pink-100 rounded-lg font-bold text-lg text-pink-800">
               <span>Tổng cộng:</span>
-              <span>{orderDetail.base_price.toLocaleString("vi-VN")}đ</span>
+              <span>
+                {orderDetail.total
+                  ? Number(orderDetail.total).toLocaleString("vi-VN") + "đ"
+                  : "Chưa cập nhật"}
+                đ
+              </span>
             </div>
           </div>
 
@@ -874,7 +962,7 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
             <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
                 <Sparkles className="h-5 w-5" />
-                Bài đăng tham chiếu
+                Thông tin bánh
               </h3>
               <div className="flex items-start gap-4">
                 {marketplaceImage &&
