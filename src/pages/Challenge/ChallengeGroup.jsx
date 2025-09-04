@@ -460,26 +460,31 @@ export default function ChallengeGroup() {
           <div className="relative overflow-hidden p-6">
             <div className="absolute inset-0 bg-gradient-to-r from-pink-50 to-pink-100 opacity-50"></div>
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-pink-200 rounded-full flex items-center justify-center">
+              {/* Responsive Header Layout */}
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
+                {/* Left: Avatar + Title + Description */}
+                <div className="flex items-start md:items-start gap-4 flex-1 min-w-0">
+                  <div className="w-16 h-16 bg-pink-200 rounded-full flex-shrink-0 flex items-center justify-center">
                     <img
                       src={challengeInfo?.avatar || IMAGE_URL}
                       alt="challenge"
                       className="w-14 h-14 rounded-full object-cover"
                     />
                   </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-gray-800">
+                  <div className="min-w-0 space-y-1">
+                    <h1 className="text-2xl font-bold text-gray-800 break-words leading-snug">
                       {challengeTitle}
                     </h1>
-                    <p className="text-gray-600">
-                      {challengeInfo?.description}
-                    </p>
+                    {challengeInfo?.description && (
+                      <p className="text-gray-600 text-sm leading-snug break-words max-w-xl whitespace-pre-line">
+                        {challengeInfo.description}
+                      </p>
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="flex items-center space-x-2 text-gray-700 mb-2">
+                {/* Right: Stats */}
+                <div className="flex md:flex-col items-start md:items-end gap-3 flex-wrap md:flex-nowrap text-sm shrink-0">
+                  <div className="flex items-center space-x-2 text-gray-700">
                     <svg
                       className="w-4 h-4"
                       fill="none"
