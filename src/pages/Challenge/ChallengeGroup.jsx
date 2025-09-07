@@ -204,22 +204,29 @@ export default function ChallengeGroup() {
   const fetchChallengePosts = async () => {
     setPostsLoading(true);
     try {
-      // Fetch all challenge posts
       const response = await authAPI.getChallengePostsByChallengeId(id);
-      const allChallPosts = response.posts;
+      const allChallPosts = response.posts || [];
 
       console.log("All challenge posts:", allChallPosts);
       setPosts(allChallPosts);
 
-      // Check if current user already has a post
       const alreadyPosted = allChallPosts.some(
         (post) => post.user_id === currentUserId
       );
-      setShowCreatePost(!alreadyPosted); // true if they haven't posted yet
+
+      const participantsResponse = await authAPI.getChallengeParticipantsByChallengeId(id);
+      const participants = participantsResponse.entries || [];
+      console.log("Challenge participants:", participants);
+
+      const isParticipant = participants.some(
+        (p) => p.user_id === currentUserId
+      );
+
+      setShowCreatePost(!alreadyPosted && isParticipant);
     } catch (error) {
-      console.error("Error fetching challenge posts:", error);
+      console.error("Error fetching challenge posts or participants:", error);
       setPosts([]);
-      setShowCreatePost(true); // allow button if error
+      setShowCreatePost(false);
     } finally {
       setPostsLoading(false);
     }

@@ -275,4 +275,11 @@ export const authAPI = {
     });
     return response.data;
   },
+
+  getChallengeParticipantsByChallengeId: async (challengeId) => {
+    const response = await axiosInstance.get(
+      `challenge-entries/challenge/${challengeId}`
+    );
+    return response.data;
+  },
 };
