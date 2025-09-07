@@ -680,16 +680,16 @@ export default function ChallengeDetailsPage() {
                   })()}
                 </div>
 
+                <button
+                  className="w-full mb-3 bg-pink-100 hover:bg-pink-200 text-pink-700 py-3 rounded-lg border border-pink-300 font-semibold transition"
+                  onClick={() => navigate(`/challenge/details/group/${id}`)}
+                >
+                  Vào nhóm Challenge
+                </button>
                 {hasJoined ? (
                   <>
                     <button className="w-full bg-green-400 text-white py-3 rounded-lg cursor-not-allowed">
                       ✓ Đã tham gia
-                    </button>
-                    <button
-                      className="w-full mt-3 bg-pink-100 hover:bg-pink-200 text-pink-700 py-3 rounded-lg border border-pink-300 font-semibold transition"
-                      onClick={() => navigate(`/challenge/details/group/${id}`)}
-                    >
-                      Vào nhóm Challenge
                     </button>
                   </>
                 ) : challenge.status === "Đang diễn ra" ||
