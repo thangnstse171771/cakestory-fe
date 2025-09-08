@@ -27,85 +27,80 @@ const ConversationList = () => {
   console.log("Chat id from store:", chatId);
 
   useEffect(() => {
-    const fetchAndListenChats = async () => {
-      if (!currentUserId || !firebaseUserId) return;
+    if (!firebaseUserId) return;
 
-      console.log("My id: ", currentUserId);
-      console.log("My id: ", firebaseUserId);
+    console.log("Subscribing to chats for UID:", firebaseUserId);
 
-      const unSub = onSnapshot(
-        doc(db, "userchats", firebaseUserId),
-        async (res) => {
-          if (!res.exists()) {
-            setChats([]);
-            return;
-          }
-
-          const items = res.data().chats;
-
-          const promises = items.map(async (item) => {
-            if (item.receiverId) {
-              // 1-on-1 chat
-              const userDocRef = doc(db, "users", item.receiverId);
-              const userDocSnap = await getDoc(userDocRef);
-              const user = userDocSnap.data();
-
-              return {
-                ...item,
-                user,
-                isGroup: false,
-              };
-            } else {
-              // Group chat
-              const groupChatRef = doc(db, "groupChats", item.chatId);
-              const groupSnap = await getDoc(groupChatRef);
-
-              if (!groupSnap.exists()) return null;
-
-              const groupData = groupSnap.data();
-
-              // 💡 If I'm a shop member, show customer details instead of shop
-              let displayUser = {
-                username: groupData.shopName || "Group Chat",
-                avatar: groupData.shopAvatar,
-              };
-
-              if (item.role === "shopMember" && groupData.customerId) {
-                const customerRef = doc(db, "users", groupData.customerId);
-                const customerSnap = await getDoc(customerRef);
-                if (customerSnap.exists()) {
-                  const customerData = customerSnap.data();
-                  displayUser = {
-                    username: customerData.username || "Customer",
-                    avatar:
-                      customerData.avatar ||
-                      "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
-                  };
-                }
-              }
-
-              return {
-                ...item,
-                user: displayUser,
-                isGroup: true,
-              };
-            }
-          });
-
-          const chatData = await Promise.all(promises);
-          setChats(
-            chatData
-              .filter(Boolean)
-              .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-          );
+    const unSub = onSnapshot(
+      doc(db, "userchats", firebaseUserId),
+      async (res) => {
+        if (!res.exists()) {
+          setChats([]);
+          return;
         }
-      );
 
-      return () => unSub();
+        const items = res.data().chats;
+
+        const promises = items.map(async (item) => {
+          if (item.receiverId) {
+            const userDocRef = doc(db, "users", item.receiverId);
+            const userDocSnap = await getDoc(userDocRef);
+            const user = userDocSnap.data();
+
+            return {
+              ...item,
+              user,
+              isGroup: false,
+            };
+          } else {
+            const groupChatRef = doc(db, "groupChats", item.chatId);
+            const groupSnap = await getDoc(groupChatRef);
+
+            if (!groupSnap.exists()) return null;
+
+            const groupData = groupSnap.data();
+
+            let displayUser = {
+              username: groupData.shopName || "Group Chat",
+              avatar: groupData.shopAvatar,
+            };
+
+            if (item.role === "shopMember" && groupData.customerId) {
+              const customerRef = doc(db, "users", groupData.customerId);
+              const customerSnap = await getDoc(customerRef);
+              if (customerSnap.exists()) {
+                const customerData = customerSnap.data();
+                displayUser = {
+                  username: customerData.username || "Customer",
+                  avatar:
+                    customerData.avatar ||
+                    "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+                };
+              }
+            }
+
+            return {
+              ...item,
+              user: displayUser,
+              isGroup: true,
+            };
+          }
+        });
+
+        const chatData = await Promise.all(promises);
+        setChats(
+          chatData
+            .filter(Boolean)
+            .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+        );
+      }
+    );
+
+    return () => {
+      console.log("Unsubscribing from UID:", firebaseUserId);
+      unSub();
     };
-
-    fetchAndListenChats();
-  }, [user?.id]);
+  }, [firebaseUserId]);
 
   const handleSelect = async (chat) => {
     const userChats = chats.map((item) => {
