@@ -26,29 +26,10 @@ const ConversationList = () => {
 
   console.log("Chat id from store:", chatId);
 
-  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
-    const q = query(
-      collection(db, "users"),
-      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].id; // Firestore doc ID
-    }
-
-    return null; // not found
-  };
-
   useEffect(() => {
     const fetchAndListenChats = async () => {
       if (!currentUserId || !firebaseUserId) return;
 
-      // const firebaseUserId = await getFirebaseUserIdFromPostgresId(
-      //   currentUserId
-      // );
-      // if (!firebaseUserId) return;
       console.log("My id: ", currentUserId);
       console.log("My id: ", firebaseUserId);
 
@@ -138,7 +119,6 @@ const ConversationList = () => {
 
     userChats[chatIndex].isSeen = true;
 
-    const firebaseUserId = await getFirebaseUserIdFromPostgresId(currentUserId);
     if (!firebaseUserId) return;
 
     const userChatsRef = doc(db, "userchats", firebaseUserId);
