@@ -11,6 +11,7 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const setChatId = useChatStore((state) => state.changeChat);
+  const customerFirebaseId = user?.firebase_uid;
   const getFirebaseUserIdFromPostgresId = useChatStore(
     (state) => state.getFirebaseUserIdFromPostgresId
   );
@@ -30,8 +31,6 @@ const ShopHeader = ({ shop, isOwner, onUpdateClick, onCreateClick }) => {
 
       // Debug log
       // console.log("shopMemberFirebaseIds:", shopMemberFirebaseIds);
-
-      const customerFirebaseId = await getFirebaseUserIdFromPostgresId(user.id);
 
       const memberFirebaseIds = [
         customerFirebaseId,

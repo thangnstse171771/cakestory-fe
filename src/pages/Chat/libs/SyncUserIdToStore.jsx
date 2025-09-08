@@ -13,7 +13,7 @@ const SyncUserIdToStore = () => {
     if (!user) {
       resetChatStore(); // reset nếu không có user (đăng xuất)
     } else {
-      setCurrentUserId(user.id.toString()); // cập nhật lại ID
+      setCurrentUserId(user.firebase_uid); // cập nhật lại ID
       setUser(user); // cập nhật lại user object
     }
   }, [user, setCurrentUserId, setUser, resetChatStore]);

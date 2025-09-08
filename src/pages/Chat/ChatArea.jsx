@@ -28,18 +28,15 @@ dayjs.locale("vi");
 const ChatArea = () => {
   const [text, setText] = useState("");
   const [chat, setChat] = useState();
-  const { user: curentUser } = useAuth();
-  const currentUserId = curentUser?.id?.toString();
+  const { user: currentUser } = useAuth();
+  const firebaseUserId = currentUser?.firebase_uid; 
   const [showUserInfo, setShowUserInfo] = useState(false);
   const { chatId, user } = useChatStore();
   const endRef = useRef(null);
-  const [firebaseUserId, setFirebaseUserId] = useState(null);
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
   const [isSending, setIsSending] = useState(false);
   const [currentUserChatEntry, setCurrentUserChatEntry] = useState(null);
-
-  console.log("check user", user);
 
   useEffect(() => {
     const fetchCurrentUserChatEntry = async () => {
@@ -57,32 +54,6 @@ const ChatArea = () => {
 
     fetchCurrentUserChatEntry();
   }, [firebaseUserId, chatId]);
-
-  useEffect(() => {
-    const fetchFirebaseId = async () => {
-      const id = await getFirebaseUserIdFromPostgresId(currentUserId);
-      setFirebaseUserId(id);
-    };
-
-    if (currentUserId) {
-      fetchFirebaseId();
-    }
-  }, [currentUserId]);
-
-  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
-    const q = query(
-      collection(db, "users"),
-      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].id; // Firestore doc ID
-    }
-
-    return null; // not found
-  };
 
   useEffect(() => {
     const images = document.querySelectorAll(".chat-image");
@@ -131,10 +102,9 @@ const ChatArea = () => {
 
       if (chatData.isGroup) {
         const groupChatData = groupChatDoc.data();
-
         chatData.shopMemberIds = groupChatData.shopMemberIds || [];
         chatData.customerId = groupChatData.customerId || null;
-        chatData.members = groupChatData.members || []; // optional
+        chatData.members = groupChatData.members || [];
       }
 
       setChat(chatData);
@@ -148,18 +118,14 @@ const ChatArea = () => {
     for (const item of items) {
       if (item.type.startsWith("image/")) {
         const file = item.getAsFile();
-        if (file) {
-          setImage(file); // same as file input flow
-        }
+        if (file) setImage(file);
       }
     }
   };
 
   const handleRemoveImage = () => {
     setImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = null; // Reset the input
-    }
+    if (fileInputRef.current) fileInputRef.current.value = null;
   };
 
   const handleSend = async () => {
@@ -171,17 +137,12 @@ const ChatArea = () => {
     try {
       let imageUrl = null;
 
-      const firebaseUserId = await getFirebaseUserIdFromPostgresId(
-        currentUserId
-      );
       if (!firebaseUserId) return;
 
       if (image) {
         imageUrl = await upload(image);
       }
 
-      // Determine sender role from currentUserChatEntry
-      // const senderRole = currentUserChatEntry?.role || "customer"; // Fallback to 'customer' if undefined
       const senderRole = currentUserChatEntry?.role;
 
       await updateDoc(doc(db, "chats", chatId), {
@@ -194,10 +155,9 @@ const ChatArea = () => {
         }),
       });
 
-      // Get full participant list from chat data
       const participantIds = chat?.isGroup
         ? [...(chat?.shopMemberIds || []), chat?.customerId].filter(Boolean)
-        : [firebaseUserId, user.id]; // fallback for 1-on-1 chats
+        : [firebaseUserId, user.id];
 
       await Promise.all(
         participantIds.map(async (id) => {
@@ -207,7 +167,6 @@ const ChatArea = () => {
           if (!userChatsSnapshot.exists()) return;
 
           const userChatsData = userChatsSnapshot.data();
-
           const chatIndex = userChatsData.chats.findIndex(
             (c) => c.chatId === chatId
           );
@@ -252,16 +211,15 @@ const ChatArea = () => {
   const MAX_MESSAGE_LENGTH = 1000;
 
   const formatTimestamp = (timestamp) => {
-  if (!timestamp) return "";
-  const date = timestamp?.toDate ? timestamp.toDate() : timestamp;
-  return dayjs(date).calendar(null, {
-    sameDay: "HH:mm",       // Hôm nay
-    lastDay: "[Hôm qua] [lúc] HH:mm",       // Hôm qua
-    lastWeek: "dddd [tuần trước] HH:mm",           // Tuần trước (Thứ Hai, Thứ Ba…)
-    sameElse: "DD/MM/YYYY [lúc] HH:mm",     // Ngày khác
-  });
-};
-
+    if (!timestamp) return "";
+    const date = timestamp?.toDate ? timestamp.toDate() : timestamp;
+    return dayjs(date).calendar(null, {
+      sameDay: "HH:mm", // Hôm nay
+      lastDay: "[Hôm qua] [lúc] HH:mm", // Hôm qua
+      lastWeek: "dddd [tuần trước] HH:mm", // Tuần trước (Thứ Hai, Thứ Ba…)
+      sameElse: "DD/MM/YYYY [lúc] HH:mm", // Ngày khác
+    });
+  };
 
   const chatPrompts = [
     "Shop mình mở từ mấy giờ ạ?",

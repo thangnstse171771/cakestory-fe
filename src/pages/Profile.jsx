@@ -184,24 +184,9 @@ const Profile = () => {
     }
   };
 
-  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
-    const q = query(
-      collection(db, "users"),
-      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].id; // Firestore doc ID
-    }
-
-    return null; // not found
-  };
-
   const handleAcceptInvitation = async (shopId) => {
     try {
-      const firebaseUid = await getFirebaseUserIdFromPostgresId(user.id);
+      const firebaseUid = user.firebase_uid;
       await activateShopMember();
 
       if (firebaseUid && shopId) {
