@@ -21,6 +21,7 @@ const ConversationList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { user } = useAuth();
   const currentUserId = user?.id?.toString();
+  const firebaseUserId = user?.firebase_uid;
   const { chatId, changeChat } = useChatStore();
 
   console.log("Chat id from store:", chatId);
@@ -42,13 +43,14 @@ const ConversationList = () => {
 
   useEffect(() => {
     const fetchAndListenChats = async () => {
-      if (!user?.id) return;
+      if (!currentUserId || !firebaseUserId) return;
 
-      const firebaseUserId = await getFirebaseUserIdFromPostgresId(
-        currentUserId
-      );
-      if (!firebaseUserId) return;
-      // console.log("My id: " ,firebaseUserId)
+      // const firebaseUserId = await getFirebaseUserIdFromPostgresId(
+      //   currentUserId
+      // );
+      // if (!firebaseUserId) return;
+      console.log("My id: ", currentUserId);
+      console.log("My id: ", firebaseUserId);
 
       const unSub = onSnapshot(
         doc(db, "userchats", firebaseUserId),
