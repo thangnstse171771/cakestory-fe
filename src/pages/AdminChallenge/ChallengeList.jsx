@@ -6,6 +6,7 @@ import ChallengeCard from "./ChallengeCard";
 import { getAllChallenges } from "../../api/challenge";
 import toast from "react-hot-toast";
 import CreateChallenge from "./CreateChallenge";
+import { useAuth } from "../../contexts/AuthContext";
 
 const IMAGE_URL =
   "https://friendshipcakes.com/wp-content/uploads/2023/05/banh-tao-hinh-21.jpg";
@@ -45,6 +46,7 @@ export default function ChallengeList({ onViewDetail, onViewMembers }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth(); // <-- added
 
   const fetchChallenges = async () => {
     try {
@@ -185,31 +187,30 @@ export default function ChallengeList({ onViewDetail, onViewMembers }) {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">Tất cả</option>
-            <option value="Chờ duyệt">Chờ duyệt</option>
-            <option value="Đã duyệt">Đã duyệt</option>
             <option value="Đang diễn ra">Đang diễn ra</option>
             <option value="Sắp diễn ra">Sắp diễn ra</option>
             <option value="Đã kết thúc">Đã kết thúc</option>
           </select>
         </div>
-
-        <button
-          style={{
-            background: "#f472b6",
-            color: "white",
-            border: "none",
-            padding: "10px 16px",
-            borderRadius: "6px",
-            fontWeight: "500",
-            cursor: "pointer",
-            transition: "background-color 0.2s",
-          }}
-          onClick={() => setShowCreateModal(true)}
-          onMouseEnter={(e) => (e.target.style.backgroundColor = "#ec4899")}
-          onMouseLeave={(e) => (e.target.style.backgroundColor = "#f472b6")}
-        >
-          ➕ Tạo Challenge Mới
-        </button>
+        {user?.role === "admin" && (
+          <button
+            style={{
+              background: "#f472b6",
+              color: "white",
+              border: "none",
+              padding: "10px 16px",
+              borderRadius: "6px",
+              fontWeight: "500",
+              cursor: "pointer",
+              transition: "background-color 0.2s",
+            }}
+            onClick={() => setShowCreateModal(true)}
+            onMouseEnter={(e) => (e.target.style.backgroundColor = "#ec4899")}
+            onMouseLeave={(e) => (e.target.style.backgroundColor = "#f472b6")}
+          >
+            ➕ Tạo Challenge Mới
+          </button>
+        )}
       </div>
 
       {/* Challenges Grid */}

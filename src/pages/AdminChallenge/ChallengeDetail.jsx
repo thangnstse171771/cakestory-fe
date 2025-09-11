@@ -39,10 +39,6 @@ export default function ChallengeDetail({
 
   const getStatusStyle = (status) => {
     switch (status) {
-      case "Chờ duyệt":
-        return { background: "#fef3c7", color: "#92400e" };
-      case "Đã duyệt":
-        return { background: "#dbeafe", color: "#1e40af" };
       case "Đang diễn ra":
         return { background: "#d1fae5", color: "#065f46" };
       case "Sắp diễn ra":
@@ -722,7 +718,7 @@ export default function ChallengeDetail({
                   </button>
                 )}
 
-                {challenge.adminStatus === "Chờ duyệt" && (
+                {/* {challenge.adminStatus === "Chờ duyệt" && (
                   <>
                     <button
                       style={{
@@ -768,7 +764,7 @@ export default function ChallengeDetail({
                       ❌ Hủy Challenge
                     </button>
                   </>
-                )}
+                )} */}
               </div>
             </div>
 

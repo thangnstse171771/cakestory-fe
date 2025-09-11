@@ -10,9 +10,6 @@ function translateStatus(status) {
     notStart: "Sắp diễn ra",
     onGoing: "Đang diễn ra",
     ended: "Đã kết thúc",
-    pending: "Chờ duyệt",
-    approved: "Đã duyệt",
-    rejected: "Bị từ chối",
     cancelled: "Bị hủy",
   };
   return statusMap[status] || status;
@@ -85,7 +82,9 @@ export default function AdminChallengeDetail() {
           avatar: c.avatar || "",
           host: {
             name: c.host_name || "Admin",
-            avatar: c.host_avatar || "https://img.freepik.com/premium-vector/baker_1083548-22816.jpg?semt=ais_hybrid&w=740&q=80",
+            avatar:
+              c.host_avatar ||
+              "https://img.freepik.com/premium-vector/baker_1083548-22816.jpg?semt=ais_hybrid&w=740&q=80",
           },
           rules: Array.isArray(c.rules)
             ? c.rules.filter(Boolean)

@@ -4,16 +4,31 @@ import { authAPI } from "../api/auth";
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // Initialize user from localStorage where we persist minimal user info
+  const [user, setUser] = useState(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const currentUser = authAPI.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
-    setLoading(false);
+    // Fallback: if localStorage is empty, try authAPI to hydrate
+    (async () => {
+      try {
+        if (!user) {
+          const currentUser = authAPI.getCurrentUser();
+          if (currentUser) setUser(currentUser);
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const login = async (credentials) => {
@@ -21,8 +36,18 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.login(credentials);
       localStorage.setItem("token", response.token);
       if (response.user) {
-        localStorage.setItem("user", JSON.stringify(response.user));
-        setUser(response.user);
+        // persist minimal, safe user fields
+        const safe = {
+          id: response.user.id,
+          username: response.user.username,
+          role: response.user.role,
+          full_name: response.user.full_name,
+          email: response.user.email,
+        };
+        try {
+          localStorage.setItem("user", JSON.stringify(safe));
+        } catch {}
+        setUser(safe);
       }
       return response;
     } catch (error) {
@@ -42,6 +67,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     authAPI.logout();
+    try {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+    } catch {}
     setUser(null);
   };
 
@@ -62,6 +91,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Ensure isAuthenticated reads from the stored user state
   const value = {
     user,
     loading,
@@ -70,7 +100,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshUser,
     setUser, // optionally expose for advanced flows
-    isAuthenticated: authAPI.isAuthenticated,
+    isAuthenticated: () => !!user,
   };
 
   return (
