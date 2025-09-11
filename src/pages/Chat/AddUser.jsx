@@ -21,30 +21,13 @@ const AddUser = ({ isOpen, onClose }) => {
   const [users, setUsers] = useState([]);
   const { user } = useAuth();
   const currentUserId = user?.id?.toString();
+  const currentFirebaseId = user?.firebase_uid;
   const [addedUserIds, setAddedUserIds] = useState([]);
   const [disabledUserIds, setDisabledUserIds] = useState([]);
   const [existingChatUserIds, setExistingChatUserIds] = useState([]);
 
-  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
-    const q = query(
-      collection(db, "users"),
-      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
-    );
-
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].id; // Firestore doc ID
-    }
-
-    return null; // not found
-  };
-
   const fetchUsers = async (searchTerm = "") => {
     try {
-      const currentFirebaseId = await getFirebaseUserIdFromPostgresId(
-        currentUserId
-      );
       if (!currentFirebaseId) {
         console.warn("No Firebase ID found for current user.");
         return;
@@ -98,14 +81,8 @@ const AddUser = ({ isOpen, onClose }) => {
     const userChatsRef = collection(db, "userchats");
 
     try {
-      const currentFirebaseId = await getFirebaseUserIdFromPostgresId(
-        currentUserId
-      );
       if (!currentFirebaseId) {
-        console.error(
-          "Current Firebase user ID not found for Postgres ID:",
-          currentUserId
-        );
+        console.error("Current Firebase user ID found");
         return;
       }
       console.log("Current Firebase ID:", currentFirebaseId);

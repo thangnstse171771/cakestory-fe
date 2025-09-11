@@ -21,108 +21,86 @@ const ConversationList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { user } = useAuth();
   const currentUserId = user?.id?.toString();
+  const firebaseUserId = user?.firebase_uid;
   const { chatId, changeChat } = useChatStore();
 
   console.log("Chat id from store:", chatId);
 
-  const getFirebaseUserIdFromPostgresId = async (postgresId) => {
-    const q = query(
-      collection(db, "users"),
-      where("postgresId", "==", Number(postgresId)) // ensure type matches Firestore field
+  useEffect(() => {
+    if (!firebaseUserId) return;
+
+    console.log("Subscribing to chats for UID:", firebaseUserId);
+
+    const unSub = onSnapshot(
+      doc(db, "userchats", firebaseUserId),
+      async (res) => {
+        if (!res.exists()) {
+          setChats([]);
+          return;
+        }
+
+        const items = res.data().chats;
+
+        const promises = items.map(async (item) => {
+          if (item.receiverId) {
+            const userDocRef = doc(db, "users", item.receiverId);
+            const userDocSnap = await getDoc(userDocRef);
+            const user = userDocSnap.data();
+
+            return {
+              ...item,
+              user,
+              isGroup: false,
+            };
+          } else {
+            const groupChatRef = doc(db, "groupChats", item.chatId);
+            const groupSnap = await getDoc(groupChatRef);
+
+            if (!groupSnap.exists()) return null;
+
+            const groupData = groupSnap.data();
+
+            let displayUser = {
+              username: groupData.shopName || "Group Chat",
+              avatar: groupData.shopAvatar,
+            };
+
+            if (item.role === "shopMember" && groupData.customerId) {
+              const customerRef = doc(db, "users", groupData.customerId);
+              const customerSnap = await getDoc(customerRef);
+              if (customerSnap.exists()) {
+                const customerData = customerSnap.data();
+                displayUser = {
+                  username: customerData.username || "Customer",
+                  avatar:
+                    customerData.avatar ||
+                    "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
+                };
+              }
+            }
+
+            return {
+              ...item,
+              user: displayUser,
+              isGroup: true,
+            };
+          }
+        });
+
+        const chatData = await Promise.all(promises);
+        setChats(
+          chatData
+            .filter(Boolean)
+            .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+        );
+      }
     );
 
-    const querySnapshot = await getDocs(q);
-
-    if (!querySnapshot.empty) {
-      return querySnapshot.docs[0].id; // Firestore doc ID
-    }
-
-    return null; // not found
-  };
-
-  useEffect(() => {
-    const fetchAndListenChats = async () => {
-      if (!user?.id) return;
-
-      const firebaseUserId = await getFirebaseUserIdFromPostgresId(
-        currentUserId
-      );
-      if (!firebaseUserId) return;
-      // console.log("My id: " ,firebaseUserId)
-
-      const unSub = onSnapshot(
-        doc(db, "userchats", firebaseUserId),
-        async (res) => {
-          if (!res.exists()) {
-            setChats([]);
-            return;
-          }
-
-          const items = res.data().chats;
-
-          const promises = items.map(async (item) => {
-            if (item.receiverId) {
-              // 1-on-1 chat
-              const userDocRef = doc(db, "users", item.receiverId);
-              const userDocSnap = await getDoc(userDocRef);
-              const user = userDocSnap.data();
-
-              return {
-                ...item,
-                user,
-                isGroup: false,
-              };
-            } else {
-              // Group chat
-              const groupChatRef = doc(db, "groupChats", item.chatId);
-              const groupSnap = await getDoc(groupChatRef);
-
-              if (!groupSnap.exists()) return null;
-
-              const groupData = groupSnap.data();
-
-              // 💡 If I'm a shop member, show customer details instead of shop
-              let displayUser = {
-                username: groupData.shopName || "Group Chat",
-                avatar: groupData.shopAvatar,
-              };
-
-              if (item.role === "shopMember" && groupData.customerId) {
-                const customerRef = doc(db, "users", groupData.customerId);
-                const customerSnap = await getDoc(customerRef);
-                if (customerSnap.exists()) {
-                  const customerData = customerSnap.data();
-                  displayUser = {
-                    username: customerData.username || "Customer",
-                    avatar:
-                      customerData.avatar ||
-                      "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg",
-                  };
-                }
-              }
-
-              return {
-                ...item,
-                user: displayUser,
-                isGroup: true,
-              };
-            }
-          });
-
-          const chatData = await Promise.all(promises);
-          setChats(
-            chatData
-              .filter(Boolean)
-              .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-          );
-        }
-      );
-
-      return () => unSub();
+    return () => {
+      console.log("Unsubscribing from UID:", firebaseUserId);
+      unSub();
     };
-
-    fetchAndListenChats();
-  }, [user?.id]);
+  }, [firebaseUserId]);
 
   const handleSelect = async (chat) => {
     const userChats = chats.map((item) => {
@@ -136,7 +114,6 @@ const ConversationList = () => {
 
     userChats[chatIndex].isSeen = true;
 
-    const firebaseUserId = await getFirebaseUserIdFromPostgresId(currentUserId);
     if (!firebaseUserId) return;
 
     const userChatsRef = doc(db, "userchats", firebaseUserId);

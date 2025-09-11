@@ -17,6 +17,13 @@ import {
   getCakeDesigns,
   getCakeDesignsByUserId,
 } from "../api/cakeDesigns";
+import {
+  createPicture,
+  getPicturesByUserId,
+  deletePicture,
+} from "../api/pictures";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchWalletBalance } from "../api/axios";
 
@@ -45,7 +52,7 @@ const CakeDesign = () => {
   const [currentDraggingItem, setCurrentDraggingItem] = useState(null);
 
   // UI state
-  const [selectedTab, setSelectedTab] = useState("Base");
+  const [selectedTab, setSelectedTab] = useState("Cơ bản");
   const [isAnimating, setIsAnimating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [diameter, setDiameter] = useState(25);
@@ -88,7 +95,18 @@ const CakeDesign = () => {
     "Sprinkles",
     "Nuts",
   ];
-  const designOptions = ["Cơ bản", "Phủ kem", "Topping", "Trang trí"];
+  const designOptions = ["Cơ bản", "Phủ kem", "Topping", "Trang trí", "Khác"];
+  // Pictures (Khác) states
+  const [otherImages, setOtherImages] = useState([]);
+  const [otherPage, setOtherPage] = useState(1);
+  const [otherLimit] = useState(10);
+  const [uploading, setUploading] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadFile, setUploadFile] = useState(null);
+  const [canvasImages, setCanvasImages] = useState({});
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [confirmDeletePictureId, setConfirmDeletePictureId] = useState(null);
+  const [uploadedSelections, setUploadedSelections] = useState({});
 
   // Vietnamese translations for UI
   const shapeLabels = {
@@ -261,8 +279,22 @@ const CakeDesign = () => {
     if (user?.id) {
       loadAIImages();
       fetchUserBalance();
+      loadOtherImages();
     }
   }, [user?.id]);
+
+  // Load uploaded pictures by user
+  const loadOtherImages = async (page = 1) => {
+    try {
+      if (!user?.id) return;
+      const res = await getPicturesByUserId(user.id, page, otherLimit);
+      if (res.success) {
+        setOtherImages(res.data.pictures || []);
+      }
+    } catch (err) {
+      console.error("Error loading other images:", err);
+    }
+  };
 
   // Warn before closing / reloading if AI generation in progress
   useEffect(() => {
@@ -393,6 +425,249 @@ const CakeDesign = () => {
     };
   };
 
+  // Add external uploaded image to canvas (as overlay instance)
+  const addCanvasImage = (picture) => {
+    // Add an instance of this uploaded picture (allow multiple instances up to 10)
+    const pictureId = String(picture.id);
+    const currentQty = uploadedSelections[pictureId] || 0;
+    if (currentQty >= 10) {
+      toast.error("Mỗi ảnh chỉ được thêm tối đa 10 lần lên bánh");
+      return;
+    }
+
+    const totalInstances = Object.keys(canvasImages).length;
+    if (totalInstances >= 10) {
+      toast.error("Chỉ được thêm tối đa 10 ảnh lên bánh");
+      return;
+    }
+
+    const newIndex = currentQty; // zero-based
+    const key = `uploaded_${pictureId}_${newIndex}`;
+
+    setUploadedSelections((prev) => ({ ...prev, [pictureId]: currentQty + 1 }));
+    setCanvasImages((prev) => ({
+      ...prev,
+      [key]: {
+        id: pictureId,
+        src: picture.imageUrl,
+        title: picture.title,
+        x: Math.random() * 10 - 5,
+        y: -30 + Math.random() * 10,
+        scale: 1,
+      },
+    }));
+    // keep the currently selected tab (Khác) so user stays in the upload view
+  };
+
+  // Remove a single canvas instance and reindex remaining instances for the same picture
+  const removeCanvasInstance = (instanceKey) => {
+    setCanvasImages((prev) => {
+      const next = { ...prev };
+      const matches = instanceKey.match(/^uploaded_(.+?)_(\d+)$/);
+      if (!matches) {
+        delete next[instanceKey];
+        return next;
+      }
+      const pictureId = matches[1];
+      // Delete the instance
+      delete next[instanceKey];
+
+      // Reindex remaining keys for this picture
+      const remaining = Object.keys(next)
+        .filter((k) => k.startsWith(`uploaded_${pictureId}_`))
+        .sort((a, b) => {
+          const ai = Number(a.split("_").pop());
+          const bi = Number(b.split("_").pop());
+          return ai - bi;
+        });
+
+      const rebuilt = { ...next };
+      remaining.forEach((oldKey, idx) => {
+        const newKey = `uploaded_${pictureId}_${idx}`;
+        if (oldKey !== newKey) {
+          rebuilt[newKey] = { ...rebuilt[oldKey] };
+          delete rebuilt[oldKey];
+        }
+      });
+
+      return rebuilt;
+    });
+
+    // Update selection counts
+    setUploadedSelections((prev) => {
+      const pictureId = instanceKey.match(/^uploaded_(.+?)_/)[1];
+      const qty = prev[pictureId] || 0;
+      if (qty <= 1) {
+        const copy = { ...prev };
+        delete copy[pictureId];
+        return copy;
+      }
+      return { ...prev, [pictureId]: qty - 1 };
+    });
+  };
+
+  // Update quantity of uploaded picture instances (add/remove instances)
+  const updateUploadedQuantity = (pictureId, newQuantity) => {
+    const id = String(pictureId);
+    const clamped = Math.max(1, Math.min(10, newQuantity));
+
+    setUploadedSelections((prev) => ({ ...prev, [id]: clamped }));
+
+    setCanvasImages((prev) => {
+      const updated = { ...prev };
+      // Count existing
+      const existing = Object.keys(updated).filter((k) =>
+        k.startsWith(`uploaded_${id}_`)
+      ).length;
+      if (clamped > existing) {
+        for (let i = existing; i < clamped; i++) {
+          updated[`uploaded_${id}_${i}`] = {
+            id: id,
+            src:
+              (otherImages.find((o) => String(o.id) === id) || {}).imageUrl ||
+              "",
+            title:
+              (otherImages.find((o) => String(o.id) === id) || {}).title || "",
+            x: Math.random() * 10 - 5,
+            y: -30 + Math.random() * 10,
+            scale: 1,
+          };
+        }
+      } else if (clamped < existing) {
+        for (let i = clamped; i < existing; i++) {
+          delete updated[`uploaded_${id}_${i}`];
+        }
+      }
+      return updated;
+    });
+  };
+
+  // Update scale for a specific instance key
+  const updateUploadedScale = (instanceKey, scale) => {
+    setCanvasImages((prev) => ({
+      ...prev,
+      [instanceKey]: {
+        ...prev[instanceKey],
+        scale: Math.max(0.2, Math.min(2.0, scale)),
+      },
+    }));
+  };
+
+  // Toggle selection of an uploaded picture (like toggleDecoration)
+  const toggleUploadedSelection = (picture) => {
+    const id = String(picture.id);
+    const isSelected = !!uploadedSelections[id];
+    if (isSelected) {
+      // Remove all instances
+      const keysToRemove = Object.keys(canvasImages).filter((k) =>
+        k.startsWith(`uploaded_${id}_`)
+      );
+      keysToRemove.forEach((k) => removeCanvasInstance(k));
+      setUploadedSelections((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+    } else {
+      // Add one instance
+      addCanvasImage(picture);
+    }
+  };
+
+  const removeCanvasImage = (key) => {
+    setCanvasImages((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  // Upload picture handler
+  const handleUploadPicture = async () => {
+    if (!uploadFile || !uploadTitle || !user?.id) {
+      toast.error("Vui lòng chọn ảnh và nhập tiêu đề");
+      return;
+    }
+    setUploading(true);
+    try {
+      // 1) Upload file to Firebase Storage
+      const storageRef = ref(
+        storage,
+        `pictures/${user.id}/${Date.now()}-${uploadFile.name}`
+      );
+      await uploadBytes(storageRef, uploadFile);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      // 2) Create picture record on backend with the Firebase URL
+      const payload = {
+        title: uploadTitle,
+        imageUrl: downloadURL,
+      };
+      const res = await createPicture(payload);
+
+      if (res.success) {
+        toast.success("Ảnh đã được tải lên");
+        setUploadTitle("");
+        setUploadFile(null);
+        // If API returned the created picture, insert it immediately so user can select it without reloading
+        if (res.data && res.data.picture) {
+          setOtherImages((prev) => [res.data.picture, ...(prev || [])]);
+        } else {
+          await loadOtherImages(otherPage);
+        }
+      } else {
+        toast.error(res.message || "Không thể tạo bản ghi ảnh");
+      }
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Lỗi khi tải lên ảnh");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Confirmed deletion (calls API)
+  const handleConfirmDeletePicture = async (pictureId) => {
+    try {
+      // Optimistically remove from local state so preview updates immediately
+      setCanvasImages((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((k) => {
+          if (String(next[k].id) === String(pictureId)) delete next[k];
+        });
+        return next;
+      });
+      setOtherImages((prev) =>
+        prev.filter((p) => String(p.id) !== String(pictureId))
+      );
+      setUploadedSelections((prev) => {
+        const copy = { ...prev };
+        delete copy[String(pictureId)];
+        return copy;
+      });
+      setConfirmDeletePictureId(null);
+
+      const res = await deletePicture(pictureId);
+      if (res.success) {
+        toast.success("Đã xoá ảnh");
+      } else {
+        toast.error(res.message || "Không thể xóa ảnh");
+        // On failure, reload list to restore
+        await loadOtherImages(otherPage);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi khi xóa ảnh");
+      setConfirmDeletePictureId(null);
+      await loadOtherImages(otherPage);
+    }
+  };
+
+  // Open delete confirmation
+  const requestDeletePicture = (pictureId) => {
+    setConfirmDeletePictureId(pictureId);
+  };
+
   // Handle decoration toggle with position tracking and quantities
   const toggleDecoration = (decoration) => {
     setDesign((prev) => {
@@ -511,6 +786,32 @@ const CakeDesign = () => {
       if (cakeDesignRef.current) {
         // Get the current dimensions of the cake design element
         const rect = cakeDesignRef.current.getBoundingClientRect();
+
+        // Ensure uploaded overlay images are inlined as data URLs to avoid CORS tainting
+        const inlineUploadedImages = async () => {
+          const entries = Object.entries(canvasImages);
+          for (const [key, img] of entries) {
+            try {
+              // fetch the image as blob then convert
+              const resp = await fetch(img.src, { mode: "cors" });
+              const blob = await resp.blob();
+              const dataUrl = await new Promise((res, rej) => {
+                const reader = new FileReader();
+                reader.onloadend = () => res(reader.result);
+                reader.onerror = rej;
+                reader.readAsDataURL(blob);
+              });
+              // replace the src locally for capture
+              const el = document.querySelectorAll("img").forEach((i) => {
+                if (i.src === img.src) i.src = dataUrl;
+              });
+            } catch (e) {
+              // ignore failures; html2canvas may still try to capture
+            }
+          }
+        };
+
+        await inlineUploadedImages();
 
         // Capture the cake design as image with exact dimensions
         const canvas = await html2canvas(cakeDesignRef.current, {
@@ -902,6 +1203,16 @@ Trang trí: ${
         ...prev,
         [currentDraggingItem.value]: { x: x, y: y },
       }));
+    } else if (currentDraggingItem.type === "uploaded") {
+      // Update uploaded image position (percentage)
+      setCanvasImages((prev) => ({
+        ...prev,
+        [currentDraggingItem.value]: {
+          ...prev[currentDraggingItem.value],
+          x: x,
+          y: y,
+        },
+      }));
     }
   };
 
@@ -930,6 +1241,15 @@ Trang trí: ${
       setDecorationsPositions((prev) => ({
         ...prev,
         [currentDraggingItem.value]: { x: x, y: y },
+      }));
+    } else if (currentDraggingItem.type === "uploaded") {
+      setCanvasImages((prev) => ({
+        ...prev,
+        [currentDraggingItem.value]: {
+          ...prev[currentDraggingItem.value],
+          x: x,
+          y: y,
+        },
       }));
     }
   };
@@ -1256,6 +1576,58 @@ Trang trí: ${
                         }
                       )}
 
+                      {/* Uploaded images (Khác) overlays */}
+                      {Object.entries(canvasImages).map(([key, img]) => {
+                        return (
+                          <div
+                            key={key}
+                            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                            style={{ zIndex: 18 }}
+                          >
+                            <img
+                              src={img.src}
+                              alt={img.title}
+                              className={`w-full h-full object-contain transition-transform pointer-events-auto`}
+                              onMouseDown={(e) => {
+                                setIsDragging(true);
+                                setCurrentDraggingItem({
+                                  type: "uploaded",
+                                  value: key,
+                                });
+                                if (e.dataTransfer)
+                                  e.dataTransfer.setData(
+                                    "text/plain",
+                                    "uploaded"
+                                  );
+                                if (e.preventDefault) e.preventDefault();
+                              }}
+                              onMouseMove={handleDrag}
+                              onMouseUp={handleDragEnd}
+                              onMouseLeave={handleDragEnd}
+                              onTouchStart={(e) => {
+                                setIsDragging(true);
+                                setCurrentDraggingItem({
+                                  type: "uploaded",
+                                  value: key,
+                                });
+                              }}
+                              onTouchMove={handleTouchMove}
+                              onTouchEnd={handleDragEnd}
+                              style={{
+                                transform: `scale(${img.scale}) translate(${img.x}%, ${img.y}%)`,
+                                position: "relative",
+                                cursor:
+                                  isDragging &&
+                                  currentDraggingItem?.value === key
+                                    ? "grabbing"
+                                    : "grab",
+                              }}
+                              draggable={false}
+                            />
+                          </div>
+                        );
+                      })}
+
                       {/* Sparkle effect */}
                       <div className="absolute inset-0 pointer-events-none">
                         {[...Array(8)].map((_, i) => (
@@ -1409,21 +1781,19 @@ Trang trí: ${
                 {/* Design Options Tabs */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
                   <div className="flex gap-1 mb-2 bg-gray-50 rounded-lg p-1">
-                    {["Cơ bản", "Phủ kem", "Topping", "Trang trí"].map(
-                      (option, index) => (
-                        <button
-                          key={option}
-                          onClick={() => setSelectedTab(option)}
-                          className={`px-3 py-2 rounded-md text-xs font-medium flex-1 transition-all duration-200 ${
-                            selectedTab === option
-                              ? "bg-gradient-to-r from-pink-500 to-yellow-400 text-white shadow-md"
-                              : "text-gray-600 hover:bg-white hover:shadow-sm"
-                          }`}
-                        >
-                          {option}
-                        </button>
-                      )
-                    )}
+                    {designOptions.map((option, index) => (
+                      <button
+                        key={option}
+                        onClick={() => setSelectedTab(option)}
+                        className={`px-3 py-2 rounded-md text-xs font-medium flex-1 transition-all duration-200 ${
+                          selectedTab === option
+                            ? "bg-gradient-to-r from-pink-500 to-yellow-400 text-white shadow-md"
+                            : "text-gray-600 hover:bg-white hover:shadow-sm"
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -1961,73 +2331,331 @@ Trang trí: ${
                   </div>
                 )}
 
-                {/* Cake Flavors */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
-                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center text-sm">
-                    <span className="w-2 h-5 bg-gradient-to-b from-pink-400 to-purple-400 rounded-full mr-2"></span>
-                    Hương vị bánh
-                  </h3>
-                  <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div className="flex items-center text-xs text-amber-700">
-                      <svg
-                        className="w-3 h-3 mr-2 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                        ></path>
-                      </svg>
-                      <span>
-                        Có thể chọn nhiều hương vị để tạo sự đa dạng cho bánh
-                      </span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {flavors.map((flavor) => (
-                      <button
-                        key={flavor}
-                        onClick={() => toggleFlavor(flavor)}
-                        className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 hover:scale-105 border-2 ${
-                          selectedFlavors.includes(flavor)
-                            ? flavor === "Vanilla"
-                              ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-500 shadow-lg"
-                              : flavor === "Chocolate"
-                              ? "bg-gradient-to-r from-amber-600 to-amber-700 text-white border-amber-600 shadow-lg"
-                              : flavor === "Lemon"
-                              ? "bg-gradient-to-r from-yellow-300 to-yellow-400 text-yellow-900 border-yellow-400 shadow-lg"
-                              : "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-500 shadow-lg"
-                            : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className="text-center">
-                          <div className="text-sm mb-1">
-                            {flavor === "Vanilla"
-                              ? "🍦"
-                              : flavor === "Chocolate"
-                              ? "🍫"
-                              : flavor === "Lemon"
-                              ? "🍋"
-                              : "❤️"}
-                          </div>
-                          <div className="text-xs">{flavorLabels[flavor]}</div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  {selectedFlavors.length > 0 && (
-                    <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="text-xs text-green-700">
-                        <span className="font-medium">Đã chọn:</span>{" "}
-                        {selectedFlavors.map((f) => flavorLabels[f]).join(", ")}
+                {selectedTab === "Khác" && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-gray-800 flex items-center">
+                        <span className="w-2 h-6 bg-gradient-to-b from-pink-400 to-purple-400 rounded-full mr-2"></span>
+                        Ảnh khác (Người dùng tải lên)
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowAddModal(true)}
+                          className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-xs font-medium"
+                        >
+                          Thêm ảnh mới
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    <div className="mt-2">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                        Ảnh đã tải lên
+                      </h4>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {otherImages.length === 0 && (
+                          <div className="text-sm text-gray-500">
+                            Chưa có ảnh nào
+                          </div>
+                        )}
+                        {otherImages.map((pic) => {
+                          const picId = String(pic.id);
+                          const isSelected = !!uploadedSelections[picId];
+                          return (
+                            <div
+                              key={pic.id}
+                              className={`relative p-1 rounded-lg transition-all ${
+                                isSelected
+                                  ? "bg-gradient-to-r from-pink-500 to-yellow-400 text-white shadow-lg"
+                                  : "bg-gray-50"
+                              }`}
+                            >
+                              <button
+                                onClick={() => toggleUploadedSelection(pic)}
+                                className="flex items-center gap-2 w-full text-left p-2 rounded"
+                              >
+                                <img
+                                  src={pic.imageUrl}
+                                  alt={pic.title}
+                                  className="w-16 h-12 object-cover rounded"
+                                />
+                                <div className="flex-1 text-xs">
+                                  <div
+                                    className={`font-medium ${
+                                      isSelected ? "text-white" : ""
+                                    }`}
+                                  >
+                                    {pic.title}
+                                  </div>
+                                  <div
+                                    className={`text-xs ${
+                                      isSelected
+                                        ? "text-white/80"
+                                        : "text-gray-400"
+                                    }`}
+                                  >
+                                    {new Date(
+                                      pic.created_at
+                                    ).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              </button>
+
+                              {/* small X to permanently delete (confirm) */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  requestDeletePicture(pic.id);
+                                }}
+                                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/80 text-red-600 flex items-center justify-center text-xs hover:bg-white"
+                              >
+                                x
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Selected uploaded images (like Phụ kiện đã chọn) */}
+                      {Object.keys(uploadedSelections).length > 0 && (
+                        <div className="mt-6 pt-4 border-t border-pink-200">
+                          <h4 className="text-sm font-semibold text-pink-700 mb-3 flex items-center">
+                            <span className="w-2 h-4 bg-pink-500 rounded-full mr-2"></span>
+                            Phụ kiện đã chọn:
+                          </h4>
+                          <div className="space-y-4">
+                            {Object.entries(uploadedSelections).map(
+                              ([picId, qty]) => {
+                                const pic =
+                                  otherImages.find(
+                                    (o) => String(o.id) === String(picId)
+                                  ) || {};
+                                return (
+                                  <div
+                                    key={picId}
+                                    className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-4 border border-pink-200"
+                                  >
+                                    <div className="flex items-center justify-between mb-3">
+                                      <div className="flex items-center">
+                                        <img
+                                          src={pic.imageUrl}
+                                          alt={pic.title}
+                                          className="w-10 h-8 object-cover rounded mr-3"
+                                        />
+                                        <span className="text-sm font-medium text-pink-800">
+                                          {pic.title || `Ảnh ${picId}`}
+                                        </span>
+                                        <button
+                                          className="ml-3 px-2 py-1 text-xs bg-pink-200 text-pink-800 rounded-full hover:bg-pink-300 transition-colors"
+                                          onClick={() => {
+                                            // remove all instances
+                                            const keysToRemove = Object.keys(
+                                              canvasImages
+                                            ).filter((k) =>
+                                              k.startsWith(`uploaded_${picId}_`)
+                                            );
+                                            keysToRemove.forEach((k) =>
+                                              removeCanvasInstance(k)
+                                            );
+                                          }}
+                                        >
+                                          Xóa
+                                        </button>
+                                      </div>
+                                      <div className="flex items-center bg-white rounded-lg border border-pink-200">
+                                        <button
+                                          onClick={() =>
+                                            updateUploadedQuantity(
+                                              picId,
+                                              qty - 1
+                                            )
+                                          }
+                                          className="w-8 h-8 flex items-center justify-center text-pink-600 hover:bg-pink-50 rounded-l-lg"
+                                        >
+                                          -
+                                        </button>
+                                        <span className="px-3 py-1 text-sm font-semibold text-pink-800 border-x border-pink-200 bg-pink-50">
+                                          {qty}
+                                        </span>
+                                        <button
+                                          onClick={() =>
+                                            updateUploadedQuantity(
+                                              picId,
+                                              qty + 1
+                                            )
+                                          }
+                                          className="w-8 h-8 flex items-center justify-center text-pink-600 hover:bg-pink-50 rounded-r-lg"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Per-instance scale sliders */}
+                                    {Array.from({ length: qty }, (_, i) => {
+                                      const instanceKey = `uploaded_${picId}_${i}`;
+                                      const scale =
+                                        (canvasImages[instanceKey] &&
+                                          canvasImages[instanceKey].scale) ||
+                                        1;
+                                      return (
+                                        <div
+                                          key={instanceKey}
+                                          className="pt-3 border-t border-pink-200"
+                                        >
+                                          <div className="flex justify-between items-center mb-2">
+                                            <label className="text-xs font-medium text-pink-700">
+                                              {pic.title
+                                                ? pic.title.split(" ")[0]
+                                                : "Ảnh"}{" "}
+                                              #{i + 1} - Kích thước
+                                            </label>
+                                            <span className="text-xs font-bold bg-pink-200 px-2 py-1 rounded-full text-pink-800">
+                                              {Math.round(scale * 100)}%
+                                            </span>
+                                          </div>
+                                          <input
+                                            type="range"
+                                            min="20"
+                                            max="200"
+                                            value={Math.round(scale * 100)}
+                                            onChange={(e) =>
+                                              updateUploadedScale(
+                                                instanceKey,
+                                                Number(e.target.value) / 100
+                                              )
+                                            }
+                                            className="w-full h-2.5 bg-pink-100 rounded-lg appearance-none cursor-pointer"
+                                            style={{
+                                              background: `linear-gradient(to right, #ec4899 0%, #ec4899 ${
+                                                ((scale * 100 - 20) / 180) * 100
+                                              }%, #fce7f3 ${
+                                                ((scale * 100 - 20) / 180) * 100
+                                              }%, #fce7f3 100%)`,
+                                            }}
+                                          />
+                                          <div className="flex justify-between text-xs text-pink-600 mt-1">
+                                            <span>20%</span>
+                                            <span>200%</span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              }
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pagination for uploaded images when too many */}
+                      {otherImages.length > otherLimit - 1 && (
+                        <div className="mt-3 flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              const next = Math.max(1, otherPage - 1);
+                              setOtherPage(next);
+                              loadOtherImages(next);
+                            }}
+                            className={`px-2 py-1 rounded bg-white border text-xs`}
+                            disabled={otherPage === 1}
+                          >
+                            Prev
+                          </button>
+                          <div className="text-xs text-gray-600">
+                            Trang {otherPage}
+                          </div>
+                          <button
+                            onClick={() => {
+                              const next = otherPage + 1;
+                              setOtherPage(next);
+                              loadOtherImages(next);
+                            }}
+                            className={`px-2 py-1 rounded bg-white border text-xs`}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {selectedTab === "Cơ bản" && (
+                  /* Cake Flavors */
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                    <h3 className="font-semibold text-gray-800 mb-3 flex items-center text-sm">
+                      <span className="w-2 h-5 bg-gradient-to-b from-pink-400 to-purple-400 rounded-full mr-2"></span>
+                      Hương vị bánh
+                    </h3>
+                    <div className="mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center text-xs text-amber-700">
+                        <svg
+                          className="w-3 h-3 mr-2 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                          ></path>
+                        </svg>
+                        <span>
+                          Có thể chọn nhiều hương vị để tạo sự đa dạng cho bánh
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {flavors.map((flavor) => (
+                        <button
+                          key={flavor}
+                          onClick={() => toggleFlavor(flavor)}
+                          className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 hover:scale-105 border-2 ${
+                            selectedFlavors.includes(flavor)
+                              ? flavor === "Vanilla"
+                                ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-500 shadow-lg"
+                                : flavor === "Chocolate"
+                                ? "bg-gradient-to-r from-amber-600 to-amber-700 text-white border-amber-600 shadow-lg"
+                                : flavor === "Lemon"
+                                ? "bg-gradient-to-r from-yellow-300 to-yellow-400 text-yellow-900 border-yellow-400 shadow-lg"
+                                : "bg-gradient-to-r from-red-500 to-red-600 text-white border-red-500 shadow-lg"
+                              : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="text-sm mb-1">
+                              {flavor === "Vanilla"
+                                ? "🍦"
+                                : flavor === "Chocolate"
+                                ? "🍫"
+                                : flavor === "Lemon"
+                                ? "🍋"
+                                : "❤️"}
+                            </div>
+                            <div className="text-xs">
+                              {flavorLabels[flavor]}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    {selectedFlavors.length > 0 && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="text-xs text-green-700">
+                          <span className="font-medium">Đã chọn:</span>{" "}
+                          {selectedFlavors
+                            .map((f) => flavorLabels[f])
+                            .join(", ")}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -2517,6 +3145,96 @@ Trang trí: ${
                         Tạo ảnh AI ({AI_GENERATION_COST.toLocaleString()} VND)
                       </>
                     )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Image Modal */}
+        {showAddModal && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowAddModal(false);
+            }}
+          >
+            <div className="bg-white rounded-xl max-w-md w-full shadow-2xl">
+              <div className="p-6">
+                <h3 className="text-lg font-bold mb-3">Thêm ảnh mới</h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Tiêu đề ảnh"
+                    value={uploadTitle}
+                    onChange={(e) => setUploadTitle(e.target.value)}
+                    className="w-full p-2 border border-gray-200 rounded-lg text-sm"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    className="w-full text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        await handleUploadPicture();
+                        // close modal after upload success or keep open if failed
+                        setShowAddModal(false);
+                      }}
+                      disabled={uploading}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium text-white ${
+                        uploading
+                          ? "bg-gray-400 cursor-not-allowed"
+                          : "bg-gradient-to-r from-purple-500 to-pink-500"
+                      }`}
+                    >
+                      {uploading ? "Đang tải..." : "Tải lên ảnh"}
+                    </button>
+                    <button
+                      onClick={() => setShowAddModal(false)}
+                      className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-200"
+                    >
+                      Huỷ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete confirmation modal for uploaded images */}
+        {confirmDeletePictureId && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setConfirmDeletePictureId(null);
+            }}
+          >
+            <div className="bg-white rounded-xl max-w-sm w-full shadow-2xl">
+              <div className="p-6">
+                <h4 className="text-lg font-semibold mb-2">Xác nhận xóa</h4>
+                <p className="text-sm text-gray-700 mb-4">
+                  Bạn có chắc chắn muốn xóa ảnh này? Hành động này không thể
+                  hoàn tác.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setConfirmDeletePictureId(null)}
+                    className="flex-1 px-4 py-2 border rounded"
+                  >
+                    Huỷ
+                  </button>
+                  <button
+                    onClick={() =>
+                      handleConfirmDeletePicture(confirmDeletePictureId)
+                    }
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded"
+                  >
+                    Xóa
                   </button>
                 </div>
               </div>

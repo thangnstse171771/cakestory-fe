@@ -22,15 +22,7 @@ export const useChatStore = create((set, get) => ({
 
   changeChat: async (chatId, user) => {
     const currentUser = get().currentUser;
-    const currentUserPostgresId = get().currentUserId; // get the current user's postgresId from store
-    console.log(
-      "🔄 Current user postgresId from store:",
-      currentUserPostgresId
-    );
-
-    const currentFirebaseId = await get().getFirebaseUserIdFromPostgresId(
-      currentUserPostgresId
-    );
+    const currentFirebaseId = get().currentUserId; 
 
     console.log("🔄 Current user firebaseid from store:", currentFirebaseId);
 

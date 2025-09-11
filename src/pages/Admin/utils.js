@@ -1,41 +1,42 @@
-// Helper functions for AdminDashboard
+// Helper functions for Admin account pages (simplified)
 
-export const getIsPremium = (account) =>
-  account.isPremium ?? account.is_premium ?? account.ispremium ?? false;
-
-export const getIsBaker = (account) =>
-  account.is_baker ?? account.isBaker ?? account.is_Baker ?? false;
-
+// Unified status resolver: returns 'active' or 'inactive'
 export const getStatusValue = (account) => {
-  if (account.status) return account.status;
-  if (typeof account.is_active === "boolean")
-    return account.is_active ? "active" : "restricted";
-  if (typeof account.isActive === "boolean")
-    return account.isActive ? "active" : "restricted";
-  return "restricted";
+  if (!account || typeof account !== "object") return "inactive";
+  const sources = [
+    account.is_active,
+    account.isActive,
+    account.active,
+    account.enabled,
+    account.status,
+    account?.shopInfo?.is_active,
+    account?.shopInfo?.isActive,
+    account?.shopInfo?.active,
+    account?.shopInfo?.enabled,
+    account?.shopInfo?.status,
+  ];
+  const normalize = (val) => {
+    const s = String(val).trim().toLowerCase();
+    if (["1", "true", "active", "enabled", "enable", "yes", "on"].includes(s))
+      return "active";
+    if (
+      ["0", "false", "inactive", "disabled", "disable", "off", "no"].includes(s)
+    )
+      return "inactive";
+    return null;
+  };
+  for (const v of sources) {
+    if (v === undefined || v === null || v === "") continue;
+    const norm = normalize(v);
+    if (norm) return norm;
+  }
+  return "inactive";
 };
 
+// Filter accounts for Admin views (only 'all' users or 'shops')
 export const filterAccounts = (accountsWithShop, view, search) => {
   return accountsWithShop.filter((account) => {
-    const isPremium = getIsPremium(account);
-    const isBaker = getIsBaker(account);
-    // Lấy role ưu tiên trường role, nếu không có thì fallback sang flag
-    const role =
-      account.role ||
-      (account.is_admin || account.isAdmin
-        ? "admin"
-        : account.is_account_staff
-        ? "account_staff"
-        : account.is_complaint_handler
-        ? "complaint_handler"
-        : "user");
-
-    if (view === "premium" && !isPremium) return false;
     if (view === "shops" && !account.shopInfo) return false;
-    if (view === "admin" && role !== "admin") return false;
-    if (view === "account_staff" && role !== "account_staff") return false;
-    if (view === "complaint_handler" && role !== "complaint_handler")
-      return false;
 
     if (
       search.username &&
@@ -47,14 +48,19 @@ export const filterAccounts = (accountsWithShop, view, search) => {
       !account.email?.toLowerCase().includes(search.email.toLowerCase())
     )
       return false;
-    const statusValue = getStatusValue(account);
-    if (search.status && statusValue !== search.status) return false;
-    if (
-      search.premium &&
-      ((search.premium === "premium" && !isPremium) ||
-        (search.premium === "regular" && isPremium))
-    )
-      return false;
+
+    const statusValue = (() => {
+      if (view === "shops" && account.shopInfo) {
+        return getStatusValue({ shopInfo: account.shopInfo });
+      }
+      return getStatusValue(account);
+    })();
+
+    if (search.status) {
+      const wanted = search.status; // 'active' | 'inactive'
+      if (statusValue !== wanted) return false;
+    }
+
     if (
       search.shop &&
       !(account.shopInfo?.business_name || "")

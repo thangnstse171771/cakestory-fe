@@ -13,7 +13,7 @@ const uploadMediaToFirebase = async (file) => {
 
 export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
   const [subject, setSubject] = useState("");
-  const [description, setDescription] = useState("");
+  // const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,8 +21,8 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
 
   useEffect(() => {
     if (isOpen && order) {
-      setSubject(`Khiếu nại về đơn hàng ${order.orderNumber}`);
-      setDescription("");
+      setSubject("");
+      // setDescription("");
       setImageFile(null);
       setImagePreview("");
       setLoading(false);
@@ -55,7 +55,7 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
   };
 
   const handleSubmit = async () => {
-    if (!subject.trim() || !description.trim() || !order) {
+    if (!subject.trim() || !order) {
       alert("Vui lòng điền đầy đủ thông tin!");
       return;
     }
@@ -142,7 +142,7 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
 
           <div>
             <label htmlFor="subject" className="mb-2 block font-medium">
-              Tiêu đề khiếu nại
+              Mô tả chi tiết
             </label>
             <input
               id="subject"
@@ -153,7 +153,7 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
             />
           </div>
 
-          <div>
+          {/* <div>
             <label htmlFor="description" className="mb-2 block font-medium">
               Mô tả chi tiết
             </label>
@@ -165,7 +165,7 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
               rows={5}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400"
             />
-          </div>
+          </div> */}
 
           <div>
             <label htmlFor="imageFile" className="mb-2 block font-medium">

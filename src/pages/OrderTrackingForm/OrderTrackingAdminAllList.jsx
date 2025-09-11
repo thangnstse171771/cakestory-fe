@@ -8,19 +8,7 @@ import {
   updateOrderStatus,
 } from "../../api/axios";
 import OrderTrackingForm from "./OrderTrackingForm";
-
-const statusMap = {
-  pending: { label: "Đang chờ xử lý", color: "bg-yellow-100 text-yellow-700" },
-  ordered: { label: "Đã tiếp nhận", color: "bg-cyan-100 text-cyan-700" },
-  preparedForDelivery: {
-    label: "Sẵn sàng giao hàng",
-    color: "bg-blue-100 text-blue-700",
-  },
-  shipped: { label: "Đang vận chuyển", color: "bg-orange-100 text-orange-700" },
-  completed: { label: "Hoàn tất", color: "bg-emerald-100 text-emerald-700" },
-  complaining: { label: "Đang khiếu nại", color: "bg-red-100 text-red-700" },
-  cancelled: { label: "Đã hủy", color: "bg-gray-100 text-gray-700" },
-};
+import { statusMap, buildOrderSummary } from "./orderUtils";
 
 export default function OrderTrackingAdminAllList({
   showOrderDetails = false,
@@ -47,38 +35,7 @@ export default function OrderTrackingAdminAllList({
       if (Array.isArray(res)) arr = res;
       else if (Array.isArray(res?.orders)) arr = res.orders;
       else if (Array.isArray(res?.data)) arr = res.data;
-      const mapped = arr.map((order) => ({
-        id: order.id,
-        orderNumber: `ORD-${String(order.id).padStart(3, "0")}`,
-        placedDate: order.created_at,
-        status: order.status,
-        customerName:
-          order.user?.full_name ||
-          order.user?.username ||
-          `User #${order.user?.id || order.customer_id || "N/A"}`,
-        customerEmail: order.user?.email || "",
-        customerPhone: order.user?.phone_number || order.user?.phone || "",
-        items:
-          order.order_details?.map((item) => ({
-            name:
-              item.cake?.name ||
-              item.marketplace_post?.title ||
-              `Bánh #${item.id}`,
-            quantity: parseInt(item.quantity) || 1,
-            price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-          })) || [],
-        base_price:
-          parseFloat(order.base_price) || parseFloat(order.total_price) || 0,
-        total: parseFloat(order.total_price) || 0,
-        history: [
-          {
-            date: new Date(order.created_at).toLocaleDateString("vi-VN"),
-            time: new Date(order.created_at).toLocaleTimeString("vi-VN"),
-            status: order.status,
-            note: "Đơn hàng được tạo",
-          },
-        ],
-      }));
+      const mapped = arr.map(buildOrderSummary);
       setOrders(mapped);
     } catch (e) {
       setError(e.message || "Lỗi tải orders");
@@ -93,45 +50,16 @@ export default function OrderTrackingAdminAllList({
 
   const handleView = async (id) => {
     if (!showOrderDetails) {
-      navigate(`/admin/order-tracking/${id}`);
+      const summary = orders.find((o) => String(o.id) === String(id));
+      navigate(`/admin/order-tracking/${id}`, {
+        state: { orderSummary: summary },
+      });
       return; // navigation will remount component with showOrderDetails true
     }
     try {
       setLoadingDetail(true);
       const data = await fetchOrderById(id);
-      const mapped = {
-        id: data.id,
-        orderNumber: `ORD-${String(data.id).padStart(3, "0")}`,
-        placedDate: data.created_at,
-        status: data.status,
-        customerName:
-          data.user?.full_name ||
-          data.user?.username ||
-          `User #${data.user?.id || data.customer_id || "N/A"}`,
-        customerEmail: data.user?.email || "",
-        customerPhone: data.user?.phone_number || data.user?.phone || "",
-        items:
-          data.order_details?.map((item) => ({
-            name:
-              item.cake?.name ||
-              item.marketplace_post?.title ||
-              `Bánh #${item.id}`,
-            quantity: parseInt(item.quantity) || 1,
-            price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-          })) || [],
-        base_price:
-          parseFloat(data.base_price) || parseFloat(data.total_price) || 0,
-        total: parseFloat(data.total_price) || 0,
-        history: [
-          {
-            date: new Date(data.created_at).toLocaleDateString("vi-VN"),
-            time: new Date(data.created_at).toLocaleTimeString("vi-VN"),
-            status: data.status,
-            note: "Đơn hàng được tạo",
-          },
-        ],
-      };
-      setSelectedOrder(mapped);
+      setSelectedOrder(buildOrderSummary(data));
     } finally {
       setLoadingDetail(false);
     }
@@ -320,11 +248,11 @@ export default function OrderTrackingAdminAllList({
                     <th className="px-4 py-3 font-semibold">#</th>
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
                     <th className="px-4 py-3 font-semibold">Khách hàng</th>
-                    <th className="px-4 py-3 font-semibold">
+                    {/* <th className="px-4 py-3 font-semibold">
                       Số lượng topping
-                    </th>
+                    </th> */}
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
-                    <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
+                    <th className="px-4 py-3 font-semibold">Tổng giá</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
                   </tr>
                 </thead>
@@ -348,9 +276,9 @@ export default function OrderTrackingAdminAllList({
                       >
                         {o.customerName}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      {/* <td className="px-4 py-3 text-center">
                         {o.items.length}
-                      </td>
+                      </td> */}
                       <td className="px-4 py-3">
                         <span
                           className={`${
@@ -362,7 +290,10 @@ export default function OrderTrackingAdminAllList({
                         </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-pink-600 whitespace-nowrap">
-                        {o.base_price.toLocaleString("vi-VN")}đ
+                        {(o.total_price ?? o.total ?? 0).toLocaleString(
+                          "vi-VN"
+                        )}
+                        đ
                       </td>
                       <td className="px-4 py-3">
                         <button

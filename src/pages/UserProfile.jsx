@@ -25,47 +25,6 @@ import { toast } from "react-toastify";
 import dayjs from "dayjs";
 import PostDetail from "./MyPost/PostDetail";
 
-const FAKE_ACHIEVEMENTS = [
-  { name: "Master Baker", icon: Award, color: "text-pink-400" },
-  { name: "Community Star", icon: Award, color: "text-pink-300" },
-];
-const FAKE_ALBUMS = [
-  {
-    id: 1,
-    title: "Wedding Cakes",
-    cover:
-      "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop&q=60",
-    count: 12,
-    tags: ["Wedding", "Elegant"],
-    description: "Elegant wedding cakes collection",
-  },
-  {
-    id: 2,
-    title: "Birthday Specials",
-    cover:
-      "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=500&auto=format&fit=crop&q=60",
-    count: 8,
-    tags: ["Birthday", "Fun"],
-    description: "Fun birthday cakes",
-  },
-];
-const FAKE_STATS = { posts: 42, followers: 1200, following: 180, likes: 3500 };
-const FAKE_RECENT_PHOTOS = [
-  {
-    id: 1,
-    image:
-      "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop&q=60",
-    likes: 234,
-    tags: ["Wedding"],
-  },
-  {
-    id: 2,
-    image:
-      "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=500&auto=format&fit=crop&q=60",
-    likes: 189,
-    tags: ["Birthday"],
-  },
-];
 
 const UserProfile = () => {
   const { id } = useParams();
@@ -320,11 +279,6 @@ const UserProfile = () => {
     );
   }
 
-  // Dữ liệu mặc định cho các trường không có từ API
-  const stats = profile.stats || FAKE_STATS;
-  const achievements = profile.achievements || FAKE_ACHIEVEMENTS;
-  // const albums = profile.albums || FAKE_ALBUMS;
-  const recentPhotos = profile.recentPhotos || FAKE_RECENT_PHOTOS;
 
   return (
     <div className="min-h-screen bg-pink-50">
@@ -458,22 +412,6 @@ const UserProfile = () => {
               onUnfollow={handleUnfollowUser}
               followingIds={myFollowing.map((u) => u.id)}
             />
-            {/* Achievements */}
-            <div className="flex gap-3 flex-wrap mt-2">
-              {achievements.map((ach, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center gap-2 px-3 py-1 rounded-full bg-pink-50 border border-pink-200 ${ach.color}`}
-                >
-                  {ach.icon ? (
-                    <ach.icon className="w-4 h-4" />
-                  ) : (
-                    <Award className="w-4 h-4" />
-                  )}
-                  <span className="text-sm font-medium">{ach.name}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 

@@ -2,6 +2,7 @@
 // Đã loại bỏ các import không tồn tại, dùng thẻ div và TailwindCSS thay thế
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import { ListOrdered, CalendarDays, User, Package } from "lucide-react";
 import OrderTrackingForm from "./OrderTrackingForm";
 import {
@@ -18,7 +19,7 @@ const statusMap = {
     color: "bg-blue-100 text-blue-700",
   },
   shipped: {
-    label: "Đang vận chuyển",
+    label: "Đã được vận chuyển",
     color: "bg-orange-100 text-orange-700",
   },
   completed: { label: "Hoàn tất", color: "bg-emerald-100 text-emerald-700" },
@@ -39,6 +40,7 @@ export default function OrderTrackingList({
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
+  const { user } = useAuth();
 
   // Tự động mở order detail nếu có orderId trong URL
   useEffect(() => {
@@ -61,10 +63,7 @@ export default function OrderTrackingList({
 
       const userId = getUserId();
       if (!userId) throw new Error("User chưa đăng nhập");
-      console.log("Fetching user orders for userId:", userId);
       const response = await fetchUserOrders(userId);
-      console.log("User orders response:", response);
-      console.log("Response orders array:", response.orders || response);
 
       // Kiểm tra cấu trúc response và lấy orders
       let ordersArray = [];
@@ -72,11 +71,8 @@ export default function OrderTrackingList({
       else if (Array.isArray(response?.orders)) ordersArray = response.orders;
       else if (Array.isArray(response?.data)) ordersArray = response.data;
 
-      console.log("Orders array to transform:", ordersArray);
-
       // Transform data từ API response để match với UI
       const transformedOrders = ordersArray.map((order) => {
-        console.log("Transforming order:", order);
         const userObj = order.User || order.user || {};
         const customerName =
           userObj.full_name ||
@@ -84,6 +80,12 @@ export default function OrderTrackingList({
           `Khách hàng #${order.customer_id || userObj.id || "N/A"}`;
         const customerEmail = userObj.email || userObj.username || "";
         const customerPhone = userObj.phone_number || userObj.phone || "";
+        const customerAddress =
+          order.address ||
+          order.shipping_address ||
+          userObj.address ||
+          userObj.business_address ||
+          "";
         const basePrice =
           parseFloat(order.base_price) || parseFloat(order.total_price) || 0;
 
@@ -118,6 +120,15 @@ export default function OrderTrackingList({
           customerName,
           customerEmail,
           customerPhone,
+          customerAddress,
+          shippingAddress: {
+            address:
+              order.shipping_address ||
+              order.address ||
+              userObj.address ||
+              userObj.business_address ||
+              "",
+          },
           items,
           total: parseFloat(order.total_price) || 0,
           base_price: basePrice,
@@ -135,8 +146,6 @@ export default function OrderTrackingList({
           ],
         };
       });
-
-      console.log("Transformed orders:", transformedOrders);
 
       setRealOrders(transformedOrders);
     } catch (error) {
@@ -253,11 +262,9 @@ export default function OrderTrackingList({
   const handleSelectOrder = async (orderId) => {
     try {
       setLoadingOrderDetail(true);
-      console.log("Fetching order detail for ID:", orderId);
 
       // Fetch chi tiết order từ API
       const response = await fetchOrderById(orderId);
-      console.log("Order detail fetched:", response);
 
       const data = response?.order || response?.data || response;
       const userObj = data.User || data.user || {};
@@ -340,12 +347,24 @@ export default function OrderTrackingList({
         customerName,
         customerEmail,
         customerPhone,
+        customerAddress:
+          data.address ||
+          data.shipping_address ||
+          userObj.address ||
+          userObj.business_address ||
+          "",
         items,
         total: parseFloat(data.total_price) || 0,
         base_price:
           parseFloat(data.base_price) || parseFloat(data.total_price) || 0,
         shippingAddress: {
-          address: data.shipped_at || "",
+          address:
+            data.shipping_address ||
+            data.address ||
+            userObj.address ||
+            userObj.business_address ||
+            data.shipped_at ||
+            "",
         },
         marketplace_post_id,
         marketplace_post,
@@ -362,6 +381,47 @@ export default function OrderTrackingList({
           },
         ],
       };
+
+      // Ownership / role check: prevent non-owners from viewing others' orders
+      try {
+        const ownerId =
+          transformedOrder.customer_user_id ??
+          data.user_id ??
+          data.customer_id ??
+          data.userId ??
+          null;
+
+        if (!ownerId) {
+          // If we can't determine owner, treat as not found
+          navigate("/404", { replace: true });
+          return;
+        }
+
+        const currentUserId =
+          user?.id ?? JSON.parse(localStorage.getItem("user") || "{}").id;
+        const allowedRoles = ["admin", "staff", "account_staff"];
+
+        if (!currentUserId && !allowedRoles.includes(user?.role)) {
+          // not authenticated -> redirect to login
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        if (
+          !(
+            allowedRoles.includes(user?.role) ||
+            Number(ownerId) === Number(currentUserId)
+          )
+        ) {
+          // Not owner and not admin/staff => forbidden
+          navigate("/403", { replace: true });
+          return;
+        }
+      } catch (e) {
+        // On any error while checking, hide existence
+        navigate("/404", { replace: true });
+        return;
+      }
 
       setSelectedOrder(transformedOrder);
     } catch (error) {
@@ -384,7 +444,17 @@ export default function OrderTrackingList({
     if (showOrderDetails) {
       handleSelectOrder(orderId);
     } else {
-      navigate(`/order-tracking-user/${orderId}`);
+      const sourceList = Array.isArray(displayOrders)
+        ? displayOrders
+        : Array.isArray(realOrders)
+        ? realOrders
+        : [];
+      const summary =
+        sourceList.find((o) => String(o.id) === String(orderId)) ||
+        selectedOrder;
+      navigate(`/order-tracking-user/${orderId}`, {
+        state: { orderSummary: summary },
+      });
     }
   };
 
@@ -635,11 +705,9 @@ export default function OrderTrackingList({
                   <tr className="text-left">
                     <th className="px-4 py-3 font-semibold">#</th>
                     <th className="px-4 py-3 font-semibold">Ngày tạo</th>
-                    <th className="px-4 py-3 font-semibold">
-                      Số SP đi kèm bánh
-                    </th>
+
                     <th className="px-4 py-3 font-semibold">Trạng thái</th>
-                    <th className="px-4 py-3 font-semibold">Tổng (Base)</th>
+                    <th className="px-4 py-3 font-semibold">Tổng giá</th>
                     <th className="px-4 py-3 font-semibold">Thao tác</th>
                   </tr>
                 </thead>
@@ -662,9 +730,7 @@ export default function OrderTrackingList({
                             : d.toLocaleDateString("vi-VN");
                         })()}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        {order.items.length}
-                      </td>
+
                       <td className="px-4 py-3">
                         <span
                           className={`${
@@ -677,7 +743,11 @@ export default function OrderTrackingList({
                       </td>
                       <td className="px-4 py-3 font-semibold text-pink-600 whitespace-nowrap">
                         {(() => {
-                          const raw = order?.base_price ?? order?.total ?? 0;
+                          const raw =
+                            order?.total_price ??
+                            order?.total ??
+                            order?.base_price ??
+                            0;
                           const num =
                             typeof raw === "number"
                               ? raw

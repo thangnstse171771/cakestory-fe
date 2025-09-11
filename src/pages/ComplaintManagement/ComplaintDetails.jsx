@@ -52,7 +52,7 @@ const getOrderStatusLabel = (s) => {
   )
     return "Sẵn sàng giao hàng";
   if (["shipping", "delivering", "in_transit", "shipped"].includes(v))
-    return "Đang vận chuyển";
+    return "Đã được vận chuyển";
   if (["complaint", "complaining", "complaning", "disputed"].includes(v))
     return "Đang khiếu nại";
   if (["completed", "complete", "done", "delivered"].includes(v))
@@ -96,6 +96,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
   const [marketplacePost, setMarketplacePost] = useState(null);
   const [marketplaceImage, setMarketplaceImage] = useState(null);
   const [isLoadingMarketplace, setIsLoadingMarketplace] = useState(false);
+  // Derived cake quantity & unit price (when backend order lacks explicit quantity of cakes)
+  const [derivedCakeQuantity, setDerivedCakeQuantity] = useState(null);
+  const [derivedCakeUnitPrice, setDerivedCakeUnitPrice] = useState(null);
 
   // Helper to extract image URL from marketplace post (enhanced, supports arrays and many keys)
   const extractImageFromMarketplacePost = (mp) => {
@@ -187,6 +190,71 @@ export default function ComplaintDetails({ complaint, onBack }) {
       }
     }
   }, [marketplacePost, marketplaceImage]);
+
+  // Derive cake quantity from base_price & marketplace cakeSizes pricing if possible
+  useEffect(() => {
+    try {
+      setDerivedCakeQuantity(null);
+      setDerivedCakeUnitPrice(null);
+      if (!order) return;
+      const base = Number(order.base_price || order.basePrice);
+      if (!base || base <= 0) return;
+
+      const mp =
+        marketplacePost ||
+        order?.marketplace_post ||
+        order?.marketplacePost ||
+        order?.post ||
+        complaint?.raw?.marketplace_post ||
+        complaint?.raw?.post;
+      if (!mp || typeof mp !== "object") return;
+
+      const cakeSizes =
+        mp.cakeSizes ||
+        mp.cake_sizes ||
+        mp.post?.cakeSizes ||
+        mp.post?.cake_sizes ||
+        [];
+      if (!Array.isArray(cakeSizes) || cakeSizes.length === 0) return;
+
+      const sizeValue = order.size || order.Size || null;
+      let matched =
+        (sizeValue &&
+          cakeSizes.find(
+            (cs) =>
+              (cs.size || cs.name || cs.label || "")
+                .toString()
+                .toLowerCase() === sizeValue.toString().toLowerCase()
+          )) ||
+        null;
+      if (!matched && cakeSizes.length === 1) matched = cakeSizes[0];
+
+      const sizePrice = matched
+        ? Number(matched.price)
+        : Number(cakeSizes[0]?.price);
+      if (!sizePrice || sizePrice <= 0) return;
+
+      const rawQty = base / sizePrice;
+      const rounded = Math.round(rawQty);
+      const accurate =
+        (isFinite(rawQty) &&
+          rawQty > 0 &&
+          Math.abs(rawQty - rounded) <= 0.01 * rawQty) ||
+        Math.abs(rawQty - rounded) < 0.1;
+
+      if (rounded >= 1 && accurate) {
+        setDerivedCakeQuantity(rounded);
+        setDerivedCakeUnitPrice(sizePrice);
+      }
+    } catch {
+      // ignore derivation errors
+    }
+  }, [
+    order?.base_price,
+    order?.size,
+    marketplacePost,
+    complaint?.raw?.marketplace_post,
+  ]);
 
   // Use only embedded marketplace post (no external fetch)
   // Attempt extraction from several known locations in complaint/order
@@ -1033,28 +1101,41 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       <p className="text-gray-500 text-xs">Mã đơn</p>
                       <p className="font-semibold text-gray-800">{order.id}</p>
                     </div>
+
                     <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <p className="text-gray-500 text-xs">Giá gốc</p>
-                      <p className="font-semibold text-gray-800">
-                        {formatVND(basePrice)}
-                      </p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <p className="text-gray-500 text-xs">Tổng giá</p>
+                      <p className="text-gray-500 text-xs">Tổng đơn:</p>
                       <p className="font-semibold text-gray-800">
                         {formatVND(totalPrice)}
                       </p>
                     </div>
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                      <p className="text-gray-500 text-xs">Tổng nguyên liệu</p>
-                      <p className="font-semibold text-gray-800">
-                        {formatVND(ingredientsTotal)}
-                      </p>
-                    </div>
+
                     <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="text-gray-500 text-xs">Kích thước</p>
                       <p className="font-semibold text-gray-800">
                         {order.size || "-"}
+                      </p>
+                    </div>
+
+                    {derivedCakeUnitPrice && (
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <p className="text-gray-500 text-xs">Đơn giá:</p>
+                        <p className="font-semibold text-gray-800">
+                          {formatVND(derivedCakeUnitPrice)}
+                        </p>
+                      </div>
+                    )}
+                    {derivedCakeQuantity && (
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <p className="text-gray-500 text-xs">Số lượng:</p>
+                        <p className="font-semibold text-gray-800">
+                          {derivedCakeQuantity}
+                        </p>
+                      </div>
+                    )}
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Tổng giá bánh:</p>
+                      <p className="font-semibold text-gray-800">
+                        {formatVND(basePrice)}
                       </p>
                     </div>
                   </div>

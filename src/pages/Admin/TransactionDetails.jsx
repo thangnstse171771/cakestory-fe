@@ -37,7 +37,7 @@ const orderStatusVN = (s) => {
   )
     return "Sẵn sàng giao hàng";
   if (["shipping", "delivering", "in_transit", "shipped"].includes(v))
-    return "Đang vận chuyển";
+    return "Đã được vận chuyển";
   if (["done", "delivered", "completed", "complete"].includes(v))
     return "Hoàn tất";
   if (["complaint", "complaining", "disputed"].includes(v))

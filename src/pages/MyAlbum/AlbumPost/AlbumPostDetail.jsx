@@ -83,7 +83,7 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
       >
         <X className="w-6 h-6 text-gray-500" />
       </button>
-      <div className="bg-white rounded-md shadow-2xl max-w-[1220px] max-h-[650px] w-full flex flex-col md:flex-row overflow-hidden relative">
+      <div className="bg-white rounded-md shadow-2xl max-w-[1220px] min-h-[650px] max-h-90vh md:max-h-[650px] w-full flex flex-col md:flex-row overflow-hidden relative">
         {/* Image Section */}
         <div className="md:w-1/2 w-full bg-black flex items-center justify-center">
           <Swiper
@@ -197,12 +197,12 @@ const AlbumPostDetail = ({ isOpen, post, onClose }) => {
           </div>
 
           <div className="flex flex-wrap ">
-            <a
-              href={`/album/${Album?.id}`}
+            <button
               className="text-sm text-pink-600 hover:underline mb-4"
+              onClick={onClose}
             >
-              Xem album →
-            </a>
+              Xem tiếp album →
+            </button>
           </div>
         </div>
       </div>
