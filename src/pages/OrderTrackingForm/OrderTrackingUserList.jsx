@@ -2,6 +2,7 @@
 // Đã loại bỏ các import không tồn tại, dùng thẻ div và TailwindCSS thay thế
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 import { ListOrdered, CalendarDays, User, Package } from "lucide-react";
 import OrderTrackingForm from "./OrderTrackingForm";
 import {
@@ -39,6 +40,7 @@ export default function OrderTrackingList({
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
+  const { user } = useAuth();
 
   // Tự động mở order detail nếu có orderId trong URL
   useEffect(() => {
@@ -379,6 +381,47 @@ export default function OrderTrackingList({
           },
         ],
       };
+
+      // Ownership / role check: prevent non-owners from viewing others' orders
+      try {
+        const ownerId =
+          transformedOrder.customer_user_id ??
+          data.user_id ??
+          data.customer_id ??
+          data.userId ??
+          null;
+
+        if (!ownerId) {
+          // If we can't determine owner, treat as not found
+          navigate("/404", { replace: true });
+          return;
+        }
+
+        const currentUserId =
+          user?.id ?? JSON.parse(localStorage.getItem("user") || "{}").id;
+        const allowedRoles = ["admin", "staff", "account_staff"];
+
+        if (!currentUserId && !allowedRoles.includes(user?.role)) {
+          // not authenticated -> redirect to login
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        if (
+          !(
+            allowedRoles.includes(user?.role) ||
+            Number(ownerId) === Number(currentUserId)
+          )
+        ) {
+          // Not owner and not admin/staff => forbidden
+          navigate("/403", { replace: true });
+          return;
+        }
+      } catch (e) {
+        // On any error while checking, hide existence
+        navigate("/404", { replace: true });
+        return;
+      }
 
       setSelectedOrder(transformedOrder);
     } catch (error) {

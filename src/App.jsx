@@ -37,6 +37,8 @@ import Chat from "./pages/Chat/Chat";
 import AdminDashboard from "./pages/AdminDashboard";
 import WalletManagement from "./pages/Admin/WalletManagement";
 import WithdrawRequests from "./pages/Admin/WithdrawRequests";
+import Forbidden from "./pages/403";
+import NotFound from "./pages/404";
 import AccountDetails from "./pages/AccountDetails";
 import WithdrawRequestDetail from "./pages/Admin/WithdrawRequestDetail";
 import DepositDetails from "./pages/Admin/DepositDetails";
@@ -81,8 +83,8 @@ import AdminComplaintList from "./pages/ComplaintManagement/AdminComplaintList.j
 import SearchResults from "./pages/Home/SearchResults.jsx";
 
 // Protect routes — chỉ cho tiếp cận khi đã auth
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+function ProtectedRoute({ children, roles = [] }) {
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -91,6 +93,15 @@ function ProtectedRoute({ children }) {
     // Redirect unauthenticated users to login for clarity
     return <Navigate to="/login" replace />;
   }
+
+  if (Array.isArray(roles) && roles.length > 0) {
+    const role = user?.role;
+    console.log("current role:", role);
+    if (!role || !roles.includes(role)) {
+      return <Navigate to="/403" replace />;
+    }
+  }
+
   return children;
 }
 
@@ -142,7 +153,6 @@ export default function App() {
               </PublicRoute>
             }
           />
-
           {/* Public pages (guest) */}
           <Route element={<Layout />}>
             <Route index element={<LandingPage />} />
@@ -194,14 +204,7 @@ export default function App() {
               path="my-orders-reviews"
               element={<UserOrdersWithReviews />}
             />
-            <Route
-              path="admin/order-tracking"
-              element={<OrderTrackingAdminAllList />}
-            />
-            <Route
-              path="admin/order-tracking/:orderId"
-              element={<OrderTrackingAdminAllList showOrderDetails={true} />}
-            />
+            {/* admin order-tracking moved to admin-protected routes */}
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="ai-generated-images" element={<AIGeneratedImages />} />
             <Route path="challenge" element={<ChallengeList />} />
@@ -229,28 +232,22 @@ export default function App() {
               element={<ShopComplaintDetailPage />}
             />
           </Route>
-
-          {/* Protected pages */}
+          {/* Admin-only protected pages */}
           <Route
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={["admin", "staff"]}>
                 <Layout />
               </ProtectedRoute>
             }
           >
-            <Route path="home" element={<Home />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="edit-profile" element={<EditProfile />} />
-            <Route path="mypost" element={<MyPost />} />
-            <Route path="myalbum" element={<MyAlbum />} />
-            <Route path="my-complaints" element={<UserComplaint />} />
             <Route
-              path="my-complaints/:id"
-              element={<UserComplaintDetailPage />}
+              path="admin/order-tracking"
+              element={<OrderTrackingAdminAllList />}
             />
-            <Route path="chat" element={<Chat />} />
-            <Route path="admin" element={<AdminDashboard />} />
-            <Route path="admin/account/:id" element={<AccountDetails />} />
+            <Route
+              path="admin/order-tracking/:orderId"
+              element={<OrderTrackingAdminAllList showOrderDetails={true} />}
+            />
             <Route path="admin/wallet" element={<WalletManagement />} />
             <Route path="admin/deposits/:id" element={<DepositDetails />} />
             <Route
@@ -270,9 +267,6 @@ export default function App() {
               path="admin/complaints/:id"
               element={<ShopComplaintDetailPage />}
             />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/report" element={<Report />} />
-            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route
               path="admin/challenge"
               element={<AdminChallengeDashboard />}
@@ -282,9 +276,47 @@ export default function App() {
               element={<AdminChallengeDetail />}
             />
           </Route>
+          //////////////////
+          {/* Admin-only protected pages */}
+          <Route
+            element={
+              <ProtectedRoute roles={["admin"]}>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="admin" element={<AdminDashboard />} />
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+            {/* <Route path="admin/account/:id" element={<AccountDetails />} /> */}
+          </Route>
+          {/* General protected pages for authenticated users */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="home" element={<Home />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="edit-profile" element={<EditProfile />} />
+            <Route path="mypost" element={<MyPost />} />
+            <Route path="myalbum" element={<MyAlbum />} />
+            <Route path="my-complaints" element={<UserComplaint />} />
+            <Route
+              path="my-complaints/:id"
+              element={<UserComplaintDetailPage />}
+            />
+            <Route path="chat" element={<Chat />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/report" element={<Report />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
+          </Route>
+          {/* 403 / 404 */}
+          <Route path="/403" element={<Forbidden />} />
+          <Route path="/404" element={<NotFound />} />
+          {/* Fallback -> 404 */}
+          <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
 
         {/* Toast Container */}
