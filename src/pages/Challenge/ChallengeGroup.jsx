@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import { ChevronLeft, ChevronRight, Heart, MessageCircle } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  MessageCircle,
+  MoreVertical,
+} from "lucide-react";
 import axiosInstance from "../../api/axios";
 import CreateChallengePost from "./ChallengePost/CreateChallengePost";
 import { authAPI } from "../../api/auth";
@@ -14,6 +20,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import ChallengePostDetail from "./ChallengePost/ChallengePostDetail";
+import DeleteChallengePostPopup from "./ChallengePost/DeleteChallengePostPopup";
 dayjs.extend(relativeTime);
 
 const IMAGE_URL =
@@ -49,6 +56,8 @@ export default function ChallengeGroup() {
   const [isLoadingCount, setIsLoadingCount] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
   const [isPostDetailOpen, setIsPostDetailOpen] = useState(false);
+  const [isDeletePostOpen, setIsDeletePostOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   useEffect(() => {
     videoRefs.current.forEach((video, idx) => {
@@ -214,7 +223,8 @@ export default function ChallengeGroup() {
         (post) => post.user_id === currentUserId
       );
 
-      const participantsResponse = await authAPI.getChallengeParticipantsByChallengeId(id);
+      const participantsResponse =
+        await authAPI.getChallengeParticipantsByChallengeId(id);
       const participants = participantsResponse.entries || [];
       console.log("Challenge participants:", participants);
 
@@ -229,6 +239,28 @@ export default function ChallengeGroup() {
       setShowCreatePost(false);
     } finally {
       setPostsLoading(false);
+    }
+  };
+
+  const handleDeleteChallengePost = async () => {
+    if (!selectedPost) return;
+    setLoading(true);
+    try {
+      await authAPI.deleteChallengePost(selectedPost.post_id);
+      setIsDeletePostOpen(false); // close popup
+      setPosts((prevPosts) =>
+        prevPosts.filter((p) => p.post_id !== selectedPost.post_id)
+      );
+      setSelectedPost(null);
+    } catch (error) {
+      const status = error.response.status;
+      if (status === 403) {
+        toast.error("Bạn không có quyền xóa bài viết này.");
+      } else {
+        toast.error(`Xóa bài viết thất bại`);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -657,25 +689,63 @@ export default function ChallengeGroup() {
               >
                 <div className="p-4">
                   {/* Post Header */}
-                  <div className="flex items-center space-x-3 mb-4">
-                    <img
-                      src={
-                        challPost.post.user.avatar ||
-                        "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
-                      }
-                      alt="avatar"
-                      className="w-10 h-10 rounded-full bg-pink-100 object-cover"
-                    />
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-800">
-                        {challPost.post.user.username}
-                      </h4>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <span>
-                          {dayjs(challPost.post.created_at).fromNow()}
-                        </span>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <Link to={`/user/${challPost.post.user.id}`}>
+                        <img
+                          src={
+                            challPost.post.user.avatar ||
+                            "https://static.vecteezy.com/system/resources/previews/009/292/244/non_2x/default-avatar-icon-of-social-media-user-vector.jpg"
+                          }
+                          alt="avatar"
+                          className="w-10 h-10 rounded-full bg-pink-100 object-cover"
+                        />
+                      </Link>
+                      <div className="flex-1">
+                        <Link
+                          to={`/user/${challPost.post.user.id}`}
+                          className="font-semibold text-gray-800 hover:text-pink-500 transition"
+                        >
+                          {challPost.post.user.username}
+                        </Link>
+                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                          <span>
+                            {dayjs(challPost.post.created_at).fromNow()}
+                          </span>
+                        </div>
                       </div>
                     </div>
+                    {user.role === "admin" && (
+                      <div className="relative">
+                        <button
+                          onClick={() =>
+                            setOpenDropdown(
+                              openDropdown === challPost.post_id
+                                ? null
+                                : challPost.post_id
+                            )
+                          }
+                          className="p-2 bg-white/80 backdrop-blur-sm rounded-lg hover:bg-white transition-all duration-300"
+                        >
+                          <MoreVertical className="w-4 h-4 text-gray-600" />
+                        </button>
+
+                        {openDropdown === challPost.post_id && (
+                          <div className="absolute right-0 w-32 bg-white border border-gray-200 rounded-lg shadow-md z-50">
+                            <button
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                setIsDeletePostOpen(true);
+                                setSelectedPost(challPost);
+                              }}
+                              className="w-full px-4 py-2 text-left font-semibold text-sm text-red-600 hover:bg-gray-100"
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Post Content */}
@@ -845,6 +915,12 @@ export default function ChallengeGroup() {
         handleLike={handleLike}
         onClose={() => setIsPostDetailOpen(false)}
         challInfo={challengeInfo}
+      />
+      <DeleteChallengePostPopup
+        isOpen={isDeletePostOpen}
+        onClose={() => setIsDeletePostOpen(false)}
+        onDelete={handleDeleteChallengePost}
+        loading={loading}
       />
     </div>
   );

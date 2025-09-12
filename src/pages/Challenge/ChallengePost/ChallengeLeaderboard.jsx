@@ -11,6 +11,7 @@ import {
   Award,
 } from "lucide-react";
 import { authAPI } from "../../../api/auth";
+import { Link } from "react-router-dom";
 
 const ChallengeLeaderboard = ({ challengeId }) => {
   const [leaderboard, setLeaderboard] = useState([]);
@@ -95,11 +96,13 @@ const ChallengeLeaderboard = ({ challengeId }) => {
                 {/* Avatar */}
                 <div className="w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden ring-2 ring-white shadow-md bg-gray-200 flex items-center justify-center">
                   {competitor.post?.user?.avatar ? (
-                    <img
-                      src={competitor.post.user.avatar}
-                      alt={competitor.post.user.username}
-                      className="w-full h-full object-cover"
-                    />
+                    <Link to={`/user/${competitor.post.user.id}`}>
+                      <img
+                        src={competitor.post.user.avatar}
+                        alt={competitor.post.user.username}
+                        className="w-full h-full object-cover"
+                      />
+                    </Link>
                   ) : (
                     <span className="font-semibold text-rose-600">
                       {competitor.post?.user?.username
@@ -113,9 +116,11 @@ const ChallengeLeaderboard = ({ challengeId }) => {
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg text-slate-800 truncate">
-                      {competitor.post?.user?.username}
-                    </h3>
+                    <Link to={`/user/${competitor.post.user.id}`}>
+                      <h3 className="font-semibold text-lg text-slate-800 truncate hover:text-pink-500">
+                        {competitor.post?.user?.username}
+                      </h3>
+                    </Link>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-slate-600">
                     <div className="flex items-center gap-1">
