@@ -282,4 +282,9 @@ export const authAPI = {
     );
     return response.data;
   },
+
+  deleteChallengePost: async (postId) => {
+    const response = await axiosInstance.delete(`/challenge-posts/${postId}`);
+    return response.data;
+  }
 };
