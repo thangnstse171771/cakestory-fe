@@ -7,7 +7,9 @@ import {
   Route,
   Navigate,
   useParams,
+  useNavigate,
 } from "react-router-dom";
+import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -30,6 +32,32 @@ const ShopDetailWrapper = () => {
   const { id } = useParams();
   return <ShopDetail key={id} />;
 };
+
+// Simple integer id validator (only digits) used to guard route params.
+function isValidIntegerId(id) {
+  if (id === undefined || id === null) return false;
+  return typeof id === "string" && /^\d+$/.test(id);
+}
+
+// ParamGuard validates a route param (default name: "id") and redirects to /404 if invalid.
+function ParamGuard({ paramName = "id", allowUuid = false, children }) {
+  const params = useParams();
+  const navigate = useNavigate();
+  const value = params[paramName];
+
+  useEffect(() => {
+    if (value === undefined || value === null) {
+      navigate("/404", { replace: true });
+      return;
+    }
+    if (!allowUuid && !isValidIntegerId(String(value))) {
+      navigate("/404", { replace: true });
+      return;
+    }
+  }, [value, paramName, navigate, allowUuid]);
+
+  return children ?? null;
+}
 import ShopAnalystic from "./pages/Marketplace/ShopAnalystic";
 import ShopGalleryPage from "./pages/ShopGalleryPage";
 import Chat from "./pages/Chat/Chat";
@@ -229,7 +257,11 @@ export default function App() {
             <Route path="complaints" element={<ComplaintList />} />
             <Route
               path="complaints/:id"
-              element={<ShopComplaintDetailPage />}
+              element={
+                <ParamGuard paramName="id">
+                  <ShopComplaintDetailPage />
+                </ParamGuard>
+              }
             />
           </Route>
           {/* Admin-only protected pages */}
@@ -265,7 +297,11 @@ export default function App() {
             <Route path="admin/complaints" element={<AdminComplaintList />} />
             <Route
               path="admin/complaints/:id"
-              element={<ShopComplaintDetailPage />}
+              element={
+                <ParamGuard paramName="id">
+                  <ShopComplaintDetailPage />
+                </ParamGuard>
+              }
             />
             <Route
               path="admin/challenge"
@@ -305,7 +341,11 @@ export default function App() {
             <Route path="my-complaints" element={<UserComplaint />} />
             <Route
               path="my-complaints/:id"
-              element={<UserComplaintDetailPage />}
+              element={
+                <ParamGuard paramName="id">
+                  <UserComplaintDetailPage />
+                </ParamGuard>
+              }
             />
             <Route path="chat" element={<Chat />} />
             <Route path="/settings" element={<Settings />} />

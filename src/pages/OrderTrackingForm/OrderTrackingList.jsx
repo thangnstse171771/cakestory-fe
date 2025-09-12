@@ -36,7 +36,18 @@ export default function OrderTrackingList({ showOrderDetails = false }) {
   const resolveShopId = async () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (!user.id) throw new Error("User chưa đăng nhập");
-    const res = await fetchShopByUserId(user.id);
+    let res;
+    try {
+      res = await fetchShopByUserId(user.id);
+    } catch (err) {
+      // If backend returns 403/404, rethrow so caller can redirect
+      const status = err?.response?.status;
+      if (status === 403)
+        throw Object.assign(new Error("forbidden"), { status: 403 });
+      if (status === 404)
+        throw Object.assign(new Error("not_found"), { status: 404 });
+      throw err;
+    }
     const sid =
       res?.shop?.shop_id ||
       res?.shop_id ||
@@ -66,6 +77,16 @@ export default function OrderTrackingList({ showOrderDetails = false }) {
       setOrders(mapped);
     } catch (error) {
       console.error("Lỗi khi fetch orders:", error);
+      const status = error?.response?.status || error?.status;
+      if (status === 403) {
+        navigate("/403", { replace: true });
+        return;
+      }
+      if (status === 404) {
+        navigate("/404", { replace: true });
+        return;
+      }
+
       if (error.message === "User chưa có shop") {
         setError("Bạn chưa có shop. Vui lòng tạo shop trước.");
       } else if (
@@ -181,6 +202,15 @@ export default function OrderTrackingList({ showOrderDetails = false }) {
       setSelectedOrder(transformedOrder);
     } catch (error) {
       console.error("Lỗi khi fetch order detail:", error);
+      const status = error?.response?.status || error?.status;
+      if (status === 403) {
+        navigate("/403", { replace: true });
+        return;
+      }
+      if (status === 404) {
+        navigate("/404", { replace: true });
+        return;
+      }
       alert("Không thể tải chi tiết đơn hàng");
     } finally {
       setLoadingOrderDetail(false);

@@ -9,6 +9,8 @@ import UpdateChallenge from "./UpdateChallenge";
 import { se } from "date-fns/locale";
 import { Delete } from "lucide-react";
 import DeleteChallengePopup from "./DeleteChallenge";
+import { useAuth } from "../../contexts/AuthContext";
+import { toast } from "react-hot-toast";
 
 export default function ChallengeCard({
   challenge,
@@ -23,6 +25,8 @@ export default function ChallengeCard({
   const [isDeleteChallenge, setIsDeleteChallenge] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const isAdmin = !authLoading && user?.role === "admin";
 
   // Fetch participant count when component mounts
   useEffect(() => {
@@ -327,30 +331,8 @@ export default function ChallengeCard({
 
         {/* Actions */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-          <button
-            style={{
-              padding: "6px 12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "4px",
-              fontSize: "12px",
-              cursor: "pointer",
-              transition: "all 0.2s",
-              background: "white",
-              color: "#374151",
-            }}
-            onClick={() => onViewDetail(challenge)}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = "#3b82f6";
-              e.target.style.color = "#3b82f6";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = "#d1d5db";
-              e.target.style.color = "#374151";
-            }}
-          >
-            👁️ Xem
-          </button>
-          {challenge.adminStatus === "Sắp diễn ra" && (
+          {/* Edit (admin only, show after auth resolved) */}
+          {isAdmin && challenge?.adminStatus === "Sắp diễn ra" && (
             <button
               style={{
                 padding: "6px 12px",
@@ -379,6 +361,32 @@ export default function ChallengeCard({
             </button>
           )}
 
+          {/* View detail (everyone) */}
+          <button
+            style={{
+              padding: "6px 12px",
+              border: "1px solid #d1d5db",
+              borderRadius: "4px",
+              fontSize: "12px",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              background: "white",
+              color: "#374151",
+            }}
+            onClick={() => onViewDetail(challenge)}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = "#3b82f6";
+              e.target.style.color = "#3b82f6";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = "#d1d5db";
+              e.target.style.color = "#374151";
+            }}
+          >
+            👁️ Xem
+          </button>
+
+          {/* Members (everyone) */}
           <button
             style={{
               padding: "6px 12px",
@@ -391,17 +399,8 @@ export default function ChallengeCard({
               color: "#374151",
             }}
             onClick={() => {
-              console.log("🎯 ChallengeCard: onViewMembers clicked", challenge);
-              console.log(
-                "🎯 ChallengeCard: onViewMembers function:",
-                onViewMembers
-              );
               if (typeof onViewMembers === "function") {
                 onViewMembers(challenge);
-              } else {
-                console.error(
-                  "🎯 ChallengeCard: onViewMembers is not a function"
-                );
               }
             }}
             onMouseEnter={(e) => {
@@ -422,53 +421,8 @@ export default function ChallengeCard({
             })()}
           </button>
 
-          {challenge.adminStatus === "Chờ duyệt" && (
-            <>
-              <button
-                style={{
-                  padding: "6px 12px",
-                  background: "#10b981",
-                  color: "white",
-                  border: "1px solid #10b981",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.target.style.backgroundColor = "#059669")
-                }
-                onMouseLeave={(e) =>
-                  (e.target.style.backgroundColor = "#10b981")
-                }
-              >
-                ✅ Duyệt
-              </button>
-              <button
-                style={{
-                  padding: "6px 12px",
-                  background: "#ef4444",
-                  color: "white",
-                  border: "1px solid #ef4444",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                onClick={() => setShowStatusModal(true)}
-                onMouseEnter={(e) =>
-                  (e.target.style.backgroundColor = "#dc2626")
-                }
-                onMouseLeave={(e) =>
-                  (e.target.style.backgroundColor = "#ef4444")
-                }
-              >
-                ❌ Hủy
-              </button>
-            </>
-          )}
-
-          {challenge.adminStatus === "Sắp diễn ra" && (
+          {/* Delete (admin only) */}
+          {isAdmin && challenge?.adminStatus === "Sắp diễn ra" && (
             <button
               style={{
                 padding: "6px 12px",

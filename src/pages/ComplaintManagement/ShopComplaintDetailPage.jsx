@@ -5,6 +5,7 @@ import {
   fetchOrderById,
   fetchMarketplacePostById,
 } from "../../api/axios";
+import { handleApiError } from "../../utils/handleApiError";
 import ComplaintDetails from "./ComplaintDetails";
 import { useLocation } from "react-router-dom";
 
@@ -258,7 +259,8 @@ export default function ShopComplaintDetailPage() {
         }
         setComplaint(mapped);
       } catch (err) {
-        setError(err.message || "Không tải được khiếu nại");
+        const { redirected } = handleApiError(err, navigate);
+        if (!redirected) setError(err.message || "Không tải được khiếu nại");
       } finally {
         setLoading(false);
       }
