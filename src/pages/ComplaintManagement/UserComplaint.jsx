@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { fetchComplaintsByCustomer } from "../../api/axios";
+import { handleApiError } from "../../utils/handleApiError";
 import ComplaintDetails from "./ComplaintDetails";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -126,8 +127,11 @@ export default function ComplaintList({ userId }) {
         });
         setComplaints(mapped);
       } catch (e) {
-        setError(e.message || "Lỗi tải dữ liệu");
-        setComplaints([]);
+        const { redirected } = handleApiError(e, navigate);
+        if (!redirected) {
+          setError(e.message || "Lỗi tải dữ liệu");
+          setComplaints([]);
+        }
       } finally {
         setLoading(false);
       }

@@ -10,6 +10,7 @@ import {
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchComplaintsByShop, fetchShopByUserId } from "../../api/axios";
+import { handleApiError } from "../../utils/handleApiError";
 
 export default function ComplaintList({
   complaints: initialComplaints,
@@ -159,8 +160,11 @@ export default function ComplaintList({
       });
       setComplaints(mapped);
     } catch (e) {
-      setError(e.message || "Không tải được khiếu nại");
-      setComplaints([]);
+      const { redirected } = handleApiError(e, navigate);
+      if (!redirected) {
+        setError(e.message || "Không tải được khiếu nại");
+        setComplaints([]);
+      }
     } finally {
       setLoading(false);
     }

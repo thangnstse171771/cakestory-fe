@@ -46,7 +46,7 @@ export default function ChallengeList({ onViewDetail, onViewMembers }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth(); // <-- added
+  const { user, loading: authLoading } = useAuth(); // <-- added
 
   const fetchChallenges = async () => {
     try {
@@ -145,6 +145,22 @@ export default function ChallengeList({ onViewDetail, onViewMembers }) {
   }, []);
 
   if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: 300,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
+
+  // Block rendering until auth state is resolved to avoid flicker of role-only UI
+  if (authLoading) {
     return (
       <div
         style={{

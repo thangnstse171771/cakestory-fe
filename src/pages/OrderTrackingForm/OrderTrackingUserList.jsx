@@ -150,6 +150,15 @@ export default function OrderTrackingList({
       setRealOrders(transformedOrders);
     } catch (error) {
       console.error("Lỗi khi fetch orders:", error);
+      const status = error?.response?.status || error?.status;
+      if (status === 403) {
+        navigate("/403", { replace: true });
+        return;
+      }
+      if (status === 404) {
+        navigate("/404", { replace: true });
+        return;
+      }
       setError("Không thể tải danh sách đơn hàng: " + error.message);
     } finally {
       setLoading(false);
@@ -426,6 +435,15 @@ export default function OrderTrackingList({
       setSelectedOrder(transformedOrder);
     } catch (error) {
       console.error("Lỗi khi fetch order detail:", error);
+      const status = error?.response?.status || error?.status;
+      if (status === 403) {
+        navigate("/403", { replace: true });
+        return;
+      }
+      if (status === 404) {
+        navigate("/404", { replace: true });
+        return;
+      }
       // Fallback: nếu không lấy được chi tiết, quay về danh sách
       setSelectedOrder(null);
       setLoadingOrderDetail(false);

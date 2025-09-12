@@ -5,6 +5,7 @@ import {
   fetchOrderById,
   fetchMarketplacePostById,
 } from "../../api/axios";
+import { handleApiError } from "../../utils/handleApiError";
 import ComplaintDetails from "./ComplaintDetails";
 
 export default function UserComplaintDetailPage() {
@@ -267,7 +268,8 @@ export default function UserComplaintDetailPage() {
         }
         setComplaint(mapped);
       } catch (e) {
-        setError(e.message || "Không tải được khiếu nại");
+        const { redirected } = handleApiError(e, navigate);
+        if (!redirected) setError(e.message || "Không tải được khiếu nại");
       } finally {
         setLoading(false);
       }
