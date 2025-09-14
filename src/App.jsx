@@ -13,7 +13,7 @@ import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import CakeDesign from "./pages/CakeDesign.jsx";
 import Layout from "./components/Layout";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
@@ -21,7 +21,8 @@ import VerifyEmail from "./pages/VerifyEmail";
 import EmailVerified from "./pages/EmailVerified";
 import Home from "./pages/Home/Home";
 import LandingPage from "./pages/LandingPage";
-import CakeDesign from "./pages/CakeDesign";
+import CakeQuotes from "./pages/CakeQuotes";
+import ShopQuotes from "./pages/ShopQuotes";
 import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
 import Marketplace from "./pages/Marketplace/Marketplace";
@@ -234,6 +235,8 @@ export default function App() {
             />
             {/* admin order-tracking moved to admin-protected routes */}
             <Route path="cake-design" element={<CakeDesign />} />
+            <Route path="cake-quotes" element={<CakeQuotes />} />
+            <Route path="shop-quotes" element={<ShopQuotes />} />
             <Route path="ai-generated-images" element={<AIGeneratedImages />} />
             <Route path="challenge" element={<ChallengeList />} />
             <Route path="challenge/details/:id" element={<ChallengeDetail />} />

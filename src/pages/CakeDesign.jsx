@@ -16,6 +16,7 @@ import {
   generateAIImage,
   getCakeDesigns,
   getCakeDesignsByUserId,
+  editCakeDesign,
 } from "../api/cakeDesigns";
 import {
   createPicture,
@@ -70,6 +71,9 @@ const CakeDesign = () => {
   const [currentPage, setCurrentPage] = useState(1); // Pagination state
   const [imagesPerPage] = useState(6); // Number of images per page
   const [showNavigateWarning, setShowNavigateWarning] = useState(true); // Warning banner visibility
+  const [showEditModal, setShowEditModal] = useState(false); // New state for edit modal
+  const [editPrompt, setEditPrompt] = useState(""); // New state for edit prompt
+  const [isEditing, setIsEditing] = useState(false); // New state for editing status
 
   // Wallet states
   const [balance, setBalance] = useState(0);
@@ -1115,6 +1119,63 @@ Trang trí: ${
   const closeImageModal = () => {
     setShowImageModal(false);
     setSelectedAIImage(null);
+  };
+
+  // Open edit modal
+  const openEditModal = () => {
+    if (selectedAIImage) {
+      setEditPrompt(selectedAIImage.description || "");
+      setShowEditModal(true);
+    }
+  };
+
+  // Close edit modal
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditPrompt("");
+  };
+
+  // Handle edit AI image
+  const handleEditAIImage = async () => {
+    if (!selectedAIImage || !editPrompt.trim()) {
+      toast.error("Vui lòng nhập prompt chỉnh sửa");
+      return;
+    }
+
+    setIsEditing(true);
+    try {
+      // Fetch the image from URL and create a File object
+      const response = await fetch(selectedAIImage.ai_generated);
+      const blob = await response.blob();
+      const file = new File([blob], `cake-design-${selectedAIImage.id}.png`, {
+        type: "image/png",
+      });
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append("design_image", file);
+      formData.append("edit_prompt", editPrompt.trim());
+
+      // Call edit API
+      const result = await editCakeDesign(formData);
+
+      if (result.success) {
+        toast.success("Đã gửi yêu cầu chỉnh sửa ảnh AI!");
+        closeEditModal();
+        closeImageModal();
+        // Reload AI images after a short delay
+        setTimeout(() => {
+          loadAIImages();
+        }, 2000);
+      } else {
+        toast.error(result.message || "Không thể chỉnh sửa ảnh");
+      }
+    } catch (error) {
+      console.error("Error editing AI image:", error);
+      toast.error("Lỗi khi chỉnh sửa ảnh AI");
+    } finally {
+      setIsEditing(false);
+    }
   };
 
   // Pagination functions
@@ -2926,10 +2987,9 @@ Trang trí: ${
 
                     {/* Image Actions */}
                     <div className="flex gap-2">
-                      <a
-                        href={selectedAIImage.ai_generated}
-                        download={`ai-cake-${selectedAIImage.id}.jpg`}
-                        className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-200 text-center"
+                      <button
+                        onClick={openEditModal}
+                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 text-center"
                       >
                         <svg
                           className="w-4 h-4 mr-2 inline"
@@ -2941,11 +3001,30 @@ Trang trí: ${
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth="2"
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                           />
                         </svg>
-                        Tải xuống
-                      </a>
+                        Chỉnh sửa
+                      </button>
+                      <button
+                        onClick={() => navigate("/cake-quotes")}
+                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 text-center"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2 inline"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                          />
+                        </svg>
+                        Tìm người làm bánh
+                      </button>
                       <button
                         onClick={() => {
                           if (navigator.share) {
@@ -2973,6 +3052,26 @@ Trang trí: ${
                         </svg>
                         Chia sẻ
                       </button>
+                      <a
+                        href={selectedAIImage.ai_generated}
+                        download={`ai-cake-${selectedAIImage.id}.jpg`}
+                        className="px-4 py-2 border border-purple-300 text-purple-600 rounded-lg font-medium hover:bg-purple-50 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-2 inline"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        Tải xuống
+                      </a>
                     </div>
                   </div>
 
@@ -3033,6 +3132,133 @@ Trang trí: ${
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit AI Image Modal */}
+        {showEditModal && selectedAIImage && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeEditModal();
+              }
+            }}
+          >
+            <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl">
+              <div className="p-6">
+                <div className="text-center mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg
+                      className="w-8 h-8 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    Chỉnh sửa ảnh AI
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Nhập prompt mới để chỉnh sửa ảnh bánh hiện tại. Hệ thống sẽ
+                    giữ nguyên ngữ cảnh bánh và áp dụng các thay đổi của bạn.
+                  </p>
+                </div>
+
+                {/* Current Image Preview */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    Ảnh hiện tại:
+                  </h4>
+                  <div className="relative">
+                    <img
+                      src={selectedAIImage.ai_generated}
+                      alt="Current AI Generated Cake"
+                      className="w-full h-48 object-contain rounded-lg border border-gray-200"
+                    />
+                  </div>
+                </div>
+
+                {/* Edit Prompt Input */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Prompt chỉnh sửa:
+                  </label>
+                  <textarea
+                    value={editPrompt}
+                    onChange={(e) => setEditPrompt(e.target.value)}
+                    placeholder="Ví dụ: Thêm chocolate sprinkles trên bề mặt, thay đổi màu frosting thành xanh dương..."
+                    className="w-full h-24 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    maxLength={500}
+                  />
+                  <div className="text-xs text-gray-400 mt-1 text-right">
+                    {editPrompt.length}/500 ký tự
+                  </div>
+                </div>
+
+                {/* Original Description */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    Mô tả gốc (để tham khảo):
+                  </h4>
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {selectedAIImage.description}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={closeEditModal}
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                    disabled={isEditing}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleEditAIImage}
+                    disabled={isEditing || !editPrompt.trim()}
+                    className={`flex-1 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 ${
+                      isEditing || !editPrompt.trim()
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl"
+                    }`}
+                  >
+                    {isEditing ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Đang chỉnh sửa...
+                      </div>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-4 h-4 mr-2 inline"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                        Chỉnh sửa ảnh
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
