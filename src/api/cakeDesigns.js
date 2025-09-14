@@ -64,3 +64,13 @@ export const getCakeDesignsByUserId = async (
   );
   return response.data;
 };
+
+// Edit AI generated image with new prompt
+export const editCakeDesign = async (formData) => {
+  const response = await axiosInstance.post("/cake-designs/edit", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
