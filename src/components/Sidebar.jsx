@@ -25,6 +25,8 @@ import {
   Store,
   LogIn,
   Star,
+  Search,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useState, useEffect } from "react";
@@ -108,6 +110,7 @@ const Sidebar = () => {
         "/my-orders-reviews",
         "/complaints",
       ],
+      "Thiết kế bánh": ["/cake-design", "/cake-quotes", "/shop-quotes"],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
       "Ví tiền": [
         "/wallet",
@@ -184,7 +187,23 @@ const Sidebar = () => {
           : []),
       ],
     },
-    { icon: Cake, label: "Thiết kế bánh", path: "/cake-design" },
+    {
+      icon: Cake,
+      label: "Thiết kế bánh",
+      path: "/cake-design",
+      submenu: [
+        {
+          icon: Search,
+          label: "Tìm Thợ Làm Bánh",
+          path: "/cake-quotes",
+        },
+        {
+          icon: FileText,
+          label: "Thiết Kế Cần Báo Giá",
+          path: "/shop-quotes",
+        },
+      ],
+    },
     { icon: Trophy, label: "Thử thách", path: "/challenge" },
   ];
 
@@ -269,6 +288,7 @@ const Sidebar = () => {
         "/my-orders-reviews",
         "/complaints",
       ],
+      "Thiết kế bánh": ["/cake-design", "/cake-quotes", "/shop-quotes"],
       "Hồ sơ cá nhân": ["/profile", "/mypost", "/myalbum"],
       "Ví tiền": [
         "/wallet",

@@ -19,178 +19,128 @@ import {
   Phone,
   Mail,
 } from "lucide-react";
-
-// Mock data for cake quotes
-const mockCakeQuotes = [
-  {
-    id: 1,
-    cakeDesign: {
-      id: 101,
-      image:
-        "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400",
-      title: "Bánh kem sinh nhật 3 tầng",
-      description:
-        "Bánh kem hình tròn 3 tầng với frosting màu hồng và trang trí hoa tươi",
-      created_at: "2025-09-10T10:30:00Z",
-    },
-    quotes: [
-      {
-        id: 201,
-        shop: {
-          id: 301,
-          name: "Sweet Dreams Bakery",
-          avatar:
-            "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100",
-          rating: 4.8,
-          reviewCount: 156,
-          location: "Quận 1, TP.HCM",
-          distance: "2.3km",
-          phone: "0123 456 789",
-          email: "contact@sweetdreams.vn",
-        },
-        price: 850000,
-        estimatedTime: "3-4 ngày",
-        status: "pending", // pending, accepted, rejected, completed
-        message:
-          "Chúng tôi có thể làm bánh theo đúng thiết kế của bạn với nguyên liệu cao cấp. Sẽ hoàn thành trong 3-4 ngày làm việc.",
-        created_at: "2025-09-12T14:20:00Z",
-        validUntil: "2025-09-20T23:59:00Z",
-      },
-      {
-        id: 202,
-        shop: {
-          id: 302,
-          name: "Cake Paradise",
-          avatar:
-            "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100",
-          rating: 4.6,
-          reviewCount: 89,
-          location: "Quận 3, TP.HCM",
-          distance: "4.1km",
-          phone: "0987 654 321",
-          email: "info@cakeparadise.vn",
-        },
-        price: 720000,
-        estimatedTime: "2-3 ngày",
-        status: "accepted",
-        message:
-          "Chào bạn! Chúng tôi rất thích thiết kế này. Giá cả cạnh tranh và chất lượng đảm bảo.",
-        created_at: "2025-09-11T09:15:00Z",
-        validUntil: "2025-09-18T23:59:00Z",
-      },
-      {
-        id: 203,
-        shop: {
-          id: 303,
-          name: "Artisan Cakes",
-          avatar:
-            "https://images.unsplash.com/photo-1556909114-4c36e03f4b3f?w=100",
-          rating: 4.9,
-          reviewCount: 203,
-          location: "Quận 7, TP.HCM",
-          distance: "6.8km",
-          phone: "0912 345 678",
-          email: "hello@artisancakes.vn",
-        },
-        price: 950000,
-        estimatedTime: "4-5 ngày",
-        status: "rejected",
-        message:
-          "Xin lỗi, hiện tại chúng tôi đang quá tải đơn hàng nên không thể nhận thêm.",
-        created_at: "2025-09-13T16:45:00Z",
-        validUntil: "2025-09-21T23:59:00Z",
-      },
-    ],
-    status: "active", // active, completed, cancelled
-  },
-  {
-    id: 2,
-    cakeDesign: {
-      id: 102,
-      image:
-        "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=400",
-      title: "Bánh cưới 2 tầng",
-      description: "Bánh cưới sang trọng với hoa tươi và trang trí tinh tế",
-      created_at: "2025-09-08T15:20:00Z",
-    },
-    quotes: [
-      {
-        id: 204,
-        shop: {
-          id: 304,
-          name: "Royal Wedding Cakes",
-          avatar:
-            "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100",
-          rating: 4.7,
-          reviewCount: 124,
-          location: "Quận 2, TP.HCM",
-          distance: "3.5km",
-          phone: "0123 987 654",
-          email: "wedding@royalcakes.vn",
-        },
-        price: 1200000,
-        estimatedTime: "5-7 ngày",
-        status: "pending",
-        message:
-          "Chúng tôi chuyên về bánh cưới cao cấp. Sẽ sử dụng nguyên liệu nhập khẩu và hoa tươi thật.",
-        created_at: "2025-09-09T11:30:00Z",
-        validUntil: "2025-09-25T23:59:00Z",
-      },
-    ],
-    status: "active",
-  },
-  {
-    id: 3,
-    cakeDesign: {
-      id: 103,
-      image:
-        "https://images.unsplash.com/photo-1535254973040-607b474cb50d?w=400",
-      title: "Bánh sinh nhật trẻ em",
-      description: "Bánh vui nhộn cho bé với nhân vật hoạt hình",
-      created_at: "2025-09-05T08:45:00Z",
-    },
-    quotes: [
-      {
-        id: 205,
-        shop: {
-          id: 305,
-          name: "Kids Cake Corner",
-          avatar:
-            "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=100",
-          rating: 4.5,
-          reviewCount: 78,
-          location: "Quận 4, TP.HCM",
-          distance: "5.2km",
-          phone: "0987 123 456",
-          email: "kids@kidscakecorner.vn",
-        },
-        price: 450000,
-        estimatedTime: "2 ngày",
-        status: "completed",
-        message:
-          "Đã hoàn thành! Bánh rất đẹp và bé rất thích. Cảm ơn bạn đã tin tưởng!",
-        created_at: "2025-09-06T10:00:00Z",
-        validUntil: "2025-09-12T23:59:00Z",
-      },
-    ],
-    status: "completed",
-  },
-];
+import {
+  getCakeQuotes,
+  getCakeQuoteById,
+  deleteCakeQuote,
+  updateCakeQuoteStatus,
+  getShopQuotesForCakeQuote,
+  createShopQuote,
+  updateShopQuote,
+  acceptShopQuote,
+} from "../api/cakeOrder";
+import { toast } from "react-hot-toast";
 
 const CakeQuotes = () => {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState("active");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [cakeQuotes, setCakeQuotes] = useState(mockCakeQuotes);
+  const [cakeQuotes, setCakeQuotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
+
+  // Fetch cake quotes
+  useEffect(() => {
+    fetchCakeQuotes();
+  }, [currentPage]);
+
+  const fetchCakeQuotes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getCakeQuotes(currentPage, 10);
+
+      if (response.success) {
+        // Transform API data to match UI expectations
+        const transformedQuotes = response.data.quotes.map((quote) => ({
+          id: quote.id,
+          cakeDesign: {
+            id: quote.id,
+            image: quote.imageDesign,
+            title: quote.title,
+            description: quote.description,
+            created_at: quote.created_at,
+          },
+          quotes: [], // Will be populated with shop quotes
+          status: quote.status === "open" ? "active" : quote.status,
+          user: quote.user,
+          cake_size: quote.cake_size,
+          special_requirements: quote.special_requirements,
+          budget_range: quote.budget_range,
+          expires_at: quote.expires_at,
+        }));
+
+        setCakeQuotes(transformedQuotes);
+        setPagination(response.data.pagination);
+
+        // Fetch shop quotes for each cake quote
+        for (const quote of transformedQuotes) {
+          try {
+            const shopQuotesResponse = await getShopQuotesForCakeQuote(
+              quote.id
+            );
+            if (shopQuotesResponse.success) {
+              // Transform shop quotes data
+              const transformedShopQuotes = shopQuotesResponse.data.quotes.map(
+                (shopQuote) => ({
+                  id: shopQuote.id,
+                  shop: {
+                    id: shopQuote.shop?.id || 0,
+                    name: shopQuote.shop?.name || "Unknown Shop",
+                    avatar: shopQuote.shop?.avatar || "/placeholder-shop.jpg",
+                    rating: shopQuote.shop?.rating || 0,
+                    reviewCount: shopQuote.shop?.review_count || 0,
+                    location: shopQuote.shop?.location || "Unknown",
+                    distance: "N/A", // API doesn't provide distance
+                    phone: shopQuote.shop?.phone || "",
+                    email: shopQuote.shop?.email || "",
+                  },
+                  price: shopQuote.quoted_price,
+                  estimatedTime: `${shopQuote.preparation_time} giờ`,
+                  status: shopQuote.status || "pending",
+                  message: shopQuote.message,
+                  created_at: shopQuote.created_at,
+                  validUntil: shopQuote.expires_at,
+                  ingredients_breakdown: shopQuote.ingredients_breakdown,
+                })
+              );
+
+              // Update the quote with shop quotes
+              setCakeQuotes((prev) =>
+                prev.map((q) =>
+                  q.id === quote.id
+                    ? { ...q, quotes: transformedShopQuotes }
+                    : q
+                )
+              );
+            }
+          } catch (shopError) {
+            console.error(
+              `Error fetching shop quotes for cake quote ${quote.id}:`,
+              shopError
+            );
+          }
+        }
+      } else {
+        setError("Không thể tải danh sách cake quotes");
+      }
+    } catch (err) {
+      console.error("Error fetching cake quotes:", err);
+      setError("Có lỗi xảy ra khi tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter quotes based on search and status
   const filteredQuotes = cakeQuotes.filter((quote) => {
     const matchesSearch =
       quote.cakeDesign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quote.quotes.some((q) =>
-        q.shop.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      quote.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quote.user?.username?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = selectedTab === "all" || quote.status === selectedTab;
 
@@ -241,6 +191,98 @@ const CakeQuotes = () => {
       year: "numeric",
     });
   };
+
+  // Handle view cake quote details
+  const handleViewCakeQuote = async (id) => {
+    try {
+      const response = await getCakeQuoteById(id);
+      if (response.success) {
+        // For now, just show a toast with details
+        toast.success(`Xem chi tiết cake quote ${id}`);
+        console.log("Cake quote details:", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching cake quote details:", error);
+      toast.error("Không thể tải chi tiết cake quote");
+    }
+  };
+
+  // Handle delete cake quote
+  const handleDeleteCakeQuote = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa cake quote này?")) {
+      return;
+    }
+
+    try {
+      const response = await deleteCakeQuote(id);
+      if (response.success) {
+        toast.success("Đã xóa cake quote thành công");
+        fetchCakeQuotes(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error deleting cake quote:", error);
+      toast.error("Không thể xóa cake quote");
+    }
+  };
+
+  // Handle update cake quote status
+  const handleUpdateStatus = async (id, status) => {
+    try {
+      const response = await updateCakeQuoteStatus(id, status);
+      if (response.success) {
+        toast.success("Đã cập nhật trạng thái thành công");
+        fetchCakeQuotes(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error updating cake quote status:", error);
+      toast.error("Không thể cập nhật trạng thái");
+    }
+  };
+
+  // Handle accept shop quote
+  const handleAcceptShopQuote = async (shopQuoteId) => {
+    try {
+      const response = await acceptShopQuote(shopQuoteId);
+      if (response.success) {
+        toast.success("Đã chấp nhận báo giá thành công");
+        fetchCakeQuotes(); // Refresh the list
+      }
+    } catch (error) {
+      console.error("Error accepting shop quote:", error);
+      toast.error("Không thể chấp nhận báo giá");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-pink-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải danh sách cake quotes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+            Có lỗi xảy ra
+          </h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={fetchCakeQuotes}
+            className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50">
@@ -351,6 +393,10 @@ const CakeQuotes = () => {
                         <Calendar className="w-4 h-4" />
                         {formatDate(cakeQuote.cakeDesign.created_at)}
                       </div>
+                      <div className="flex items-center gap-1">
+                        <User className="w-4 h-4" />
+                        {cakeQuote.user?.full_name || cakeQuote.user?.username}
+                      </div>
                       <div
                         className={`px-3 py-1 rounded-full text-xs font-medium ${
                           cakeQuote.status === "active"
@@ -365,169 +411,261 @@ const CakeQuotes = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
-                      <Edit3 className="w-5 h-5" />
+                    <button
+                      onClick={() => handleDeleteCakeQuote(cakeQuote.id)}
+                      className="p-2 bg-red-500/20 rounded-lg hover:bg-red-500/30 transition-colors"
+                      title="Xóa"
+                    >
+                      <XCircle className="w-5 h-5" />
                     </button>
-                    <button className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
+                    <button
+                      onClick={() => handleViewCakeQuote(cakeQuote.id)}
+                      className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
+                      title="Xem chi tiết"
+                    >
                       <Eye className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Quotes List */}
+              {/* Cake Quote Details */}
               <div className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="text-lg font-semibold text-gray-800">
-                    Báo giá từ tiệm bánh ({cakeQuote.quotes.length})
+                    Chi tiết yêu cầu
                   </h4>
                   {cakeQuote.status === "active" && (
-                    <button className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-medium hover:from-pink-600 hover:to-purple-600 transition-colors">
-                      Tìm thêm thợ
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() =>
+                          handleUpdateStatus(cakeQuote.id, "closed")
+                        }
+                        className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-colors"
+                      >
+                        Đóng yêu cầu
+                      </button>
+                      <button className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-medium hover:from-pink-600 hover:to-purple-600 transition-colors">
+                        Tìm thêm thợ
+                      </button>
+                    </div>
                   )}
                 </div>
 
-                <div className="space-y-4">
-                  {cakeQuote.quotes.map((quote) => (
-                    <div
-                      key={quote.id}
-                      className="border border-gray-200 rounded-xl p-4 hover:border-pink-300 transition-colors"
-                    >
-                      <div className="flex items-start gap-4">
-                        {/* Shop Avatar */}
-                        <img
-                          src={quote.shop.avatar}
-                          alt={quote.shop.name}
-                          className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                        />
-
-                        {/* Shop Info */}
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <h5 className="font-semibold text-gray-800 text-lg">
-                                {quote.shop.name}
-                              </h5>
-                              <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                                <div className="flex items-center gap-1">
-                                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                  {quote.shop.rating} ({quote.shop.reviewCount})
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="w-4 h-4" />
-                                  {quote.shop.location} • {quote.shop.distance}
-                                </div>
-                              </div>
-                            </div>
-                            <div
-                              className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(
-                                quote.status
-                              )}`}
-                            >
-                              {getStatusIcon(quote.status)}
-                              {quote.status === "pending" && "Chờ phản hồi"}
-                              {quote.status === "accepted" && "Đã chấp nhận"}
-                              {quote.status === "rejected" && "Đã từ chối"}
-                              {quote.status === "completed" && "Hoàn thành"}
-                            </div>
-                          </div>
-
-                          {/* Quote Details */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 text-green-700 mb-1">
-                                <DollarSign className="w-4 h-4" />
-                                <span className="text-sm font-medium">
-                                  Giá báo
-                                </span>
-                              </div>
-                              <div className="text-lg font-bold text-green-800">
-                                {formatPrice(quote.price)}
-                              </div>
-                            </div>
-                            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 text-blue-700 mb-1">
-                                <Clock className="w-4 h-4" />
-                                <span className="text-sm font-medium">
-                                  Thời gian
-                                </span>
-                              </div>
-                              <div className="text-lg font-bold text-blue-800">
-                                {quote.estimatedTime}
-                              </div>
-                            </div>
-                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg">
-                              <div className="flex items-center gap-2 text-purple-700 mb-1">
-                                <Calendar className="w-4 h-4" />
-                                <span className="text-sm font-medium">
-                                  Hết hạn
-                                </span>
-                              </div>
-                              <div className="text-sm font-bold text-purple-800">
-                                {formatDate(quote.validUntil)}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Message */}
-                          <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                            <p className="text-gray-700 text-sm leading-relaxed">
-                              {quote.message}
-                            </p>
-                          </div>
-
-                          {/* Contact Info */}
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                            <div className="flex items-center gap-1">
-                              <Phone className="w-4 h-4" />
-                              {quote.shop.phone}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Mail className="w-4 h-4" />
-                              {quote.shop.email}
-                            </div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex gap-2">
-                            {quote.status === "pending" && (
-                              <>
-                                <button className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-colors">
-                                  Chấp nhận
-                                </button>
-                                <button className="px-4 py-2 border border-red-300 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors">
-                                  Từ chối
-                                </button>
-                              </>
-                            )}
-                            {quote.status === "accepted" && (
-                              <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 transition-colors">
-                                Theo dõi đơn hàng
-                              </button>
-                            )}
-                            <button className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
-                              <MessageCircle className="w-4 h-4" />
-                              Nhắn tin
-                            </button>
-                          </div>
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h5 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
+                        <span className="w-2 h-4 bg-blue-500 rounded-full mr-2"></span>
+                        Thông tin cơ bản
+                      </h5>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Kích thước:</span>
+                          <span className="font-medium">
+                            {cakeQuote.cake_size}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Ngân sách:</span>
+                          <span className="font-medium">
+                            {formatPrice(cakeQuote.budget_range)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Hết hạn:</span>
+                          <span className="font-medium">
+                            {formatDate(cakeQuote.expires_at)}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+
+                    <div>
+                      <h5 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
+                        <span className="w-2 h-4 bg-green-500 rounded-full mr-2"></span>
+                        Yêu cầu đặc biệt
+                      </h5>
+                      <p className="text-sm text-gray-700">
+                        {cakeQuote.special_requirements ||
+                          "Không có yêu cầu đặc biệt"}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                {cakeQuote.quotes.length === 0 && (
-                  <div className="text-center py-8">
-                    <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h5 className="text-lg font-medium text-gray-600 mb-2">
-                      Chưa có báo giá nào
-                    </h5>
-                    <p className="text-gray-500">
-                      Hãy chờ các tiệm bánh gửi báo giá cho thiết kế của bạn
-                    </p>
+                {/* Shop Quotes Section */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-gray-800">
+                      Báo giá từ tiệm bánh ({cakeQuote.quotes.length})
+                    </h4>
+                    {cakeQuote.status === "active" && (
+                      <button className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg font-medium hover:from-pink-600 hover:to-purple-600 transition-colors">
+                        Tìm thêm thợ
+                      </button>
+                    )}
                   </div>
-                )}
+
+                  <div className="space-y-4">
+                    {cakeQuote.quotes.map((quote) => (
+                      <div
+                        key={quote.id}
+                        className="border border-gray-200 rounded-xl p-4 hover:border-pink-300 transition-colors"
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* Shop Avatar */}
+                          <img
+                            src={quote.shop.avatar}
+                            alt={quote.shop.name}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                          />
+
+                          {/* Shop Info */}
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-3">
+                              <div>
+                                <h5 className="font-semibold text-gray-800 text-lg">
+                                  {quote.shop.name}
+                                </h5>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                                  <div className="flex items-center gap-1">
+                                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                                    {quote.shop.rating} (
+                                    {quote.shop.reviewCount})
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    {quote.shop.location}
+                                  </div>
+                                </div>
+                              </div>
+                              <div
+                                className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(
+                                  quote.status
+                                )}`}
+                              >
+                                {getStatusIcon(quote.status)}
+                                {quote.status === "pending" && "Chờ phản hồi"}
+                                {quote.status === "accepted" && "Đã chấp nhận"}
+                                {quote.status === "rejected" && "Đã từ chối"}
+                                {quote.status === "completed" && "Hoàn thành"}
+                              </div>
+                            </div>
+
+                            {/* Quote Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                              <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 text-green-700 mb-1">
+                                  <DollarSign className="w-4 h-4" />
+                                  <span className="text-sm font-medium">
+                                    Giá báo
+                                  </span>
+                                </div>
+                                <div className="text-lg font-bold text-green-800">
+                                  {formatPrice(quote.price)}
+                                </div>
+                              </div>
+                              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 text-blue-700 mb-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span className="text-sm font-medium">
+                                    Thời gian
+                                  </span>
+                                </div>
+                                <div className="text-lg font-bold text-blue-800">
+                                  {quote.estimatedTime}
+                                </div>
+                              </div>
+                              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 text-purple-700 mb-1">
+                                  <Calendar className="w-4 h-4" />
+                                  <span className="text-sm font-medium">
+                                    Hết hạn
+                                  </span>
+                                </div>
+                                <div className="text-sm font-bold text-purple-800">
+                                  {formatDate(quote.validUntil)}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Message */}
+                            <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                              <p className="text-gray-700 text-sm leading-relaxed">
+                                {quote.message}
+                              </p>
+                            </div>
+
+                            {/* Ingredients Breakdown */}
+                            {quote.ingredients_breakdown && (
+                              <div className="bg-blue-50 p-3 rounded-lg mb-4">
+                                <h6 className="text-sm font-medium text-blue-800 mb-2">
+                                  Chi tiết nguyên liệu:
+                                </h6>
+                                <p className="text-sm text-blue-700">
+                                  {quote.ingredients_breakdown}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Contact Info */}
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                              <div className="flex items-center gap-1">
+                                <Phone className="w-4 h-4" />
+                                {quote.shop.phone}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Mail className="w-4 h-4" />
+                                {quote.shop.email}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                              {quote.status === "pending" && (
+                                <>
+                                  <button
+                                    onClick={() =>
+                                      handleAcceptShopQuote(quote.id)
+                                    }
+                                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-colors"
+                                  >
+                                    Chấp nhận
+                                  </button>
+                                  <button className="px-4 py-2 border border-red-300 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors">
+                                    Từ chối
+                                  </button>
+                                </>
+                              )}
+                              {quote.status === "accepted" && (
+                                <button className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 transition-colors">
+                                  Theo dõi đơn hàng
+                                </button>
+                              )}
+                              <button className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2">
+                                <MessageCircle className="w-4 h-4" />
+                                Nhắn tin
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {cakeQuote.quotes.length === 0 && (
+                    <div className="text-center py-8">
+                      <ChefHat className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <h5 className="text-lg font-medium text-gray-600 mb-2">
+                        Chưa có báo giá nào
+                      </h5>
+                      <p className="text-gray-500">
+                        Hãy chờ các tiệm bánh gửi báo giá cho thiết kế của bạn
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
