@@ -27,6 +27,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { fetchWalletBalance } from "../api/axios";
+import { createCakeQuote } from "../api/cakeOrder";
 
 const AI_GENERATION_COST = 1000; // 1000 VND mỗi lần gen (cho thiết kế cake)
 
@@ -1133,6 +1134,51 @@ Trang trí: ${
   const closeEditModal = () => {
     setShowEditModal(false);
     setEditPrompt("");
+  };
+
+  // Handle create cake quote from AI image
+  const handleCreateCakeQuote = async () => {
+    if (!selectedAIImage) {
+      toast.error("Không tìm thấy ảnh AI");
+      return;
+    }
+
+    try {
+      // Prepare cake quote data
+      const cakeQuoteData = {
+        title: `Bánh từ thiết kế AI - ${new Date().toLocaleDateString(
+          "vi-VN"
+        )}`,
+        description:
+          selectedAIImage.description ||
+          "Bánh được tạo từ AI với thiết kế tùy chỉnh",
+        imageDesign: selectedAIImage.ai_generated,
+        cake_size: `${diameter}cm x ${height}cm${
+          design.shape !== "Round" ? ` x ${width}cm` : ""
+        }`,
+        special_requirements:
+          selectedFlavors.length > 0
+            ? `Hương vị: ${selectedFlavors.join(", ")}`
+            : "",
+        budget_range: 500000, // Default budget, can be customized later
+        expires_at: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        ).toISOString(), // 30 days from now
+      };
+
+      console.log("Creating cake quote:", cakeQuoteData);
+
+      const response = await createCakeQuote(cakeQuoteData);
+      console.log("Cake quote created:", response);
+
+      toast.success("Đã tạo yêu cầu tìm thợ làm bánh thành công!");
+
+      // Navigate to cake quotes page
+      navigate("/cake-quotes");
+    } catch (error) {
+      console.error("Error creating cake quote:", error);
+      toast.error("Có lỗi xảy ra khi tạo yêu cầu tìm thợ làm bánh");
+    }
   };
 
   // Handle edit AI image
@@ -3007,7 +3053,7 @@ Trang trí: ${
                         Chỉnh sửa
                       </button>
                       <button
-                        onClick={() => navigate("/cake-quotes")}
+                        onClick={handleCreateCakeQuote}
                         className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 text-center"
                       >
                         <svg
