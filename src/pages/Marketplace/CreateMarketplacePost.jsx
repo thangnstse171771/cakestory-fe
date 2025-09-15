@@ -21,6 +21,11 @@ const CreateMarketplacePostSchema = Yup.object().shape({
     .min(1, "Bánh phải có ít nhất 1 tầng")
     .max(8, "Bánh không được vượt quá 8 tầng")
     .required("Số tầng là bắt buộc"),
+  required_time: Yup.number()
+    .min(0, "Số ngày đặt trước không dưới 0 ngày")
+    .max(30, "Số ngày đặt trước không vượt quá 30 ngày")
+    .required("Hãy nhập số ngày cần đặt trước"),
+  available: Yup.boolean().required(),
   expiry_date: Yup.string()
     .required("Ngày Hết hạn là bắt buộc")
     .test("future-date", "Ngày Hết hạn phải trong tương lai", function (value) {
@@ -181,6 +186,7 @@ const CreateMarketplacePost = ({
                 (initialData?.Post || initialData?.post)?.description?.trim() ||
                 "",
               tier: initialData?.tier || 1,
+              required_time: initialData?.required_time || 0,
               available:
                 typeof initialData?.available === "boolean"
                   ? initialData.available
@@ -230,6 +236,7 @@ const CreateMarketplacePost = ({
                   title: values.title,
                   description: values.description,
                   tier: values.tier,
+                  required_time: values.required_time,
                   available: values.available,
                   expiry_date: values.expiry_date,
                   is_public: values.is_public,
@@ -505,6 +512,26 @@ const CreateMarketplacePost = ({
                   <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
                     🎂 Chọn số lớp/tầng cho thiết kế bánh của bạn
                   </p>
+                </div>
+
+                {/* Required Time */}
+                <div className="space-y-2">
+                  <label className="block text-lg font-semibold text-gray-800">
+                    Số ngày cần đặt trước
+                  </label>
+                  <Field
+                    type="number"
+                    name="required_time"
+                    min="0"
+                    max="30"
+                    placeholder="Nhập số ngày cần đặt trước (tối đa 30 ngày)"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                  />
+                  <ErrorMessage
+                    name="required_time"
+                    component="div"
+                    className="text-red-500 text-sm font-medium"
+                  />
                 </div>
 
                 {/* Cake Sizes */}
