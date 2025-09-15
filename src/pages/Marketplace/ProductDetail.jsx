@@ -19,12 +19,14 @@ import {
 import axios from "../../api/axios";
 import ProductDetailSkeleton from "../../components/ProductDetailSkeleton";
 import ReviewSection from "../../components/ReviewSection";
+import { set } from "date-fns";
 
 const ProductDetail = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [requiredTime, setRequiredTime] = useState(0);
   const [selectedSize, setSelectedSize] = useState("");
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -41,6 +43,7 @@ const ProductDetail = () => {
       const response = await axios.get(`/marketplace-posts/${productId}`);
       const productData = response.data.post;
       setProduct(productData);
+      setRequiredTime(productData.required_time || 0);
 
       // Chọn size có giá thấp nhất làm mặc định
       if (productData?.cakeSizes && productData.cakeSizes.length > 0) {
@@ -89,6 +92,7 @@ const ProductDetail = () => {
           shopData: product.shop,
           productData: product,
           selectedSize: selectedSize,
+          requiredTime: product.required_time || 0,
         },
       });
     }
@@ -227,6 +231,11 @@ const ProductDetail = () => {
                   </div>
                 </div>
               </div>
+              <div className="absolute top-6 right-6 z-20">
+                  <span className="px-4 py-2 inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-sm">
+                    Đặt trước {product.required_time || 0} giờ
+                  </span>
+                </div>
             </div>
           </div>
 

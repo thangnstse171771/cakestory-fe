@@ -22,9 +22,9 @@ const CreateMarketplacePostSchema = Yup.object().shape({
     .max(8, "Bánh không được vượt quá 8 tầng")
     .required("Số tầng là bắt buộc"),
   required_time: Yup.number()
-    .min(0, "Số ngày đặt trước không dưới 0 ngày")
-    .max(30, "Số ngày đặt trước không vượt quá 30 ngày")
-    .required("Hãy nhập số ngày cần đặt trước"),
+    .min(0, "Số giờ đặt trước không dưới 0")
+    .max(750, "Số ngày đặt trước không vượt quá 750 giờ (30 ngày)")
+    .required("Hãy nhập số giờ cần đặt trước"),
   available: Yup.boolean().required(),
   expiry_date: Yup.string()
     .required("Ngày Hết hạn là bắt buộc")
@@ -517,14 +517,15 @@ const CreateMarketplacePost = ({
                 {/* Required Time */}
                 <div className="space-y-2">
                   <label className="block text-lg font-semibold text-gray-800">
-                    Số ngày cần đặt trước
+                    Số giờ cần đặt trước
                   </label>
                   <Field
                     type="number"
                     name="required_time"
                     min="0"
                     max="30"
-                    placeholder="Nhập số ngày cần đặt trước (tối đa 30 ngày)"
+                    step="1" 
+                    placeholder="Nhập số giờ cần đặt trước (tối đa 750 giờ - 30 ngày)"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
                   />
                   <ErrorMessage

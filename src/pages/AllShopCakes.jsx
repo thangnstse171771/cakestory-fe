@@ -298,7 +298,7 @@ const AllShopCakes = () => {
 
                   <div className="absolute top-3 right-3 z-20">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-sm">
-                    Đặt trước {cake.required_time || 0} ngày
+                    Đặt trước {cake.required_time || 0} giờ
                   </span>
                 </div>
 
