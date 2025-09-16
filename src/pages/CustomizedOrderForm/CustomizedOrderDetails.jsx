@@ -204,7 +204,16 @@ export default function CakeShop() {
       return null;
     }
 
-    return localDate.toISOString(); // UTC string
+    // Convert to UTC string - this handles Vietnam timezone automatically
+    // since datetime-local input gives us the local time in Vietnam
+    const utcString = localDate.toISOString();
+    console.log("Converted local time to UTC:", {
+      input: localTimeString,
+      localDate: localDate.toString(),
+      utcString: utcString,
+    });
+
+    return utcString;
   };
 
   const handleCheckout = useCallback(async () => {
@@ -236,11 +245,16 @@ export default function CakeShop() {
         ? convertLocalTimeToUTC(deliveryTime)
         : null;
 
+      // console.log("Raw deliveryTime from form:", deliveryTime);
+      // console.log("Converted delivery_time being sent:", isoDeliveryTime);
+      // console.log("Special instructions being sent:", specialInstructions);
+
       const orderData = {
         customer_id: user.id,
         shop_id: parseInt(shopId),
         marketplace_post_id: productData?.post_id || productData?.id || 0,
         size: selectedSize,
+        tier: productData?.tier || 1,
         quantity,
         status: "pending",
         base_price: baseCakePrice,
@@ -253,6 +267,8 @@ export default function CakeShop() {
           quantity: topping.quantity,
         })),
       };
+
+      // console.log("Complete order data being sent:", orderData);
 
       const response = await createCakeOrder(orderData);
 
@@ -281,6 +297,8 @@ export default function CakeShop() {
     totalPrice,
     selectedToppings,
     navigate,
+    deliveryTime,
+    specialInstructions,
   ]);
 
   // Effects
@@ -623,7 +641,7 @@ export default function CakeShop() {
         </label>
         <input
           type="datetime-local"
-          value={deliveryTime || ""}
+          value={deliveryTime}
           onChange={(e) => {
             console.log("User picked datetime:", e.target.value);
             setDeliveryTime(e.target.value);
