@@ -829,7 +829,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     {complaint.raw?.reason && (
                       <div className="bg-white rounded-lg p-3 border border-gray-200">
                         <p className="font-semibold text-gray-700 mb-1">
-                          Đơn hàng:
+                          Ghi chú khiếu nại:
                         </p>
                         <p className="text-gray-800">{complaint.raw.reason}</p>
                       </div>
@@ -944,7 +944,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 {/* Processing Actions */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4">
-                    Xử lý khiếu nại
+                    Xử lý khiếu nạ1
                   </h3>
                   <div className="space-y-3">
                     {isAdmin && status === "pending" && (
@@ -973,9 +973,16 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     )}
                     {(status === "complete" || status === "rejected") && (
                       <div className="bg-gray-100 rounded p-3 text-sm text-gray-600">
-                        {status === "complete"
-                          ? "Đã hoàn tiền cho khiếu nại này"
-                          : "Khiếu nại này đã bị từ chối"}
+                        {complaint?.raw?.admin_note || complaint?.admin_note ? (
+                          <div className="whitespace-pre-line">
+                            {complaint?.raw?.admin_note ||
+                              complaint?.admin_note}
+                          </div>
+                        ) : status === "complete" ? (
+                          "Đã hoàn tiền cho khiếu nại này"
+                        ) : (
+                          "Khiếu nại này đã bị từ chối"
+                        )}
                       </div>
                     )}
                     {actionMessage && (
@@ -1027,64 +1034,66 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 </div>
 
                 {/* Admin note / processing note */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-4">
-                    Xử lý khiếu nại
-                  </h3>
-                  <div className="space-y-3">
-                    {/* <textarea
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
-                      rows="3"
-                      placeholder="Nhập nội dung xử lý / ghi chú nội bộ..."
-                      value={response}
-                      onChange={(e) => setResponse(e.target.value)}
-                    /> */}
-
-                    {/* Ghi chú nội bộ (Admin note) */}
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">
-                        Ghi chú:
-                      </label>
-                      {isPrivilegedEditor ? (
-                        <>
-                          <textarea
-                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
-                            rows="4"
-                            placeholder="Nhập ghi chú xử lý..."
-                            value={adminNote}
-                            disabled={isNoteLocked}
-                            onChange={(e) => setAdminNote(e.target.value)}
-                          />
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-gray-500">
-                              {isNoteLocked
-                                ? "Ghi chú đã được lưu (không thể sửa)."
-                                : "Ghi chú sẽ được lưu lại để tham chiếu sau."}
-                            </span>
-                            <div className="flex gap-2">
-                              {!isNoteLocked && (
-                                <button
-                                  type="button"
-                                  disabled={
-                                    savingNote || !(adminNote || "").trim()
-                                  }
-                                  onClick={handleSaveAdminNote}
-                                  className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
-                                >
-                                  {savingNote ? "Đang lưu..." : "Gửi ghi chú"}
-                                </button>
-                              )}
+                {isAdmin && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-800 mb-4">
+                      Xử lý khiếu nại
+                    </h3>
+                    <div className="space-y-3">
+                      {/* <textarea
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
+                        rows="3"
+                        placeholder="Nhập nội dung xử lý / ghi chú nội bộ..."
+                        value={response}
+                        onChange={(e) => setResponse(e.target.value)}
+                      />
+                      Ghi chú nội bộ (Admin note) * */}
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">
+                          Ghi chú xử lý khiếu nại:
+                        </label>
+                        {isPrivilegedEditor ? (
+                          <>
+                            <textarea
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none disabled:bg-gray-100 disabled:text-gray-500"
+                              rows="4"
+                              placeholder="Nhập ghi chú xử lý..."
+                              value={adminNote}
+                              disabled={isNoteLocked}
+                              onChange={(e) => setAdminNote(e.target.value)}
+                            />
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs text-gray-500">
+                                {isNoteLocked
+                                  ? "Ghi chú đã được lưu (không thể sửa)."
+                                  : "Ghi chú sẽ được lưu lại để tham chiếu sau."}
+                              </span>
+                              <div className="flex gap-2">
+                                {!isNoteLocked && (
+                                  <button
+                                    type="button"
+                                    disabled={
+                                      savingNote || !(adminNote || "").trim()
+                                    }
+                                    onClick={handleSaveAdminNote}
+                                    className="px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                                  >
+                                    {savingNote ? "Đang lưu..." : "Gửi ghi chú"}
+                                  </button>
+                                )}
+                              </div>
                             </div>
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-700 bg-white border border-gray-200 rounded-lg p-3">
+                            {(adminNote && adminNote.trim()) ||
+                              "Chưa có ghi chú"}
                           </div>
-                        </>
-                      ) : (
-                        <div className="text-sm text-gray-700 bg-white border border-gray-200 rounded-lg p-3">
-                          {(adminNote && adminNote.trim()) || "Chưa có ghi chú"}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -1092,7 +1101,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
             <div className="bg-gray-50 rounded-lg p-6 mt-2 border-t border-red-100">
               <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                 <UtensilsCrossed className="h-5 w-5 text-red-600" />
-                Thông tin bánh (Order) dành cho Shop
+                Thông tin đơn hàng:
               </h3>
               {order && Object.keys(order).length > 0 ? (
                 <>
@@ -1113,6 +1122,32 @@ export default function ComplaintDetails({ complaint, onBack }) {
                       <p className="text-gray-500 text-xs">Kích thước</p>
                       <p className="font-semibold text-gray-800">
                         {order.size || "-"}
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Số tầng bánh</p>
+                      <p className="font-semibold text-gray-800">
+                        {order.tier ?? "-"}
+                      </p>
+                    </div>
+
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">
+                        Thời gian khách đặt giao
+                      </p>
+                      <p className="font-semibold text-gray-800">
+                        {order?.delivery_time
+                          ? (() => {
+                              try {
+                                return new Date(
+                                  order.delivery_time
+                                ).toLocaleString("vi-VN");
+                              } catch {
+                                return String(order.delivery_time);
+                              }
+                            })()
+                          : "-"}
                       </p>
                     </div>
 
@@ -1140,6 +1175,16 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     </div>
                   </div>
 
+                  {/* Special Instructions (show if available) */}
+                  {specialInstructions && (
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                      <p className="text-gray-600 mb-2">Ghi chú đơn hàng</p>
+                      <p className="font-medium text-gray-800 whitespace-pre-line">
+                        {specialInstructions}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Evidence Images */}
                   {evidenceImages.length > 0 && (
                     <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
@@ -1162,27 +1207,17 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     </div>
                   )}
 
-                  {/* Special Instructions */}
-                  {/* {specialInstructions && (
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
-                      <p className="text-gray-600 mb-2">Hướng dẫn đặc biệt</p>
-                      <p className="font-medium text-gray-800 whitespace-pre-line">
-                        {specialInstructions}
-                      </p>
-                    </div>
-                  )} */}
-
                   {/* Order Details Table */}
                   {orderDetails.length > 0 && (
                     <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-gray-700 font-semibold flex items-center gap-2">
                           <UtensilsCrossed className="h-4 w-4 text-red-500" />
-                          Nguyên liệu trong đơn
+                          Topping:
                         </p>
-                        <span className="text-xs text-gray-500">
+                        {/* <span className="text-xs text-gray-500">
                           {orderDetails.length} dòng
-                        </span>
+                        </span> */}
                       </div>
                       <div className="overflow-x-auto">
                         <table className="min-w-full text-xs md:text-sm">
@@ -1192,9 +1227,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
                               <th className="px-2 py-1 text-left">Hình</th>
                               <th className="px-2 py-1 text-left">Tên</th>
                               <th className="px-2 py-1 text-left">
-                                Ingredient ID
+                                ID topping
                               </th>
-                              <th className="px-2 py-1 text-right">SL</th>
+                              <th className="px-2 py-1 text-right">Số lượng</th>
                               <th className="px-2 py-1 text-right">Đơn giá</th>
                               <th className="px-2 py-1 text-right">
                                 Thành tiền
