@@ -18,6 +18,7 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
   const [imagePreview, setImagePreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [remainingMs, setRemainingMs] = useState(null);
 
   useEffect(() => {
     if (isOpen && order) {
@@ -27,8 +28,71 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
       setImagePreview("");
       setLoading(false);
       setUploading(false);
+      setRemainingMs(null);
     }
   }, [isOpen, order]);
+
+  // Countdown logic: allow complaints within 2 hours after shipped timestamp
+  useEffect(() => {
+    let intervalId = null;
+
+    const shippedRaw =
+      order?.shipped_at ||
+      order?.shippedAt ||
+      order?.shipped_time ||
+      order?.shippedTime ||
+      order?.shipped ||
+      null;
+
+    if (!shippedRaw) {
+      setRemainingMs(null);
+      return () => {};
+    }
+
+    const shippedDate = new Date(shippedRaw);
+    if (!isFinite(shippedDate)) {
+      setRemainingMs(null);
+      return () => {};
+    }
+
+    const expiry = shippedDate.getTime() + 2 * 60 * 60 * 1000; // 2 hours
+
+    const update = () => {
+      const rem = expiry - Date.now();
+      setRemainingMs(rem);
+      if (rem <= 0 && intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    update();
+    intervalId = setInterval(update, 1000);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [
+    order?.shipped_at,
+    order?.shippedAt,
+    order?.shipped_time,
+    order?.shippedTime,
+    order?.shipped,
+    isOpen,
+  ]);
+
+  const formatRemaining = (ms) => {
+    if (ms == null) return null;
+    if (ms <= 0) return "00:00:00";
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const hrs = Math.floor(total / 3600);
+    const mins = Math.floor((total % 3600) / 60);
+    const secs = total % 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+  };
+
+  const isExpired = remainingMs != null && remainingMs <= 0;
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -57,6 +121,12 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
   const handleSubmit = async () => {
     if (!subject.trim() || !order) {
       alert("Vui lòng điền đầy đủ thông tin!");
+      return;
+    }
+
+    // Prevent submitting if 2-hour shipped window expired
+    if (isExpired) {
+      alert("Thời gian 2 tiếng để tạo khiếu nại đã hết hạn.");
       return;
     }
 
@@ -139,6 +209,21 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
               {order.customerName}
             </p>
           </div>
+
+          {remainingMs != null && (
+            <div className="p-3 bg-yellow-50 border border-yellow-100 rounded text-sm text-yellow-800">
+              {isExpired ? (
+                <div>Hết hạn tạo khiếu nại (đã quá 2 tiếng kể từ khi giao)</div>
+              ) : (
+                <div>
+                  Thời gian còn lại để tạo khiếu nại:{" "}
+                  <span className="font-semibold">
+                    {formatRemaining(remainingMs)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label htmlFor="subject" className="mb-2 block font-medium">

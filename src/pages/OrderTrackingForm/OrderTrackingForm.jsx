@@ -515,6 +515,81 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
         orderDetail.hasComplaint)
   );
 
+  // Allow creating a complaint when order is shipped OR delivery_time is past due
+  const isPastDelivery = (() => {
+    const dt = orderDetail?.delivery_time ?? orderDetail?.deliveryTime ?? null;
+    if (!dt) return false;
+    try {
+      const d = new Date(dt);
+      return isFinite(d) && d.getTime() < Date.now();
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  // Countdown for 2-hour window after shipped
+  const [remainingMs, setRemainingMs] = useState(null);
+
+  useEffect(() => {
+    let intervalId = null;
+
+    if (!orderDetail) {
+      setRemainingMs(null);
+      return () => {};
+    }
+
+    const raw = orderDetail.__raw || {};
+    const shippedRaw =
+      raw.shipped_at ||
+      raw.shippedAt ||
+      raw.shipped_time ||
+      raw.shippedTime ||
+      raw.shipped ||
+      orderDetail.shipped_at ||
+      orderDetail.shippedAt ||
+      orderDetail.shipped_time ||
+      orderDetail.shippedTime ||
+      orderDetail.shipped ||
+      null;
+
+    if (!shippedRaw) {
+      setRemainingMs(null);
+      return () => {};
+    }
+
+    const shippedDate = new Date(shippedRaw);
+    if (!isFinite(shippedDate)) {
+      setRemainingMs(null);
+      return () => {};
+    }
+
+    const expiry = shippedDate.getTime() + 2 * 60 * 60 * 1000;
+
+    const update = () => {
+      const rem = expiry - Date.now();
+      setRemainingMs(rem);
+      if (rem <= 0 && intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    update();
+    intervalId = setInterval(update, 1000);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [orderDetail?.id, orderDetail?.__raw]);
+
+  const isExpired = remainingMs != null && remainingMs <= 0;
+
+  const canCreateComplaint =
+    canOwnerCustomerActions &&
+    !isShopOrdersPage &&
+    !hasComplaint &&
+    (isPastDelivery || (orderDetail?.status === "shipped" && !isExpired));
+
   const handleBackToList = () => {
     if (window.history.length > 1) {
       window.history.back();
@@ -607,17 +682,47 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
           {"<"} Quay lại danh sách đơn hàng
         </button>
 
-        {canOwnerCustomerActions &&
-          !isShopOrdersPage &&
-          orderDetail.status === "shipped" &&
-          !hasComplaint && (
-            <button
-              className="mb-6 ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow"
-              onClick={() => setShowComplaintModal(true)}
-            >
-              Tạo khiếu nại
-            </button>
-          )}
+        <div className="flex items-center gap-3 mb-6">
+          {canCreateComplaint ? (
+            <>
+              <button
+                className={`ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow ${
+                  isExpired ? "opacity-50 cursor-not-allowed" : ""
+                }`}
+                onClick={() => !isExpired && setShowComplaintModal(true)}
+                disabled={isExpired}
+              >
+                Tạo khiếu nại
+              </button>
+              {remainingMs != null && (
+                <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 px-3 py-2 rounded">
+                  {isExpired ? (
+                    <span>
+                      Hết hạn tạo khiếu nại (đã quá 2 tiếng kể từ khi giao)
+                    </span>
+                  ) : (
+                    <span>
+                      Thời gian còn lại để tạo khiếu nại:{" "}
+                      <strong>
+                        {(() => {
+                          const total = Math.max(
+                            0,
+                            Math.floor(remainingMs / 1000)
+                          );
+                          const hrs = Math.floor(total / 3600);
+                          const mins = Math.floor((total % 3600) / 60);
+                          const secs = total % 60;
+                          const pad = (n) => String(n).padStart(2, "0");
+                          return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+                        })()}
+                      </strong>
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          ) : null}
+        </div>
 
         <div className="p-6 shadow-lg rounded-xl border border-pink-100 bg-white mb-8">
           {/* Progress Bar */}
