@@ -126,117 +126,99 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
     try {
       setLoading(true);
       const response = await fetchOrderById(orderId);
-      const data = response?.order || response?.data || response;
+      const data = response?.order || response?.data || response || {};
 
-      const customerUser = data.User || data.user || {};
+      // Log nguyên bản response để debug (giữ nguyên object từ API)
+      // eslint-disable-next-line no-console
+      console.log("RAW_ORDER_RESPONSE:", data);
+
+      // Simple customer extraction (ưu tiên embedded User)
+      const userObj = data.User || data.user || {};
       const customerName =
-        customerUser.full_name ||
-        customerUser.username ||
+        userObj.full_name ||
         (typeof data.customer_id === "number"
           ? `Khách hàng #${data.customer_id}`
-          : data.customer_id?.name || "Không có tên");
-      const customerEmail =
-        customerUser.email ||
-        customerUser.username ||
-        data.customer_id?.email ||
-        "";
-      const customerPhone =
-        customerUser.phone ||
-        customerUser.phone_number ||
-        data.customer_id?.phone ||
-        data.customer_id?.phone_number ||
-        "";
-      const customerAddress =
-        customerUser.address ||
-        customerUser.business_address ||
-        data.address ||
-        data.shipping_address ||
-        "";
+          : data.customer_id?.name) ||
+        null;
+      const customerEmail = userObj.email || "Chưa cập nhật";
+      const customerPhone = userObj.phone_number || "Chưa cập nhật";
+      const customerAddress = userObj.address || "Chưa cập nhật";
 
-      let items = [];
-      if (Array.isArray(data.order_details)) {
-        items = data.order_details.map((item) => ({
-          name:
-            item.cake?.name ||
-            item.marketplace_post?.title ||
-            `Bánh tùy chỉnh #${item.id || "N/A"}`,
-          quantity: parseInt(item.quantity) || 1,
-          price: parseFloat(item.price) || parseFloat(item.base_price) || 0,
-          customization: {
-            size: item.size || data.size || "N/A",
-            special_instructions:
-              item.special_instructions || data.special_instructions || "",
-            toppings: [],
-          },
-        }));
-      } else if (Array.isArray(data.orderDetails)) {
-        items = data.orderDetails.map((od) => {
-          const q = Number(od.quantity) || 1;
-          const total = parseFloat(od.total_price) || 0;
-          const unit = q > 0 ? total / q : total;
-          return {
-            name: `Nguyên liệu #${od.ingredient_id}`,
-            ingredientId: od.ingredient_id,
-            quantity: q,
-            price: unit,
-            customization: { toppings: [] },
-          };
-        });
-      }
+      // Normalize items from common shapes without heavy transforms
+      const rawItems = data.orderDetails || [];
+      const items = Array.isArray(rawItems)
+        ? rawItems.map((it) => ({
+            // name:
+            //   it.cake?.name ||
+            //   it.title ||
+            //   it.name ||
+            //   it.marketplace_post?.title ||
+            //   it.ingredient_name ||
+            //   `Item #${it.id ?? it.ingredient_id ?? "N/A"}`,
+            quantity: Number(it.quantity ?? it.qty ?? it.amount) || 1,
+            price: Number(it.price ?? it.unit_price ?? it.base_price ?? 0) || 0,
+            customization: {
+              size: it.size ?? data.size ?? null,
+              special_instructions:
+                it.special_instructions ?? data.special_instructions ?? null,
+              toppings: it.toppings || it.customization?.toppings || [],
+            },
+            ingredientId: it.ingredient_id ?? it.ingredientId ?? null,
+            __raw: it,
+          }))
+        : [];
 
-      const basePrice =
-        parseFloat(data.base_price) ||
-        parseFloat(data.total_price) ||
-        parseFloat(data.total) ||
-        0;
-      const totalPrice = parseFloat(data.total_price) || basePrice;
-
-      const computedIngredientTotal = Array.isArray(data.orderDetails)
-        ? data.orderDetails.reduce(
-            (acc, od) => acc + (parseFloat(od.total_price) || 0),
-            0
-          )
-        : null;
-      const ingredientTotalField = parseFloat(data.ingredient_total);
-
-      // YÊU CẦU: log RAW data tại dòng này (không phải object đã transform)
-      // Log nguyên bản object trả về từ API (không chỉnh sửa)
-      // Debug (có thể comment khi stable)
+      const base_price = Number(data.base_price ?? 0) || 0;
+      const total =
+        Number(data.total_price ?? data.total ?? data.amount ?? base_price) ||
+        base_price;
+      const ingredient_total = Number(
+        data.ingredient_total ?? data.ingredientTotal ?? NaN
+      );
 
       const transformedOrder = {
-        id: data.id || data._id,
+        id: data.id ?? data._id ?? data.order_id ?? null,
+        orderNumber:
+          data.orderNumber ??
+          data.order_number ??
+          data.order_no ??
+          `ORD-${data.id ?? "N/A"}`,
+        placedDate:
+          data.created_at ?? data.createdAt ?? data.placedDate ?? null,
+        status: normalizeStatus(data.status ?? data.order_status ?? "pending"),
         customerName,
         customerEmail,
         customerPhone,
         customerAddress,
         items,
-        total: totalPrice,
-        base_price: basePrice,
-        status: normalizeStatus(data.status || "pending"),
-        orderNumber: data.orderNumber || `ORD-${data.id}`,
-        placedDate:
-          data.created_at ||
-          data.createdAt ||
-          data.placedDate ||
-          new Date().toISOString(),
-        size: data.size || null,
-        ingredient_total: Number.isFinite(ingredientTotalField)
-          ? ingredientTotalField
-          : computedIngredientTotal,
-        special_instructions: data.special_instructions || "",
+        base_price,
+        total,
+        ingredient_total: Number.isFinite(ingredient_total)
+          ? ingredient_total
+          : null,
+        delivery_time: data.delivery_time ?? data.deliveryTime ?? null,
+        special_instructions:
+          data.special_instructions ?? data.specialInstructions ?? null,
+        size: data.size ?? null,
         shop_id: extractShopId(data),
-        marketplace_post_id: data.marketplace_post_id || null,
+        tier: data.tier ?? null,
+        marketplace_post_id:
+          data.marketplace_post_id ?? data.marketplacePostId ?? null,
+        marketplace_post:
+          data.marketplace_post ?? data.marketplacePost ?? data.post ?? null,
         customer_user_id: extractCustomerUserId(data),
         shippingAddress: {
           address:
-            data.shipping_address ||
-            data.shippingAddress ||
-            data.delivery_address ||
-            data.deliveryAddress ||
-            customerAddress ||
+            data.shipping_address ??
+            data.shippingAddress ??
+            data.delivery_address ??
+            data.deliveryAddress ??
+            customerAddress ??
             "",
         },
+        __raw: data,
       };
+
       setOrderDetail(transformedOrder);
     } catch (error) {
       alert("Không thể tải thông tin đơn hàng");
@@ -704,6 +686,18 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
                 </button>
               )}
 
+              {/* Shop có thể Hủy đơn khi trạng thái đang là "ordered" */}
+              {canShopControlHere && orderDetail.status === "ordered" && (
+                <button
+                  onClick={() =>
+                    handleUpdateStatus(orderDetail.id, "cancelled")
+                  }
+                  className="px-4 py-2 rounded-lg font-semibold border bg-rose-500 text-white border-rose-500 hover:bg-rose-600 transition-colors duration-200"
+                >
+                  Hủy đơn
+                </button>
+              )}
+
               {canShopControlHere &&
                 orderDetail.status === "preparedForDelivery" && (
                   <button
@@ -747,12 +741,14 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
           </div>
 
           {/* Customer Details */}
-          <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-              <User className="h-5 w-5" />
+          <div className="p-6 bg-white shadow rounded-2xl mb-6 border border-pink-100">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-3 text-pink-600">
+              <span className="p-2 rounded-full bg-pink-50">
+                <User className="h-5 w-5" />
+              </span>
               Thông tin khách hàng
             </h3>
-            <ul className="space-y-1 text-gray-800">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-gray-700">
               <li>
                 <span className="font-medium">Tên:</span>{" "}
                 {orderDetail.customerName}
@@ -764,195 +760,166 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
               <li>
                 <span className="font-medium">Điện thoại:</span>{" "}
                 {orderDetail.customerPhone || (
-                  <span className="text-gray-500">Chưa cập nhật</span>
+                  <span className="text-gray-400">Chưa cập nhật</span>
                 )}
               </li>
-              <li>
+              <li className="sm:col-span-2">
                 <span className="font-medium">Địa chỉ:</span>{" "}
                 {orderDetail.customerAddress ||
                   orderDetail?.shippingAddress?.address ||
                   orderDetail?.address || (
-                    <span className="text-gray-500">Chưa cập nhật</span>
+                    <span className="text-gray-400">Chưa cập nhật</span>
                   )}
               </li>
             </ul>
           </div>
 
           {/* Order Meta Info */}
-          <div className="p-4 bg-pink-50 border border-pink-100 rounded-xl mb-6">
-            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-              <Package className="h-5 w-5" />
+          <div className="p-6 bg-white shadow rounded-2xl mb-6 border border-pink-100">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-3 text-pink-600">
+              <span className="p-2 rounded-full bg-pink-50">
+                <Package className="h-5 w-5" />
+              </span>
               Thông tin đơn hàng
             </h3>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-gray-800">
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6 text-gray-700">
               <li>
                 <span className="font-medium">Mã đơn:</span>{" "}
-                {orderDetail.orderNumber || "Chưa cập nhật"}
+                {orderDetail.orderNumber || "—"}
               </li>
               <li>
-                <span className="font-medium">ID:</span>{" "}
-                {orderDetail.id || "Chưa cập nhật"}
+                <span className="font-medium">ID:</span> {orderDetail.id || "—"}
               </li>
               <li>
                 <span className="font-medium">Ngày tạo:</span>{" "}
                 {orderDetail.placedDate
                   ? new Date(orderDetail.placedDate).toLocaleString("vi-VN")
-                  : "Chưa cập nhật"}
+                  : "—"}
               </li>
               <li>
                 <span className="font-medium">Trạng thái:</span>{" "}
                 {statusMap[orderDetail.status]?.label ||
                   orderDetail.status ||
-                  "Chưa cập nhật"}
+                  "—"}
               </li>
               <li>
                 <span className="font-medium">Shop ID:</span>{" "}
-                {orderDetail?.shop_id || "Chưa cập nhật"}
+                {orderDetail?.shop_id || "—"}
               </li>
               <li>
-                <span className="font-medium">Tên khách hàng:</span>{" "}
-                {orderDetail.customerName || "Chưa cập nhật"}
+                <span className="font-medium">Ngày khách hàng đặt giao:</span>{" "}
+                {orderDetail?.delivery_time
+                  ? (() => {
+                      try {
+                        return new Date(
+                          orderDetail.delivery_time
+                        ).toLocaleString("vi-VN");
+                      } catch {
+                        return String(orderDetail.delivery_time);
+                      }
+                    })()
+                  : "—"}
               </li>
-              <li>
-                <span className="font-medium">Email khách hàng:</span>{" "}
-                {orderDetail.customerEmail || "Chưa cập nhật"}
+              <li className="md:col-span-2">
+                <span className="font-medium">Ghi chú đơn hàng:</span>{" "}
+                {orderDetail?.special_instructions || (
+                  <span className="text-gray-400">Không có</span>
+                )}
               </li>
-              <li>
-                <span className="font-medium">Số điện thoại:</span>{" "}
-                {orderDetail.customerPhone || "Chưa cập nhật"}
-              </li>
-              {/* <li>
-                <span className="font-medium">Tổng tiền:</span>{" "}
-                {orderDetail.base_price.toLocaleString("vi-VN")} đ
-              </li> */}
+            </ul>
 
+            {/* Cake & Topping Detail */}
+            <div className="mt-6 border-t border-pink-100 pt-4">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-                Chi tiết bánh
+                🎂 Chi tiết bánh
               </h3>
+
               {derivedCakeQuantity && (
-                <>
-                  <li></li>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-gray-700">
+                  <li>
+                    <span className="font-medium">Kích thước (Size):</span>{" "}
+                    {orderDetail.size ?? "—"}
+                  </li>
+                  <li>
+                    <span className="font-medium">Số tầng bánh:</span>{" "}
+                    {orderDetail.tier ?? "1 "} (tầng)
+                  </li>
                   <li>
                     <span className="font-medium">Đơn giá:</span>{" "}
                     {derivedCakeUnitPrice
                       ? Number(derivedCakeUnitPrice).toLocaleString("vi-VN") +
                         "đ"
-                      : "—"}{" "}
+                      : "—"}
                   </li>
-                  <li></li>
                   <li>
-                    <span className="font-medium">Số lượng bánh:</span>{" "}
+                    <span className="font-medium">Số lượng:</span>{" "}
                     {derivedCakeQuantity}
                   </li>
-                  <li></li>
-                  <li>
+
+                  <li className="sm:col-span-2 font-semibold text-pink-600">
                     <span className="font-medium">Tổng giá bánh:</span>{" "}
                     {orderDetail.base_price
                       ? Number(orderDetail.base_price).toLocaleString("vi-VN") +
                         "đ"
-                      : "Chưa cập nhật"}
+                      : "—"}
                   </li>
-                </>
+                </ul>
               )}
-            </ul>
+            </div>
 
-            {/* Order Items */}
-            <ul className="divide-y divide-pink-100 mt-6">
+            {/* Toppings */}
+            <div className="mt-6 border-t border-pink-100 pt-4">
               <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-                Chi tiết topping
+                🍓 Chi tiết topping
               </h3>
-              {orderDetail.items &&
-                orderDetail.items.map((item, idx) => (
-                  <li
-                    key={idx}
-                    className="flex justify-between items-center py-4"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-800">{item.name}</p>
-                      <p className="text-sm text-gray-600">
-                        Số lượng: x
-                        {item.quantity && Number(item.quantity) > 0
-                          ? item.quantity
-                          : derivedCakeQuantity || 1}
-                      </p>
-                      {Number(item.price) > 0 && (
+
+              {/* Nếu không có items hoặc mảng rỗng -> hiển thị thông báo */}
+              {!orderDetail.items || orderDetail.items.length === 0 ? (
+                <div className="text-gray-500">Không có topping</div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {orderDetail.items?.map((item, idx) => (
+                    <li
+                      key={idx}
+                      className="flex justify-between items-start py-3"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-800">{item.name}</p>
                         <p className="text-sm text-gray-600">
-                          Đơn giá: {Number(item.price).toLocaleString("vi-VN")}đ
+                          Số lượng: x
+                          {item.quantity && Number(item.quantity) > 0
+                            ? item.quantity
+                            : derivedCakeQuantity || 1}
                         </p>
-                      )}
-                      {item.customization && (
-                        <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                          {Object.entries(item.customization).map(
-                            ([key, value]) => {
-                              if (
-                                key === "toppings" &&
-                                Array.isArray(value) &&
-                                value.length > 0
-                              ) {
-                                return (
-                                  <p key={key}>
-                                    Topping:{" "}
-                                    {value
-                                      .map((t) => `${t.name} (${t.quantity})`)
-                                      .join(", ")}
-                                  </p>
-                                );
-                              }
-                              if (key === "special_instructions") return null;
-                              // Làm nổi bật kích thước bánh như thông tin đơn hàng chính
-                              if (
-                                key.toLowerCase() === "size" &&
-                                (typeof value === "string" ||
-                                  typeof value === "number")
-                              ) {
-                                return (
-                                  <p
-                                    key={key}
-                                    className="text-gray-800 text-sm md:text-base font-medium"
-                                  >
-                                    Size bánh đã đặt: {value}
-                                  </p>
-                                );
-                              }
-                              if (
-                                typeof value === "string" ||
-                                typeof value === "number"
-                              ) {
-                                return (
-                                  <p
-                                    key={key}
-                                    className="text-sm text-gray-600"
-                                  >
-                                    {key}: {value}
-                                  </p>
-                                );
-                              }
-                              return null;
-                            }
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <span className="font-semibold text-pink-600">
-                      {"Tổng tiền: "}
-                      {(
-                        Number(item.price || 0) *
-                        (item.quantity && Number(item.quantity) > 0
-                          ? Number(item.quantity)
-                          : derivedCakeQuantity || 1)
-                      ).toLocaleString("vi-VN")}
-                      đ
-                    </span>
-                  </li>
-                ))}
-            </ul>
-            <div className="flex justify-between items-center mt-4 p-4 bg-pink-100 rounded-lg font-bold text-lg text-pink-800">
+                        {Number(item.price) > 0 && (
+                          <p className="text-sm text-gray-600">
+                            Đơn giá:{" "}
+                            {Number(item.price).toLocaleString("vi-VN")}đ
+                          </p>
+                        )}
+                      </div>
+                      <span className="font-semibold text-pink-600">
+                        {(
+                          Number(item.price || 0) *
+                          (item.quantity && Number(item.quantity) > 0
+                            ? Number(item.quantity)
+                            : derivedCakeQuantity || 1)
+                        ).toLocaleString("vi-VN")}
+                        đ
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="flex justify-between items-center mt-6 p-4 bg-pink-50 rounded-xl font-bold text-lg text-pink-800">
               <span>Tổng cộng:</span>
               <span>
                 {orderDetail.total
                   ? Number(orderDetail.total).toLocaleString("vi-VN") + "đ"
-                  : "Chưa cập nhật"}
-                đ
+                  : "—"}
               </span>
             </div>
           </div>
