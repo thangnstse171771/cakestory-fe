@@ -944,7 +944,7 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 {/* Processing Actions */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-4">
-                    Xử lý khiếu nạ1
+                    Xử lý khiếu nại
                   </h3>
                   <div className="space-y-3">
                     {isAdmin && status === "pending" && (
