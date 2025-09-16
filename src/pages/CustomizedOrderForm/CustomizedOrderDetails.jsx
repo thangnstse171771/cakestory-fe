@@ -153,11 +153,44 @@ export default function CakeShop() {
     };
   }, [user]);
 
+  const deliveryTimeValidation = useMemo(() => {
+    if (!deliveryTime) {
+      return {
+        isValid: false,
+        error: "Vui lòng chọn thời gian nhận hàng",
+      };
+    }
+
+    const selectedDateTime = new Date(deliveryTime);
+    const minDateTime = new Date();
+    minDateTime.setHours(minDateTime.getHours() + requiredTime);
+
+    if (isNaN(selectedDateTime.getTime())) {
+      return {
+        isValid: false,
+        error: "Thời gian không hợp lệ",
+      };
+    }
+
+    if (selectedDateTime < minDateTime) {
+      return {
+        isValid: false,
+        error: `Thời gian nhận hàng phải sau ít nhất ${requiredTime} giờ từ bây giờ`,
+      };
+    }
+
+    return {
+      isValid: true,
+      error: null,
+    };
+  }, [deliveryTime, requiredTime]);
+
   const isCheckoutDisabled = useMemo(() => {
     if (isCheckingOut || !selectedSize) return true;
     if (!loadingBalance && user && walletBalance < totalPrice) return true;
     if (user && (!userContactInfo.phone || !userContactInfo.address))
       return true;
+    if (!deliveryTimeValidation.isValid) return true; // ✅ Add delivery time validation
     return false;
   }, [
     isCheckingOut,
@@ -167,6 +200,7 @@ export default function CakeShop() {
     walletBalance,
     totalPrice,
     userContactInfo,
+    deliveryTimeValidation.isValid, // ✅ Include validation state
   ]);
 
   // Event handlers
@@ -233,6 +267,14 @@ export default function CakeShop() {
         } trước khi thanh toán!`,
         { position: "top-right", autoClose: 4000 }
       );
+      return;
+    }
+
+    if (!deliveryTimeValidation.isValid) {
+      toast.error(deliveryTimeValidation.error, {
+        position: "top-right",
+        autoClose: 4000,
+      });
       return;
     }
 
@@ -608,20 +650,51 @@ export default function CakeShop() {
     </div>
   );
 
-  const renderSpecialInstructions = () => (
-    <div>
-      <label className="text-base font-medium mb-3 block">Ghi chú</label>
-      <input
-        type="text"
-        value={specialInstructions}
-        onChange={(e) => setSpecialInstructions(e.target.value)}
-        placeholder="Nhập ghi chú (ví dụ: Chúc mừng sinh nhật Huy, ...)"
-        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 
-                 focus:outline-none focus:border-pink-500 focus:ring-4 
-                 focus:ring-pink-100 transition-all duration-300"
-      />
-    </div>
-  );
+  const renderSpecialInstructions = () => {
+    const maxLength = 200;
+    const remainingChars = maxLength - specialInstructions.length;
+
+    return (
+      <div>
+        <label className="text-base font-medium mb-3 block">
+          Ghi chú
+          <span className="text-sm text-gray-500 font-normal ml-2">
+            (tối đa {maxLength} ký tự)
+          </span>
+        </label>
+        <textarea
+          value={specialInstructions}
+          onChange={(e) => {
+            if (e.target.value.length <= maxLength) {
+              setSpecialInstructions(e.target.value);
+            }
+          }}
+          placeholder="Nhập ghi chú (ví dụ: Chúc mừng sinh nhật Huy, trang trí hoa hồng, ...)"
+          maxLength={maxLength}
+          rows={3}
+          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 
+                   focus:outline-none focus:border-pink-500 focus:ring-4 
+                   focus:ring-pink-100 transition-all duration-300 resize-none"
+        />
+        <div className="flex justify-between items-center mt-2">
+          <div className="text-xs text-gray-500">
+            Ghi chú sẽ được gửi đến shop để tùy chỉnh bánh theo yêu cầu
+          </div>
+          <div
+            className={`text-xs ${
+              remainingChars < 20
+                ? "text-orange-500"
+                : remainingChars < 10
+                ? "text-red-500"
+                : "text-gray-400"
+            }`}
+          >
+            {remainingChars} ký tự còn lại
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderDeliveryTime = () => {
     // Compute the earliest valid time
@@ -630,9 +703,6 @@ export default function CakeShop() {
 
     // Convert to datetime-local string (YYYY-MM-DDTHH:mm)
     const minValue = minDeliveryTime.toISOString().slice(0, 16);
-
-    // Validation check
-    const isInvalid = deliveryTime && new Date(deliveryTime) < minDeliveryTime;
 
     return (
       <div>
@@ -646,19 +716,27 @@ export default function CakeShop() {
             console.log("User picked datetime:", e.target.value);
             setDeliveryTime(e.target.value);
           }}
-          min={minValue} // ✅ browser prevents earlier times
+          min={minValue}
           required
           className={`w-full border-2 rounded-xl px-4 py-3 transition-all duration-300
           focus:outline-none focus:ring-4
           ${
-            isInvalid
+            !deliveryTimeValidation.isValid && deliveryTime
               ? "border-red-500 focus:border-red-500 focus:ring-red-100"
               : "border-gray-200 focus:border-pink-500 focus:ring-pink-100"
           }`}
         />
-        {isInvalid && (
+        {/* ✅ Show validation error */}
+        {!deliveryTimeValidation.isValid && deliveryTime && (
           <p className="text-red-500 text-sm mt-2">
-            Thời gian nhận hàng phải sau ít nhất {requiredTime} giờ từ bây giờ.
+            {deliveryTimeValidation.error}
+          </p>
+        )}
+        {/* ✅ Show required field message when empty */}
+        {!deliveryTime && (
+          <p className="text-gray-500 text-sm mt-2">
+            Vui lòng chọn thời gian nhận hàng (tối thiểu {requiredTime} giờ từ
+            bây giờ)
           </p>
         )}
       </div>
@@ -728,6 +806,7 @@ export default function CakeShop() {
     if (!selectedSize) return "Chọn kích thước bánh";
     if (!loadingBalance && user && walletBalance < totalPrice)
       return "Số dư không đủ";
+    if (!deliveryTime) return "Chọn thời gian nhận hàng";
     if (user && !userContactInfo.phone) return "Thiếu SĐT";
     if (user && !userContactInfo.address) return "Thiếu địa chỉ";
     return "Thanh Toán";
@@ -917,7 +996,11 @@ export default function CakeShop() {
                     {renderPriceSummary()}
                     <button
                       onClick={() => {
-                        if (!userContactInfo.phone || !userContactInfo.address)
+                        if (
+                          !userContactInfo.phone ||
+                          !userContactInfo.address ||
+                          !deliveryTime
+                        )
                           return;
                         setShowConfirmModal(true);
                       }}
