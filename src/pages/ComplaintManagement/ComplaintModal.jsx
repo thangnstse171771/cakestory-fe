@@ -37,7 +37,12 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
     let intervalId = null;
 
     const shippedRaw =
-      order?.shipped_at || order?.shippedAt || order?.shipped_time || order?.shippedTime || order?.shipped || null;
+      order?.shipped_at ||
+      order?.shippedAt ||
+      order?.shipped_time ||
+      order?.shippedTime ||
+      order?.shipped ||
+      null;
 
     if (!shippedRaw) {
       setRemainingMs(null);
@@ -67,7 +72,14 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [order?.shipped_at, order?.shippedAt, order?.shipped_time, order?.shippedTime, order?.shipped, isOpen]);
+  }, [
+    order?.shipped_at,
+    order?.shippedAt,
+    order?.shipped_time,
+    order?.shippedTime,
+    order?.shipped,
+    isOpen,
+  ]);
 
   const formatRemaining = (ms) => {
     if (ms == null) return null;
@@ -204,7 +216,10 @@ export default function ComplaintModal({ isOpen, onClose, order, onSubmit }) {
                 <div>Hết hạn tạo khiếu nại (đã quá 2 tiếng kể từ khi giao)</div>
               ) : (
                 <div>
-                  Thời gian còn lại để tạo khiếu nại: <span className="font-semibold">{formatRemaining(remainingMs)}</span>
+                  Thời gian còn lại để tạo khiếu nại:{" "}
+                  <span className="font-semibold">
+                    {formatRemaining(remainingMs)}
+                  </span>
                 </div>
               )}
             </div>
