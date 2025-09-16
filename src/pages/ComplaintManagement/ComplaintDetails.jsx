@@ -1099,17 +1099,17 @@ export default function ComplaintDetails({ complaint, onBack }) {
 
             {/* Order Information */}
             <div className="bg-gray-50 rounded-lg p-6 mt-2 border-t border-red-100">
-              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <h3 className="font-semibold text-red-800 mb-4 flex items-center gap-2">
                 <UtensilsCrossed className="h-5 w-5 text-red-600" />
-                Thông tin đơn hàng:
+                Thông tin đơn hàng ID: {order.id}
               </h3>
               {order && Object.keys(order).length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
-                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                    {/* <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="text-gray-500 text-xs">Mã đơn</p>
                       <p className="font-semibold text-gray-800">{order.id}</p>
-                    </div>
+                    </div> */}
 
                     <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="text-gray-500 text-xs">Tổng đơn:</p>
@@ -1131,7 +1131,26 @@ export default function ComplaintDetails({ complaint, onBack }) {
                         {order.tier ?? "-"}
                       </p>
                     </div>
-
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Ngày tạo đơn</p>
+                      <p className="font-semibold text-gray-800">
+                        {(() => {
+                          const c =
+                            order?.createdAt ??
+                            order?.created_at ??
+                            order?.created_time ??
+                            order?.creation_time ??
+                            order?.created ??
+                            null;
+                          if (!c) return "-";
+                          try {
+                            return new Date(c).toLocaleString("vi-VN");
+                          } catch {
+                            return String(c);
+                          }
+                        })()}
+                      </p>
+                    </div>
                     <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="text-gray-500 text-xs">
                         Thời gian khách đặt giao
@@ -1148,6 +1167,50 @@ export default function ComplaintDetails({ complaint, onBack }) {
                               }
                             })()
                           : "-"}
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                      <p className="text-gray-500 text-xs">Giao hàng lúc</p>
+                      <p className="font-semibold">
+                        {(() => {
+                          const sRaw =
+                            order?.shipped_at ??
+                            order?.shippedAt ??
+                            order?.shipped_time ??
+                            order?.shippedTime ??
+                            order?.shipped ??
+                            null;
+                          const deliveryRaw =
+                            order?.delivery_time ?? order?.deliveryTime ?? null;
+
+                          const parseTs = (v) => {
+                            if (v === null || v === undefined) return null;
+                            const n = Number(v);
+                            if (!Number.isNaN(n) && Number.isFinite(n)) {
+                              if (n > 1e12) return n; // ms
+                              if (n > 1e9) return n * 1000; // seconds -> ms
+                            }
+                            const d = new Date(v);
+                            return isFinite(d) ? d.getTime() : null;
+                          };
+
+                          const sTs = parseTs(sRaw);
+                          const dTs = parseTs(deliveryRaw);
+
+                          if (!sTs || (dTs && sTs > dTs)) {
+                            return (
+                              <span className="text-red-600">
+                                Chưa giao hàng
+                              </span>
+                            );
+                          }
+
+                          try {
+                            return new Date(sRaw).toLocaleString("vi-VN");
+                          } catch {
+                            return String(sRaw);
+                          }
+                        })()}
                       </p>
                     </div>
 

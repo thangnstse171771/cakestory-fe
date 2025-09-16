@@ -540,7 +540,17 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
 
     const raw = orderDetail.__raw || {};
     const shippedRaw =
-      raw.shipped_at || raw.shippedAt || raw.shipped_time || raw.shippedTime || raw.shipped || orderDetail.shipped_at || orderDetail.shippedAt || orderDetail.shipped_time || orderDetail.shippedTime || orderDetail.shipped || null;
+      raw.shipped_at ||
+      raw.shippedAt ||
+      raw.shipped_time ||
+      raw.shippedTime ||
+      raw.shipped ||
+      orderDetail.shipped_at ||
+      orderDetail.shippedAt ||
+      orderDetail.shipped_time ||
+      orderDetail.shippedTime ||
+      orderDetail.shipped ||
+      null;
 
     if (!shippedRaw) {
       setRemainingMs(null);
@@ -676,7 +686,9 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
           {canCreateComplaint ? (
             <>
               <button
-                className={`ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow ${isExpired ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded-lg shadow ${
+                  isExpired ? "opacity-50 cursor-not-allowed" : ""
+                }`}
                 onClick={() => !isExpired && setShowComplaintModal(true)}
                 disabled={isExpired}
               >
@@ -685,16 +697,26 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
               {remainingMs != null && (
                 <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-100 px-3 py-2 rounded">
                   {isExpired ? (
-                    <span>Hết hạn tạo khiếu nại (đã quá 2 tiếng kể từ khi giao)</span>
+                    <span>
+                      Hết hạn tạo khiếu nại (đã quá 2 tiếng kể từ khi giao)
+                    </span>
                   ) : (
-                    <span>Thời gian còn lại để tạo khiếu nại: <strong>{(() => {
-                      const total = Math.max(0, Math.floor(remainingMs / 1000));
-                      const hrs = Math.floor(total / 3600);
-                      const mins = Math.floor((total % 3600) / 60);
-                      const secs = total % 60;
-                      const pad = (n) => String(n).padStart(2, '0');
-                      return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
-                    })()}</strong></span>
+                    <span>
+                      Thời gian còn lại để tạo khiếu nại:{" "}
+                      <strong>
+                        {(() => {
+                          const total = Math.max(
+                            0,
+                            Math.floor(remainingMs / 1000)
+                          );
+                          const hrs = Math.floor(total / 3600);
+                          const mins = Math.floor((total % 3600) / 60);
+                          const secs = total % 60;
+                          const pad = (n) => String(n).padStart(2, "0");
+                          return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+                        })()}
+                      </strong>
+                    </span>
                   )}
                 </div>
               )}
