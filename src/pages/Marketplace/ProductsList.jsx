@@ -180,34 +180,49 @@ const ProductsList = ({ products = [], isOwnShop = false }) => {
                   </div>
                 )}
 
+                <div className="absolute top-3 right-3 z-20">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-sm">
+                    Đặt trước {item.required_time || 0} giờ
+                  </span>
+                </div>
+
                 {/* Available/Expired Badge */}
                 {available ? (
-                  <div className="absolute top-3 right-3 px-3 py-1 bg-green-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+                  <div className="absolute top-10 right-3 px-3 py-1 bg-green-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
                     Còn hàng
                   </div>
                 ) : (
-                  <div className="absolute top-3 right-3 px-3 py-1 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                    hết hạn
+                  <div className="absolute top-10 right-3 px-3 py-1 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+                    Hết hạn
                   </div>
                 )}
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                    <svg
-                      className="w-4 h-4 text-gray-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {shop?.avatar_image ? (
+                      <img
+                        src={shop.avatar_image}
+                        alt="Shop Avatar"
+                        className="w-full h-full object-cover"
                       />
-                    </svg>
+                    ) : (
+                      <svg
+                        className="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                    )}
                   </div>
+
                   <p className="text-sm text-gray-600 hover:text-gray-800 transition-colors">
                     {shop.business_name || "Cửa hàng không xác định"}
                   </p>

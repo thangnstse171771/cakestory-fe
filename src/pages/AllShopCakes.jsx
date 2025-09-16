@@ -296,14 +296,20 @@ const AllShopCakes = () => {
                     </span>
                   </div>
 
+                  <div className="absolute top-3 right-3 z-20">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-sm">
+                    Đặt trước {cake.required_time || 0} giờ
+                  </span>
+                </div>
+
                   {/* Available/Expired Badge */}
                   {available ? (
-                    <div className="absolute top-3 right-3 px-3 py-1 bg-green-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+                    <div className="absolute top-10 right-3 px-3 py-1 bg-green-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
                       Còn hàng
                     </div>
                   ) : (
-                    <div className="absolute top-3 right-3 px-3 py-1 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
-                      hết hạn
+                    <div className="absolute top-10 right-3 px-3 py-1 bg-orange-500/90 backdrop-blur-sm text-white text-xs font-medium rounded-full z-20">
+                      Hết hạn
                     </div>
                   )}
 

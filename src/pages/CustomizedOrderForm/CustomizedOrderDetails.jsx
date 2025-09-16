@@ -75,6 +75,8 @@ export default function CakeShop() {
   const [errorIngredients, setErrorIngredients] = useState("");
 
   const [productData, setProductData] = useState(null);
+  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(INITIAL_QUANTITY);
   const [selectedToppings, setSelectedToppings] = useState([]);
@@ -86,6 +88,8 @@ export default function CakeShop() {
   const [loadingBalance, setLoadingBalance] = useState(true);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [createdOrder, setCreatedOrder] = useState(null);
+
+  const requiredTime = productData?.required_time || 0;
 
   // Computed values
   const availableSizes = useMemo(() => {
@@ -189,6 +193,29 @@ export default function CakeShop() {
     });
   }, []);
 
+  const convertLocalTimeToUTC = (localTimeString) => {
+    if (!localTimeString) return null;
+
+    // Parse local datetime-local string correctly
+    const localDate = new Date(localTimeString);
+
+    if (isNaN(localDate.getTime())) {
+      console.error("Invalid date:", localTimeString);
+      return null;
+    }
+
+    // Convert to UTC string - this handles Vietnam timezone automatically
+    // since datetime-local input gives us the local time in Vietnam
+    const utcString = localDate.toISOString();
+    console.log("Converted local time to UTC:", {
+      input: localTimeString,
+      localDate: localDate.toString(),
+      utcString: utcString,
+    });
+
+    return utcString;
+  };
+
   const handleCheckout = useCallback(async () => {
     if (!user || !selectedSize) {
       toast.error("Thông tin không hợp lệ!");
@@ -213,22 +240,35 @@ export default function CakeShop() {
 
     try {
       const baseCakePrice = baseCakeSubtotal; // already size * quantity
+
+      const isoDeliveryTime = deliveryTime
+        ? convertLocalTimeToUTC(deliveryTime)
+        : null;
+
+      // console.log("Raw deliveryTime from form:", deliveryTime);
+      // console.log("Converted delivery_time being sent:", isoDeliveryTime);
+      // console.log("Special instructions being sent:", specialInstructions);
+
       const orderData = {
         customer_id: user.id,
         shop_id: parseInt(shopId),
         marketplace_post_id: productData?.post_id || productData?.id || 0,
         size: selectedSize,
+        tier: productData?.tier || 1,
         quantity,
         status: "pending",
         base_price: baseCakePrice,
         total_price: totalPrice, // includes toppingsSubtotal (not multiplied by quantity)
-        special_instructions: "string",
+        special_instructions: specialInstructions || "",
+        delivery_time: isoDeliveryTime,
         order_details: selectedToppings.map((topping) => ({
           ingredient_id: topping.id,
           // quantity represents total units of this topping for the whole order
           quantity: topping.quantity,
         })),
       };
+
+      // console.log("Complete order data being sent:", orderData);
 
       const response = await createCakeOrder(orderData);
 
@@ -257,6 +297,8 @@ export default function CakeShop() {
     totalPrice,
     selectedToppings,
     navigate,
+    deliveryTime,
+    specialInstructions,
   ]);
 
   // Effects
@@ -566,6 +608,63 @@ export default function CakeShop() {
     </div>
   );
 
+  const renderSpecialInstructions = () => (
+    <div>
+      <label className="text-base font-medium mb-3 block">Ghi chú</label>
+      <input
+        type="text"
+        value={specialInstructions}
+        onChange={(e) => setSpecialInstructions(e.target.value)}
+        placeholder="Nhập ghi chú (ví dụ: Chúc mừng sinh nhật Huy, ...)"
+        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 
+                 focus:outline-none focus:border-pink-500 focus:ring-4 
+                 focus:ring-pink-100 transition-all duration-300"
+      />
+    </div>
+  );
+
+  const renderDeliveryTime = () => {
+    // Compute the earliest valid time
+    const minDeliveryTime = new Date();
+    minDeliveryTime.setHours(minDeliveryTime.getHours() + requiredTime);
+
+    // Convert to datetime-local string (YYYY-MM-DDTHH:mm)
+    const minValue = minDeliveryTime.toISOString().slice(0, 16);
+
+    // Validation check
+    const isInvalid = deliveryTime && new Date(deliveryTime) < minDeliveryTime;
+
+    return (
+      <div>
+        <label className="text-base font-medium mb-3 block">
+          Thời gian nhận hàng
+        </label>
+        <input
+          type="datetime-local"
+          value={deliveryTime}
+          onChange={(e) => {
+            console.log("User picked datetime:", e.target.value);
+            setDeliveryTime(e.target.value);
+          }}
+          min={minValue} // ✅ browser prevents earlier times
+          required
+          className={`w-full border-2 rounded-xl px-4 py-3 transition-all duration-300
+          focus:outline-none focus:ring-4
+          ${
+            isInvalid
+              ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+              : "border-gray-200 focus:border-pink-500 focus:ring-pink-100"
+          }`}
+        />
+        {isInvalid && (
+          <p className="text-red-500 text-sm mt-2">
+            Thời gian nhận hàng phải sau ít nhất {requiredTime} giờ từ bây giờ.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const renderPriceSummary = () => (
     <div className="space-y-3">
       <div className="flex justify-between">
@@ -810,6 +909,10 @@ export default function CakeShop() {
                   </div>
                   <div className="p-6 space-y-6">
                     {renderQuantityControl()}
+                    <div className="border-t"></div>
+                    {renderSpecialInstructions()}
+                    <div className="border-t"></div>
+                    {renderDeliveryTime()}
                     <div className="border-t pt-4"></div>
                     {renderPriceSummary()}
                     <button

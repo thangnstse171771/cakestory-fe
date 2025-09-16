@@ -21,6 +21,11 @@ const CreateMarketplacePostSchema = Yup.object().shape({
     .min(1, "Bánh phải có ít nhất 1 tầng")
     .max(8, "Bánh không được vượt quá 8 tầng")
     .required("Số tầng là bắt buộc"),
+  required_time: Yup.number()
+    .min(0, "Số giờ đặt trước không dưới 0")
+    .max(750, "Số ngày đặt trước không vượt quá 750 giờ (30 ngày)")
+    .required("Hãy nhập số giờ cần đặt trước"),
+  available: Yup.boolean().required(),
   expiry_date: Yup.string()
     .required("Ngày Hết hạn là bắt buộc")
     .test("future-date", "Ngày Hết hạn phải trong tương lai", function (value) {
@@ -181,6 +186,7 @@ const CreateMarketplacePost = ({
                 (initialData?.Post || initialData?.post)?.description?.trim() ||
                 "",
               tier: initialData?.tier || 1,
+              required_time: initialData?.required_time || 0,
               available:
                 typeof initialData?.available === "boolean"
                   ? initialData.available
@@ -230,6 +236,7 @@ const CreateMarketplacePost = ({
                   title: values.title,
                   description: values.description,
                   tier: values.tier,
+                  required_time: values.required_time,
                   available: values.available,
                   expiry_date: values.expiry_date,
                   is_public: values.is_public,
@@ -507,6 +514,27 @@ const CreateMarketplacePost = ({
                   </p>
                 </div>
 
+                {/* Required Time */}
+                <div className="space-y-2">
+                  <label className="block text-lg font-semibold text-gray-800">
+                    Số giờ cần đặt trước
+                  </label>
+                  <Field
+                    type="number"
+                    name="required_time"
+                    min="0"
+                    max="30"
+                    step="1" 
+                    placeholder="Nhập số giờ cần đặt trước (tối đa 750 giờ - 30 ngày)"
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
+                  />
+                  <ErrorMessage
+                    name="required_time"
+                    component="div"
+                    className="text-red-500 text-sm font-medium"
+                  />
+                </div>
+
                 {/* Cake Sizes */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -614,21 +642,6 @@ const CreateMarketplacePost = ({
                       min={new Date().toISOString().split("T")[0]}
                       className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300 appearance-none"
                     />
-                    <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-                      <svg
-                        className="w-5 h-5 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                    </div>
                   </div>
                   <ErrorMessage
                     name="expiry_date"

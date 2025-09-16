@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { authAPI } from "../api/auth";
+import { add } from "date-fns";
 
 const AuthContext = createContext(null);
 
@@ -43,6 +44,9 @@ export const AuthProvider = ({ children }) => {
           role: response.user.role,
           full_name: response.user.full_name,
           email: response.user.email,
+          phone_number: response.user.phone_number,
+          address: response.user.address,
+          firebase_uid: response.user.firebase_uid,
         };
         try {
           localStorage.setItem("user", JSON.stringify(safe));

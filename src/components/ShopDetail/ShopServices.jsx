@@ -143,8 +143,14 @@ const ShopServices = ({
                       </div>
                     )}
 
+                    <div className="absolute top-3 right-3 z-20">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-sm">
+                        Đặt trước {product.required_time || 0} giờ
+                      </span>
+                    </div>
+
                     {/* Available/Expired Status Badge */}
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-10 right-3">
                       {available ? (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-500 to-green-600 text-white shadow-sm">
                           Còn hàng
