@@ -51,6 +51,8 @@ const CakeQuotes = () => {
     active: 0,
     completed: 0,
   });
+  const [selectedQuoteDetail, setSelectedQuoteDetail] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Fetch cake quotes
   useEffect(() => {
@@ -232,8 +234,8 @@ const CakeQuotes = () => {
     try {
       const response = await getCakeQuoteById(id);
       if (response.success) {
-        // For now, just show a toast with details
-        toast.success(`Xem chi tiết cake quote ${id}`);
+        setSelectedQuoteDetail(response.data);
+        setIsDetailModalOpen(true);
         console.log("Cake quote details:", response.data);
       }
     } catch (error) {
@@ -722,6 +724,133 @@ const CakeQuotes = () => {
           </div>
         )}
       </div>
+
+      {/* Detail Modal */}
+      {isDetailModalOpen && selectedQuoteDetail && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
+              <h2 className="text-2xl font-bold text-gray-800">
+                Chi tiết Cake Quote
+              </h2>
+              <button
+                onClick={() => setIsDetailModalOpen(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all duration-200"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Image */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Hình ảnh thiết kế
+                  </h3>
+                  <div className="bg-gray-100 rounded-xl overflow-hidden">
+                    <img
+                      src={
+                        selectedQuoteDetail.imageDesign ||
+                        "/placeholder-cake.jpg"
+                      }
+                      alt={selectedQuoteDetail.title}
+                      className="w-full h-64 object-cover"
+                    />
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                      Thông tin cơ bản
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Tiêu đề:
+                        </span>
+                        <p className="text-gray-800">
+                          {selectedQuoteDetail.title}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Mô tả:
+                        </span>
+                        <p className="text-gray-800">
+                          {selectedQuoteDetail.description}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Kích thước:
+                        </span>
+                        <p className="text-gray-800">
+                          {selectedQuoteDetail.cake_size}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Ngân sách:
+                        </span>
+                        <p className="text-gray-800">
+                          {selectedQuoteDetail.budget_range}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Yêu cầu đặc biệt:
+                        </span>
+                        <p className="text-gray-800">
+                          {selectedQuoteDetail.special_requirements ||
+                            "Không có"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Ngày tạo:
+                        </span>
+                        <p className="text-gray-800">
+                          {formatDate(selectedQuoteDetail.created_at)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Hạn chót:
+                        </span>
+                        <p className="text-gray-800">
+                          {formatDate(selectedQuoteDetail.expires_at)}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-500">
+                          Trạng thái:
+                        </span>
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            selectedQuoteDetail.status
+                          )}`}
+                        >
+                          {selectedQuoteDetail.status === "active"
+                            ? "Đang hoạt động"
+                            : selectedQuoteDetail.status === "closed"
+                            ? "Đã đóng"
+                            : selectedQuoteDetail.status === "expired"
+                            ? "Đã hết hạn"
+                            : selectedQuoteDetail.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CakeQuoteOrder
         isOpen={isOrderModalOpen}
         onClose={() => setIsOrderModalOpen(false)}
