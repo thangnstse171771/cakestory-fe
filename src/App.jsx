@@ -22,6 +22,7 @@ import EmailVerified from "./pages/EmailVerified";
 import Home from "./pages/Home/Home";
 import LandingPage from "./pages/LandingPage";
 import CakeQuotes from "./pages/CakeQuotes";
+import CakeQuoteDetail from "./pages/CakeQuoteDetail";
 import ShopQuotes from "./pages/ShopQuotes";
 import MyPost from "./pages/MyPost/MyPost";
 import Profile from "./pages/Profile";
@@ -236,6 +237,14 @@ export default function App() {
             {/* admin order-tracking moved to admin-protected routes */}
             <Route path="cake-design" element={<CakeDesign />} />
             <Route path="cake-quotes" element={<CakeQuotes />} />
+            <Route
+              path="cake-quotes/:id"
+              element={
+                <ParamGuard>
+                  <CakeQuoteDetail />
+                </ParamGuard>
+              }
+            />
             <Route path="shop-quotes" element={<ShopQuotes />} />
             <Route path="ai-generated-images" element={<AIGeneratedImages />} />
             <Route path="challenge" element={<ChallengeList />} />
