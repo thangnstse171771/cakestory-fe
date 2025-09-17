@@ -62,6 +62,10 @@ const CakeDesign = () => {
   const [width, setWidth] = useState(20);
   const [selectedFlavors, setSelectedFlavors] = useState(["Vanilla"]);
   const [description, setDescription] = useState("");
+  const [wishMessage, setWishMessage] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientAge, setRecipientAge] = useState("");
+  const [eventDate, setEventDate] = useState("");
   const [showAIModal, setShowAIModal] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [lastSavedDesignId, setLastSavedDesignId] = useState(null);
@@ -218,6 +222,10 @@ const CakeDesign = () => {
     setDecorationsPositions({}); // Đặt lại vị trí các decorations
     setDecorationsScales({}); // Đặt lại kích thước các decorations
     setDescription(""); // Đặt lại description
+    setWishMessage(""); // Đặt lại câu chúc
+    setRecipientName(""); // Đặt lại họ tên
+    setRecipientAge(""); // Đặt lại tuổi
+    setEventDate(""); // Đặt lại ngày tháng
   };
 
   // Toggle flavor selection
@@ -881,8 +889,40 @@ Trang trí: ${
                 description && String(description).trim()
                   ? `${String(
                       description
-                    )}\n\nChi tiết thiết kế:\n${designSummary}`
-                  : `Chi tiết thiết kế:\n${designSummary}`;
+                    )}\n\nChi tiết thiết kế:\n${designSummary}${
+                      wishMessage && String(wishMessage).trim()
+                        ? `\n\nCâu chúc: ${String(wishMessage).trim()}`
+                        : ""
+                    }${
+                      recipientName && String(recipientName).trim()
+                        ? `\nHọ tên: ${String(recipientName).trim()}${
+                            recipientAge && String(recipientAge).trim()
+                              ? `, ${String(recipientAge).trim()} tuổi`
+                              : ""
+                          }`
+                        : ""
+                    }${
+                      eventDate && String(eventDate).trim()
+                        ? `\nNgày: ${String(eventDate).trim()}`
+                        : ""
+                    }`
+                  : `Chi tiết thiết kế:\n${designSummary}${
+                      wishMessage && String(wishMessage).trim()
+                        ? `\n\nCâu chúc: ${String(wishMessage).trim()}`
+                        : ""
+                    }${
+                      recipientName && String(recipientName).trim()
+                        ? `\nHọ tên: ${String(recipientName).trim()}${
+                            recipientAge && String(recipientAge).trim()
+                              ? `, ${String(recipientAge).trim()} tuổi`
+                              : ""
+                          }`
+                        : ""
+                    }${
+                      eventDate && String(eventDate).trim()
+                        ? `\nNgày: ${String(eventDate).trim()}`
+                        : ""
+                    }`;
 
               // Generate AI prompt description for the design
               const aiPromptDescription = generateAIPromptDescription();
@@ -893,14 +933,14 @@ Trang trí: ${
                 type: "image/png",
               });
               formData.append("design_image", imageFile);
-              formData.append("description", String(aiPromptDescription));
+              formData.append("description", String(fullDescription + "\n\nMô tả AI sẽ được gửi:\n" + aiPromptDescription));
               formData.append("is_public", "true");
               formData.append("ai_generated", "");
               // Add AI prompt for immediate processing
               formData.append("ai_prompt", String(aiPromptDescription));
 
               console.log("Auto-uploading to API:", {
-                description: String(aiPromptDescription),
+                description: String(fullDescription + "\n\nMô tả AI sẽ được gửi:\n" + aiPromptDescription),
                 ai_prompt: String(aiPromptDescription),
                 is_public: "true",
                 ai_generated: "",
@@ -1032,10 +1072,37 @@ Trang trí: ${
     // Add professional photography style
     prompt += ` Phong cách chụp ảnh ánh sáng mềm mại, nền sang trọng, làm nổi bật chi tiết và màu sắc của bánh.`;
 
-    // Ghép mô tả tự do của người dùng (nếu có) đứng trước theo yêu cầu
+    // Ghép mô tả tự do của người dùng và thông tin bổ sung (nếu có)
     const userDesc = description?.trim();
+    const additionalInfo = [];
+    
+    if (wishMessage?.trim()) {
+      additionalInfo.push(`Câu chúc: "${wishMessage.trim()}"`);
+    }
+    if (recipientName?.trim()) {
+      let nameInfo = `Tên người nhận: ${recipientName.trim()}`;
+      if (recipientAge?.trim()) {
+        nameInfo += ` (${recipientAge.trim()} tuổi)`;
+      }
+      additionalInfo.push(nameInfo);
+    }
+    if (eventDate?.trim()) {
+      additionalInfo.push(`Ngày sự kiện: ${eventDate.trim()}`);
+    }
+    
+    let fullUserDescription = "";
     if (userDesc) {
-      return `${userDesc} ${prompt}`.trim();
+      fullUserDescription += userDesc;
+    }
+    if (additionalInfo.length > 0) {
+      if (fullUserDescription) {
+        fullUserDescription += ". ";
+      }
+      fullUserDescription += additionalInfo.join(", ");
+    }
+    
+    if (fullUserDescription) {
+      return `${fullUserDescription}. ${prompt}`.trim();
     }
     return prompt;
   };
@@ -1810,6 +1877,76 @@ Trang trí: ${
                   />
                   <div className="text-xs text-gray-400 mt-1 text-right">
                     {description.length}/500 ký tự
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3">
+                  <h3 className="font-semibold text-gray-800 mb-3 flex items-center text-sm">
+                    <span className="w-2 h-5 bg-gradient-to-b from-pink-400 to-purple-400 rounded-full mr-2"></span>
+                    Thông tin thêm
+                  </h3>
+                  <div className="space-y-3">
+                    {/* Wish Message */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Câu chúc
+                      </label>
+                      <textarea
+                        value={wishMessage}
+                        onChange={(e) => setWishMessage(e.target.value)}
+                        placeholder="Câu chúc muốn viết lên bánh (tùy chọn)..."
+                        className="w-full h-12 p-2 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-xs transition-all"
+                        maxLength={100}
+                      />
+                      <div className="text-xs text-gray-400 mt-1 text-right">
+                        {wishMessage.length}/100 ký tự
+                      </div>
+                    </div>
+
+                    {/* Name and Age Row */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Họ tên
+                        </label>
+                        <input
+                          type="text"
+                          value={recipientName}
+                          onChange={(e) => setRecipientName(e.target.value)}
+                          placeholder="Tên người nhận..."
+                          className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-xs transition-all"
+                          maxLength={50}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Tuổi
+                        </label>
+                        <input
+                          type="number"
+                          value={recipientAge}
+                          onChange={(e) => setRecipientAge(e.target.value)}
+                          placeholder="Tuổi..."
+                          className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-xs transition-all"
+                          min="1"
+                          max="150"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Event Date */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Ngày tháng
+                      </label>
+                      <input
+                        type="date"
+                        value={eventDate}
+                        onChange={(e) => setEventDate(e.target.value)}
+                        className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-xs transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
 
