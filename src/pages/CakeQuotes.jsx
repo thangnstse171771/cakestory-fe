@@ -563,7 +563,6 @@ const CakeQuotes = () => {
                               <span>
                                 {quote.status === "pending" && "Chờ"}
                                 {quote.status === "accepted" && "Nhận"}
-                                {quote.status === "rejected" && "Từ chối"}
                                 {quote.status === "completed" && "Hoàn thành"}
                               </span>
                             </div>
@@ -652,9 +651,6 @@ const CakeQuotes = () => {
                                     className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                                   >
                                     Chấp nhận
-                                  </button>
-                                  <button className="px-6 py-3 border-2 border-red-300 text-red-600 rounded-xl font-bold hover:bg-red-50 hover:border-red-400 transition-all duration-200">
-                                    Từ chối
                                   </button>
                                 </>
                               )}
