@@ -32,6 +32,8 @@ import {
   acceptShopQuote,
 } from "../api/cakeOrder";
 import { toast } from "react-hot-toast";
+import CakeQuoteOrder from "./CakeQuoteOrder";
+import { set } from "date-fns";
 
 const CakeQuotes = () => {
   const navigate = useNavigate();
@@ -39,6 +41,8 @@ const CakeQuotes = () => {
   const [selectedTab, setSelectedTab] = useState("active");
   const [searchTerm, setSearchTerm] = useState("");
   const [cakeQuotes, setCakeQuotes] = useState([]);
+  const [orderedQuote, setOrderedQuote] = useState(null);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -665,8 +669,14 @@ const CakeQuotes = () => {
                                 </>
                               )}
                               {quote.status === "accepted" && (
-                                <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl">
-                                  Theo dõi đơn hàng
+                                <button
+                                  onClick={() => {
+                                    setIsOrderModalOpen(true);
+                                    setOrderedQuote(quote);
+                                  }}
+                                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                >
+                                  Đặt hàng
                                 </button>
                               )}
                               <button className="px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2">
@@ -712,6 +722,11 @@ const CakeQuotes = () => {
           </div>
         )}
       </div>
+      <CakeQuoteOrder
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        cakeQuote={orderedQuote}
+      />
     </div>
   );
 };

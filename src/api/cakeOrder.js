@@ -160,3 +160,21 @@ export const updateShopQuote = async (shopQuoteId, updateData) => {
     throw error;
   }
 };
+
+export const createCakeOrderFromQuote = async (shopQuoteId, orderData) => {
+  try {
+    console.log("Creating cake order from quote:", shopQuoteId, orderData);
+
+    const response = await axiosInstance.post(`/cake-quotes/from-quote`, {
+      shop_quote_id: shopQuoteId, // must be in body
+      ...orderData,
+    });
+
+    console.log("Quote ordered successfully:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating order from quote:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};

@@ -163,7 +163,12 @@ export default function CakeShop() {
 
     const selectedDateTime = new Date(deliveryTime);
     const minDateTime = new Date();
-    minDateTime.setHours(minDateTime.getHours() + requiredTime);
+
+    if (requiredTime === 0) {
+      minDateTime.setMinutes(minDateTime.getMinutes() + 15); // ✅ 15 minutes rule
+    } else {
+      minDateTime.setHours(minDateTime.getHours() + requiredTime);
+    }
 
     if (isNaN(selectedDateTime.getTime())) {
       return {
@@ -175,7 +180,10 @@ export default function CakeShop() {
     if (selectedDateTime < minDateTime) {
       return {
         isValid: false,
-        error: `Thời gian nhận hàng phải sau ít nhất ${requiredTime} giờ từ bây giờ`,
+        error:
+          requiredTime === 0
+            ? "Thời gian nhận hàng phải sau ít nhất 15 phút từ bây giờ"
+            : `Thời gian nhận hàng phải sau ít nhất ${requiredTime} giờ từ bây giờ`,
       };
     }
 
@@ -699,7 +707,11 @@ export default function CakeShop() {
   const renderDeliveryTime = () => {
     // Compute the earliest valid time
     const minDeliveryTime = new Date();
-    minDeliveryTime.setHours(minDeliveryTime.getHours() + requiredTime);
+    if (requiredTime === 0) {
+      minDeliveryTime.setMinutes(minDeliveryTime.getMinutes() + 15); 
+    } else {
+      minDeliveryTime.setHours(minDeliveryTime.getHours() + requiredTime);
+    }
 
     // Convert to datetime-local string (YYYY-MM-DDTHH:mm)
     const minValue = minDeliveryTime.toISOString().slice(0, 16);
@@ -719,12 +731,12 @@ export default function CakeShop() {
           min={minValue}
           required
           className={`w-full border-2 rounded-xl px-4 py-3 transition-all duration-300
-          focus:outline-none focus:ring-4
-          ${
-            !deliveryTimeValidation.isValid && deliveryTime
-              ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-              : "border-gray-200 focus:border-pink-500 focus:ring-pink-100"
-          }`}
+        focus:outline-none focus:ring-4
+        ${
+          !deliveryTimeValidation.isValid && deliveryTime
+            ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+            : "border-gray-200 focus:border-pink-500 focus:ring-pink-100"
+        }`}
         />
         {/* ✅ Show validation error */}
         {!deliveryTimeValidation.isValid && deliveryTime && (
@@ -735,8 +747,10 @@ export default function CakeShop() {
         {/* ✅ Show required field message when empty */}
         {!deliveryTime && (
           <p className="text-gray-500 text-sm mt-2">
-            Vui lòng chọn thời gian nhận hàng (tối thiểu {requiredTime} giờ từ
-            bây giờ)
+            Vui lòng chọn thời gian nhận hàng{" "}
+            {requiredTime === 0
+              ? "(tối thiểu 15 phút từ bây giờ)"
+              : `(tối thiểu ${requiredTime} giờ từ bây giờ)`}
           </p>
         )}
       </div>
