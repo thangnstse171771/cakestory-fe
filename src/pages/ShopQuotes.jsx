@@ -30,6 +30,7 @@ import {
   getCakeQuoteById,
   getShopQuotesForCakeQuote,
 } from "../api/cakeOrder";
+import { authAPI } from "../api/auth";
 import { toast } from "react-hot-toast";
 
 const ShopQuotes = () => {
@@ -47,6 +48,7 @@ const ShopQuotes = () => {
   const [shopQuotes, setShopQuotes] = useState([]);
   const [pendingQuotes, setPendingQuotes] = useState([]);
   const [quotedQuotes, setQuotedQuotes] = useState([]);
+  const [allUsers, setAllUsers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,10 +68,46 @@ const ShopQuotes = () => {
     }
   }, [selectedTab, pendingQuotes, quotedQuotes]);
 
+  // Fetch all users to get complete user data
+  const fetchAllUsers = async () => {
+    try {
+      const response = await authAPI.getAllActiveUsers();
+      if (response && response.users) {
+        const usersMap = {};
+        response.users.forEach((user) => {
+          usersMap[user.id] = user;
+        });
+        setAllUsers(usersMap);
+        return usersMap;
+      }
+    } catch (error) {
+      console.error("Error fetching all users:", error);
+      return {};
+    }
+  };
+
+  // Enhanced user data mapping
+  const enhanceUserData = (user, usersMap = {}) => {
+    const enhancedUser = usersMap[user?.id] || user || {};
+    return {
+      id: enhancedUser.id || 0,
+      name:
+        enhancedUser.full_name || enhancedUser.username || "Unknown Customer",
+      username: enhancedUser.username || "N/A",
+      avatar: enhancedUser.avatar || "/placeholder-user.jpg",
+      address: enhancedUser.address || "Chưa cập nhật",
+      phone_number: enhancedUser.phone_number || "Chưa cập nhật",
+      email: enhancedUser.email || "N/A",
+    };
+  };
+
   const fetchAllQuotes = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Fetch users data first
+      const usersMap = await fetchAllUsers();
 
       // Fetch both pending and quoted quotes simultaneously
       const [pendingResponse, quotedResponse] = await Promise.all([
@@ -86,17 +124,7 @@ const ShopQuotes = () => {
           .filter((quote) => quote.status === "open")
           .map((quote) => ({
             id: quote.id,
-            customer: {
-              id: quote.user?.id || 0,
-              name:
-                quote.user?.full_name ||
-                quote.user?.username ||
-                "Unknown Customer",
-              avatar: quote.user?.avatar || "/placeholder-user.jpg",
-              location: "N/A",
-              phone: "N/A",
-              email: quote.user?.email || "",
-            },
+            customer: enhanceUserData(quote.user, usersMap),
             cakeDesign: {
               id: quote.id,
               image: quote.imageDesign,
@@ -105,6 +133,8 @@ const ShopQuotes = () => {
               created_at: quote.created_at,
               deadline: quote.expires_at,
               budget: `${quote.budget_range} VND`,
+              cake_size: quote.cake_size || "N/A",
+              special_requirements: quote.special_requirements || "N/A",
             },
             status: "pending",
             myQuote: null,
@@ -192,18 +222,7 @@ const ShopQuotes = () => {
 
             return {
               id: quote.cake_quote_id,
-              customer: {
-                id: cakeQuoteDetails?.user?.id || 0,
-                name:
-                  cakeQuoteDetails?.user?.full_name ||
-                  cakeQuoteDetails?.user?.username ||
-                  "Unknown Customer",
-                avatar:
-                  cakeQuoteDetails?.user?.avatar || "/placeholder-user.jpg",
-                location: "N/A",
-                phone: "N/A",
-                email: cakeQuoteDetails?.user?.email || "",
-              },
+              customer: enhanceUserData(cakeQuoteDetails?.user, usersMap),
               cakeDesign: {
                 id: quote.cake_quote_id,
                 image: cakeQuoteDetails?.imageDesign || "/placeholder-cake.jpg",
@@ -212,6 +231,9 @@ const ShopQuotes = () => {
                 created_at: cakeQuoteDetails?.created_at || quote.created_at,
                 deadline: cakeQuoteDetails?.expires_at || null,
                 budget: `${cakeQuoteDetails?.budget_range || "N/A"} VND`,
+                cake_size: cakeQuoteDetails?.cake_size || "N/A",
+                special_requirements:
+                  cakeQuoteDetails?.special_requirements || "N/A",
               },
               status: "quoted",
               myQuote: {
@@ -305,6 +327,11 @@ const ShopQuotes = () => {
       month: "2-digit",
       year: "numeric",
     });
+  };
+
+  // Handle view cake quote details
+  const handleViewCakeQuote = (id) => {
+    navigate(`/cake-quotes/${id}`);
   };
 
   // Handle create quote
@@ -550,9 +577,15 @@ const ShopQuotes = () => {
                       alt={quote.customer.name}
                       className="w-20 h-20 rounded-2xl border-4 border-white/30 object-cover shadow-lg"
                     />
-                    <div className="absolute -top-1 -right-1">
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className="text-2xl font-bold text-white">
+                        {quote.customer.name}
+                      </h3>
                       <div
-                        className={`px-2 py-1 rounded-lg text-xs font-bold border-2 border-white shadow-lg flex items-center gap-1 ${getStatusColor(
+                        className={`px-3 py-2 rounded-lg text-xs font-bold border-2 border-white shadow-lg flex items-center gap-1 ${getStatusColor(
                           quote.status
                         )}`}
                       >
@@ -566,31 +599,38 @@ const ShopQuotes = () => {
                         </span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold mb-3 text-white">
-                      {quote.customer.name}
-                    </h3>
                     <div className="flex items-center gap-6 text-sm text-indigo-100 mb-4">
                       <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        <span>{quote.customer.location}</span>
+                        <User className="w-4 h-4" />
+                        <span>@{quote.customer.username}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         <span>{formatDate(quote.created_at)}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6 text-sm text-indigo-100">
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>{quote.customer.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4" />
-                        <span>{quote.customer.email}</span>
-                      </div>
+                    <div className="space-y-2">
+                      {quote.customer.email &&
+                        quote.customer.email !== "N/A" && (
+                          <div className="flex items-center gap-2 text-sm text-indigo-100">
+                            <Mail className="w-4 h-4" />
+                            <span>{quote.customer.email}</span>
+                          </div>
+                        )}
+                      {quote.customer.phone_number &&
+                        quote.customer.phone_number !== "Chưa cập nhật" && (
+                          <div className="flex items-center gap-2 text-sm text-indigo-100">
+                            <Phone className="w-4 h-4" />
+                            <span>{quote.customer.phone_number}</span>
+                          </div>
+                        )}
+                      {quote.customer.address &&
+                        quote.customer.address !== "Chưa cập nhật" && (
+                          <div className="flex items-center gap-2 text-sm text-indigo-100">
+                            <MapPin className="w-4 h-4" />
+                            <span>{quote.customer.address}</span>
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
@@ -617,6 +657,24 @@ const ShopQuotes = () => {
                       <p className="text-gray-600 mb-6 leading-relaxed">
                         {quote.cakeDesign.description}
                       </p>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-white p-4 rounded-xl border border-gray-200">
+                          <span className="text-gray-500 text-sm font-medium">
+                            Kích thước:
+                          </span>
+                          <div className="font-bold text-gray-900 text-lg">
+                            {quote.cakeDesign.cake_size}
+                          </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-xl border border-gray-200">
+                          <span className="text-gray-500 text-sm font-medium">
+                            Yêu cầu đặc biệt:
+                          </span>
+                          <div className="font-bold text-gray-900 text-sm">
+                            {quote.cakeDesign.special_requirements}
+                          </div>
+                        </div>
+                      </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-white p-4 rounded-xl border border-gray-200">
                           <span className="text-gray-500 text-sm font-medium">
@@ -690,6 +748,13 @@ const ShopQuotes = () => {
                         )}
                         <div className="flex gap-3">
                           <button
+                            onClick={() => handleViewCakeQuote(quote.id)}
+                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          >
+                            <Eye className="w-4 h-4 mr-2 inline" />
+                            Xem chi tiết
+                          </button>
+                          <button
                             onClick={() => openQuoteModal(quote)}
                             className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                           >
@@ -711,13 +776,22 @@ const ShopQuotes = () => {
                         <p className="text-gray-500 mb-6 leading-relaxed">
                           Gửi báo giá chuyên nghiệp cho khách hàng này
                         </p>
-                        <button
-                          onClick={() => openQuoteModal(quote)}
-                          className="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                        >
-                          <Send className="w-5 h-5 mr-2 inline" />
-                          Gửi báo giá
-                        </button>
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => handleViewCakeQuote(quote.id)}
+                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          >
+                            <Eye className="w-4 h-4 mr-2 inline" />
+                            Xem chi tiết
+                          </button>
+                          <button
+                            onClick={() => openQuoteModal(quote)}
+                            className="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                          >
+                            <Send className="w-5 h-5 mr-2 inline" />
+                            Gửi báo giá
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
