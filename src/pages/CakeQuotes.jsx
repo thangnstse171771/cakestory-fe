@@ -20,6 +20,8 @@ import {
   Phone,
   Mail,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   getCakeQuotes,
@@ -47,6 +49,8 @@ const CakeQuotes = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [shopQuotesPages, setShopQuotesPages] = useState({}); // Track current page for each cake quote's shop quotes
+  const [quotesPerPage] = useState(3); // 3 shop quotes per page
   const [tabCounts, setTabCounts] = useState({
     active: 0,
     completed: 0,
@@ -68,7 +72,9 @@ const CakeQuotes = () => {
         return;
       }
 
-      const response = await getCakeQuotes(currentPage, 50);
+      // Fetch more items to ensure we have enough user quotes for pagination
+      // We'll filter client-side and then paginate the results
+      const response = await getCakeQuotes(1, 200); // Fetch more items to filter
 
       if (response.success) {
         // Filter only current user's quotes
@@ -76,9 +82,25 @@ const CakeQuotes = () => {
           (quote) => quote.user_id === user.id
         );
 
+        // Calculate pagination for filtered results
+        const quotesPerPage = 5;
+        const totalFilteredQuotes = userQuotes.length;
+        const totalPages = Math.ceil(totalFilteredQuotes / quotesPerPage);
+
+        // If current page is beyond available pages, reset to page 1
+        let adjustedCurrentPage = currentPage;
+        if (currentPage > totalPages && totalPages > 0) {
+          adjustedCurrentPage = 1;
+          setCurrentPage(1);
+        }
+
+        const startIndex = (adjustedCurrentPage - 1) * quotesPerPage;
+        const endIndex = startIndex + quotesPerPage;
+        const paginatedUserQuotes = userQuotes.slice(startIndex, endIndex);
+
         // Transform API data to match UI expectations
         const transformedQuotes = await Promise.all(
-          userQuotes.map(async (quote) => {
+          paginatedUserQuotes.map(async (quote) => {
             // Fetch shop quotes for each cake quote
             let shopQuotes = [];
             try {
@@ -146,19 +168,27 @@ const CakeQuotes = () => {
 
         setCakeQuotes(transformedQuotes);
 
-        // Calculate tab counts
-        const activeCount = transformedQuotes.filter(
+        // Calculate tab counts based on all user quotes (not just current page)
+        const allActiveCount = userQuotes.filter(
           (q) => q.status === "active"
         ).length;
-        const completedCount = transformedQuotes.filter(
+        const allCompletedCount = userQuotes.filter(
           (q) => q.status === "completed"
         ).length;
         setTabCounts({
-          active: activeCount,
-          completed: completedCount,
+          active: allActiveCount,
+          completed: allCompletedCount,
         });
 
-        setPagination(response.data.pagination);
+        // Set custom pagination for filtered results
+        setPagination({
+          currentPage: adjustedCurrentPage,
+          totalPages: totalPages,
+          totalItems: totalFilteredQuotes,
+          itemsPerPage: quotesPerPage,
+          hasNextPage: adjustedCurrentPage < totalPages,
+          hasPrevPage: adjustedCurrentPage > 1,
+        });
       } else {
         setError("Không thể tải danh sách cake quotes");
       }
@@ -230,6 +260,25 @@ const CakeQuotes = () => {
   // Handle view cake quote details
   const handleViewCakeQuote = (id) => {
     navigate(`/cake-quotes/${id}`);
+  };
+
+  // Shop quotes pagination functions
+  const getShopQuotesForPage = (quotes, cakeQuoteId) => {
+    const currentPage = shopQuotesPages[cakeQuoteId] || 1;
+    const startIndex = (currentPage - 1) * quotesPerPage;
+    const endIndex = startIndex + quotesPerPage;
+    return quotes.slice(startIndex, endIndex);
+  };
+
+  const getTotalShopQuotesPages = (quotesLength) => {
+    return Math.ceil(quotesLength / quotesPerPage);
+  };
+
+  const handleShopQuotesPageChange = (cakeQuoteId, newPage) => {
+    setShopQuotesPages((prev) => ({
+      ...prev,
+      [cakeQuoteId]: newPage,
+    }));
   };
 
   // Handle delete cake quote
@@ -541,139 +590,208 @@ const CakeQuotes = () => {
                   </div>
 
                   <div className="space-y-6">
-                    {cakeQuote.quotes.map((quote) => (
-                      <div
-                        key={quote.id}
-                        className="border border-gray-200 rounded-2xl p-6 hover:border-indigo-300 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-gray-50"
-                      >
-                        <div className="flex items-start gap-6">
-                          {/* Shop Avatar */}
-                          <div className="relative">
-                            <img
-                              src={quote.shop.avatar}
-                              alt={quote.shop.name}
-                              className="w-16 h-16 rounded-2xl object-cover border-3 border-white shadow-lg"
-                            />
-                            <div
-                              className={`absolute -top-2 -right-2 px-2 py-1 rounded-lg text-xs font-bold border-2 border-white shadow-lg flex items-center gap-1 ${getStatusColor(
-                                quote.status
-                              )}`}
-                            >
-                              {getStatusIcon(quote.status)}
-                              <span>
-                                {quote.status === "pending" && "Chờ"}
-                                {quote.status === "accepted" && "Nhận"}
-                                {quote.status === "completed" && "Hoàn thành"}
-                              </span>
+                    {getShopQuotesForPage(cakeQuote.quotes, cakeQuote.id).map(
+                      (quote) => (
+                        <div
+                          key={quote.id}
+                          className="border border-gray-200 rounded-2xl p-6 hover:border-indigo-300 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-white to-gray-50"
+                        >
+                          <div className="flex items-start gap-6">
+                            {/* Shop Avatar */}
+                            <div className="relative">
+                              <img
+                                src={quote.shop.avatar}
+                                alt={quote.shop.name}
+                                className="w-16 h-16 rounded-2xl object-cover border-3 border-white shadow-lg"
+                              />
+                              <div
+                                className={`absolute -top-2 -right-2 px-2 py-1 rounded-lg text-xs font-bold border-2 border-white shadow-lg flex items-center gap-1 ${getStatusColor(
+                                  quote.status
+                                )}`}
+                              >
+                                {getStatusIcon(quote.status)}
+                                <span>
+                                  {quote.status === "pending" && "Chờ"}
+                                  {quote.status === "accepted" && "Nhận"}
+                                  {quote.status === "completed" && "Hoàn thành"}
+                                </span>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Shop Info */}
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between mb-4">
-                              <div>
-                                <h5 className="font-bold text-gray-900 text-xl mb-2">
-                                  {quote.shop.name}
-                                </h5>
-                                <div className="flex items-center gap-6 text-sm text-gray-600">
-                                  <div className="flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-indigo-500" />
-                                    <span>{quote.shop.address}</span>
+                            {/* Shop Info */}
+                            <div className="flex-1">
+                              <div className="flex items-start justify-between mb-4">
+                                <div>
+                                  <h5 className="font-bold text-gray-900 text-xl mb-2">
+                                    {quote.shop.name}
+                                  </h5>
+                                  <div className="flex items-center gap-6 text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                      <MapPin className="w-4 h-4 text-indigo-500" />
+                                      <span>{quote.shop.address}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Phone className="w-4 h-4 text-emerald-500" />
+                                      <span>{quote.shop.phone}</span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <Phone className="w-4 h-4 text-emerald-500" />
-                                    <span>{quote.shop.phone}</span>
+                                </div>
+                              </div>
+
+                              {/* Quote Details */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-200">
+                                  <div className="flex items-center gap-3 text-emerald-700 mb-2">
+                                    <DollarSign className="w-5 h-5" />
+                                    <span className="text-sm font-bold">
+                                      Giá báo
+                                    </span>
+                                  </div>
+                                  <div className="text-2xl font-black text-emerald-800">
+                                    {formatPrice(quote.price)}
+                                  </div>
+                                </div>
+                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+                                  <div className="flex items-center gap-3 text-blue-700 mb-2">
+                                    <Clock className="w-5 h-5" />
+                                    <span className="text-sm font-bold">
+                                      Thời gian
+                                    </span>
+                                  </div>
+                                  <div className="text-2xl font-black text-blue-800">
+                                    {quote.preparationTime}
                                   </div>
                                 </div>
                               </div>
-                            </div>
 
-                            {/* Quote Details */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                              <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-4 rounded-xl border border-emerald-200">
-                                <div className="flex items-center gap-3 text-emerald-700 mb-2">
-                                  <DollarSign className="w-5 h-5" />
-                                  <span className="text-sm font-bold">
-                                    Giá báo
-                                  </span>
+                              {/* Message */}
+                              {quote.message && (
+                                <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-xl mb-4 border border-gray-200">
+                                  <h6 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
+                                    <MessageCircle className="w-4 h-4 text-indigo-500" />
+                                    Thông điệp từ tiệm:
+                                  </h6>
+                                  <p className="text-gray-700 leading-relaxed">
+                                    {quote.message}
+                                  </p>
                                 </div>
-                                <div className="text-2xl font-black text-emerald-800">
-                                  {formatPrice(quote.price)}
-                                </div>
-                              </div>
-                              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
-                                <div className="flex items-center gap-3 text-blue-700 mb-2">
-                                  <Clock className="w-5 h-5" />
-                                  <span className="text-sm font-bold">
-                                    Thời gian
-                                  </span>
-                                </div>
-                                <div className="text-2xl font-black text-blue-800">
-                                  {quote.preparationTime}
-                                </div>
-                              </div>
-                            </div>
+                              )}
 
-                            {/* Message */}
-                            {quote.message && (
-                              <div className="bg-gradient-to-r from-gray-50 to-white p-4 rounded-xl mb-4 border border-gray-200">
-                                <h6 className="text-sm font-bold text-gray-800 mb-2 flex items-center gap-2">
-                                  <MessageCircle className="w-4 h-4 text-indigo-500" />
-                                  Thông điệp từ tiệm:
-                                </h6>
-                                <p className="text-gray-700 leading-relaxed">
-                                  {quote.message}
-                                </p>
-                              </div>
-                            )}
+                              {/* Ingredients Breakdown */}
+                              {quote.ingredients && (
+                                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl mb-6 border border-purple-200">
+                                  <h6 className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
+                                    <ChefHat className="w-4 h-4 text-purple-600" />
+                                    Chi tiết nguyên liệu:
+                                  </h6>
+                                  <p className="text-sm text-purple-700 leading-relaxed">
+                                    {quote.ingredients}
+                                  </p>
+                                </div>
+                              )}
 
-                            {/* Ingredients Breakdown */}
-                            {quote.ingredients && (
-                              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl mb-6 border border-purple-200">
-                                <h6 className="text-sm font-bold text-purple-800 mb-2 flex items-center gap-2">
-                                  <ChefHat className="w-4 h-4 text-purple-600" />
-                                  Chi tiết nguyên liệu:
-                                </h6>
-                                <p className="text-sm text-purple-700 leading-relaxed">
-                                  {quote.ingredients}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Actions */}
-                            <div className="flex gap-3">
-                              {quote.status === "pending" && (
-                                <>
+                              {/* Actions */}
+                              <div className="flex gap-3">
+                                {quote.status === "pending" && (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        handleAcceptShopQuote(quote.id)
+                                      }
+                                      className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                    >
+                                      Chấp nhận
+                                    </button>
+                                  </>
+                                )}
+                                {quote.status === "accepted" && (
                                   <button
-                                    onClick={() =>
-                                      handleAcceptShopQuote(quote.id)
-                                    }
-                                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                    onClick={() => {
+                                      setIsOrderModalOpen(true);
+                                      setOrderedQuote(quote);
+                                    }}
+                                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                                   >
-                                    Chấp nhận
+                                    Đặt hàng
                                   </button>
-                                </>
-                              )}
-                              {quote.status === "accepted" && (
-                                <button
-                                  onClick={() => {
-                                    setIsOrderModalOpen(true);
-                                    setOrderedQuote(quote);
-                                  }}
-                                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                                >
-                                  Đặt hàng
+                                )}
+                                <button className="px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2">
+                                  <MessageCircle className="w-4 h-4" />
+                                  Nhắn tin
                                 </button>
-                              )}
-                              <button className="px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2">
-                                <MessageCircle className="w-4 h-4" />
-                                Nhắn tin
-                              </button>
+                              </div>
                             </div>
                           </div>
                         </div>
+                      )
+                    )}
+
+                    {/* Shop Quotes Pagination */}
+                    {getTotalShopQuotesPages(cakeQuote.quotes.length) > 1 && (
+                      <div className="flex justify-center items-center gap-2 pt-6 border-t border-gray-200">
+                        <button
+                          onClick={() =>
+                            handleShopQuotesPageChange(
+                              cakeQuote.id,
+                              Math.max(
+                                1,
+                                (shopQuotesPages[cakeQuote.id] || 1) - 1
+                              )
+                            )
+                          }
+                          disabled={(shopQuotesPages[cakeQuote.id] || 1) === 1}
+                          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                          Trước
+                        </button>
+
+                        {Array.from(
+                          {
+                            length: getTotalShopQuotesPages(
+                              cakeQuote.quotes.length
+                            ),
+                          },
+                          (_, i) => i + 1
+                        ).map((page) => (
+                          <button
+                            key={page}
+                            onClick={() =>
+                              handleShopQuotesPageChange(cakeQuote.id, page)
+                            }
+                            className={`px-3 py-2 rounded-lg transition-colors text-sm font-medium ${
+                              (shopQuotesPages[cakeQuote.id] || 1) === page
+                                ? "bg-emerald-600 text-white shadow-md"
+                                : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+
+                        <button
+                          onClick={() =>
+                            handleShopQuotesPageChange(
+                              cakeQuote.id,
+                              Math.min(
+                                getTotalShopQuotesPages(
+                                  cakeQuote.quotes.length
+                                ),
+                                (shopQuotesPages[cakeQuote.id] || 1) + 1
+                              )
+                            )
+                          }
+                          disabled={
+                            (shopQuotesPages[cakeQuote.id] || 1) ===
+                            getTotalShopQuotesPages(cakeQuote.quotes.length)
+                          }
+                          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                        >
+                          Sau
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
                       </div>
-                    ))}
+                    )}
                   </div>
 
                   {cakeQuote.quotes.length === 0 && (
@@ -704,6 +822,79 @@ const CakeQuotes = () => {
               <p className="text-gray-500 leading-relaxed">
                 Thử tìm kiếm với từ khóa khác hoặc kiểm tra lại bộ lọc của bạn
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Main Cake Quotes Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="mt-12 mb-8">
+            {/* Pagination Info */}
+            <div className="text-center mb-6">
+              <p className="text-gray-600">
+                Hiển thị{" "}
+                {Math.min(
+                  (pagination.currentPage - 1) * pagination.itemsPerPage + 1,
+                  pagination.totalItems
+                )}{" "}
+                -{" "}
+                {Math.min(
+                  pagination.currentPage * pagination.itemsPerPage,
+                  pagination.totalItems
+                )}{" "}
+                trong tổng số {pagination.totalItems} bài đăng
+              </p>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl border border-indigo-200 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                Trang trước
+              </button>
+
+              <div className="flex items-center gap-2">
+                {Array.from(
+                  { length: Math.min(5, pagination.totalPages) },
+                  (_, i) => {
+                    const page =
+                      currentPage <= 3
+                        ? i + 1
+                        : currentPage >= pagination.totalPages - 2
+                        ? pagination.totalPages - 4 + i
+                        : currentPage - 2 + i;
+
+                    if (page < 1 || page > pagination.totalPages) return null;
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-4 py-3 rounded-xl transition-colors font-semibold ${
+                          currentPage === page
+                            ? "bg-indigo-600 text-white shadow-lg"
+                            : "border border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === pagination.totalPages}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl border border-indigo-200 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              >
+                Trang sau
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
           </div>
         )}

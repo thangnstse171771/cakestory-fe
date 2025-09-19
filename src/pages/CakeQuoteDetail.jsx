@@ -11,6 +11,8 @@ import {
   User,
   MapPin,
   Star,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { getCakeQuoteById, getShopQuotesForCakeQuote } from "../api/cakeOrder";
 import { toast } from "react-hot-toast";
@@ -21,6 +23,8 @@ const CakeQuoteDetail = () => {
   const { user } = useAuth();
   const [cakeQuote, setCakeQuote] = useState(null);
   const [shopQuotes, setShopQuotes] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [quotesPerPage] = useState(5); // Show 5 quotes per page
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -104,6 +108,21 @@ const CakeQuoteDetail = () => {
     }
   };
 
+  // Pagination calculations
+  const indexOfLastQuote = currentPage * quotesPerPage;
+  const indexOfFirstQuote = indexOfLastQuote - quotesPerPage;
+  const currentQuotes = shopQuotes.slice(indexOfFirstQuote, indexOfLastQuote);
+  const totalPages = Math.ceil(shopQuotes.length / quotesPerPage);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to shop quotes section
+    document.getElementById("shop-quotes-section")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-100 flex items-center justify-center">
@@ -125,7 +144,7 @@ const CakeQuoteDetail = () => {
               {error || "Cake quote không tồn tại hoặc đã bị xóa"}
             </p>
             <button
-              onClick={() => navigate("/cake-quotes")}
+              onClick={() => navigate(-1)}
               className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
             >
               Quay lại danh sách
@@ -142,11 +161,11 @@ const CakeQuoteDetail = () => {
         {/* Header */}
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 mb-8 shadow-xl border border-white/50">
           <button
-            onClick={() => navigate("/cake-quotes")}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-3 text-indigo-600 hover:text-indigo-800 font-medium mb-4 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            Quay lại danh sách Cake Quotes
+            Quay lại trang trước
           </button>
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             Chi tiết Cake Quote
@@ -227,7 +246,10 @@ const CakeQuoteDetail = () => {
             </div>
 
             {/* Shop Quotes */}
-            <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/50">
+            <div
+              id="shop-quotes-section"
+              className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/50"
+            >
               <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                 <div className="w-2 h-8 bg-gradient-to-b from-green-500 to-blue-500 rounded-full"></div>
                 Báo giá từ các tiệm ({shopQuotes.length})
@@ -244,95 +266,138 @@ const CakeQuoteDetail = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {shopQuotes.map((quote) => (
-                    <div
-                      key={quote.id}
-                      className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <img
-                            src={quote.shop.avatar}
-                            alt={quote.shop.name}
-                            className="w-12 h-12 rounded-full object-cover"
-                          />
-                          <div>
-                            <h4 className="font-semibold text-gray-800 text-lg">
-                              {quote.shop.name}
-                            </h4>
-                            <p className="text-gray-500 text-sm flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {quote.shop.address}
+                <>
+                  <div className="space-y-6">
+                    {currentQuotes.map((quote) => (
+                      <div
+                        key={quote.id}
+                        className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-4">
+                            <img
+                              src={quote.shop.avatar}
+                              alt={quote.shop.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            <div>
+                              <h4 className="font-semibold text-gray-800 text-lg">
+                                {quote.shop.name}
+                              </h4>
+                              <p className="text-gray-500 text-sm flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {quote.shop.address}
+                              </p>
+                              {quote.shop.rating > 0 && (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                  <span className="text-sm text-gray-600">
+                                    {quote.shop.rating}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                              quote.status
+                            )}`}
+                          >
+                            {quote.status === "pending" && "Đang chờ"}
+                            {quote.status === "accepted" && "Đã chấp nhận"}
+                            {quote.status === "rejected" && "Đã từ chối"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                          <div className="bg-green-50 p-3 rounded-lg">
+                            <span className="text-sm text-green-600 font-medium">
+                              Giá báo
+                            </span>
+                            <p className="text-xl font-bold text-green-800">
+                              {formatCurrency(quote.price)}
                             </p>
-                            {quote.shop.rating > 0 && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm text-gray-600">
-                                  {quote.shop.rating}
-                                </span>
-                              </div>
-                            )}
+                          </div>
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <span className="text-sm text-blue-600 font-medium">
+                              Thời gian
+                            </span>
+                            <p className="text-lg font-bold text-blue-800">
+                              {quote.preparationTime}
+                            </p>
+                          </div>
+                          <div className="bg-purple-50 p-3 rounded-lg">
+                            <span className="text-sm text-purple-600 font-medium">
+                              Ngày báo giá
+                            </span>
+                            <p className="text-sm font-medium text-purple-800">
+                              {formatDate(quote.created_at)}
+                            </p>
                           </div>
                         </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
-                            quote.status
-                          )}`}
-                        >
-                          {quote.status === "pending" && "Đang chờ"}
-                          {quote.status === "accepted" && "Đã chấp nhận"}
-                          {quote.status === "rejected" && "Đã từ chối"}
-                        </span>
-                      </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="bg-green-50 p-3 rounded-lg">
-                          <span className="text-sm text-green-600 font-medium">
-                            Giá báo
-                          </span>
-                          <p className="text-xl font-bold text-green-800">
-                            {formatCurrency(quote.price)}
-                          </p>
-                        </div>
-                        <div className="bg-blue-50 p-3 rounded-lg">
-                          <span className="text-sm text-blue-600 font-medium">
-                            Thời gian
-                          </span>
-                          <p className="text-lg font-bold text-blue-800">
-                            {quote.preparationTime}
-                          </p>
-                        </div>
-                        <div className="bg-purple-50 p-3 rounded-lg">
-                          <span className="text-sm text-purple-600 font-medium">
-                            Ngày báo giá
-                          </span>
-                          <p className="text-sm font-medium text-purple-800">
-                            {formatDate(quote.created_at)}
-                          </p>
-                        </div>
-                      </div>
+                        {quote.message && (
+                          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                            <span className="text-sm font-medium text-gray-600 block mb-2">
+                              Tin nhắn từ tiệm:
+                            </span>
+                            <p className="text-gray-800">{quote.message}</p>
+                          </div>
+                        )}
 
-                      {quote.message && (
-                        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                          <span className="text-sm font-medium text-gray-600 block mb-2">
-                            Tin nhắn từ tiệm:
-                          </span>
-                          <p className="text-gray-800">{quote.message}</p>
-                        </div>
+                        {quote.ingredients && (
+                          <div className="bg-orange-50 p-4 rounded-lg">
+                            <span className="text-sm font-medium text-orange-600 block mb-2">
+                              Thành phần nguyên liệu:
+                            </span>
+                            <p className="text-orange-800">
+                              {quote.ingredients}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-2 mt-8">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="flex items-center gap-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Trước
+                      </button>
+
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                        (page) => (
+                          <button
+                            key={page}
+                            onClick={() => handlePageChange(page)}
+                            className={`px-4 py-2 rounded-lg transition-colors font-medium ${
+                              currentPage === page
+                                ? "bg-indigo-600 text-white shadow-md"
+                                : "border border-gray-300 text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        )
                       )}
 
-                      {quote.ingredients && (
-                        <div className="bg-orange-50 p-4 rounded-lg">
-                          <span className="text-sm font-medium text-orange-600 block mb-2">
-                            Thành phần nguyên liệu:
-                          </span>
-                          <p className="text-orange-800">{quote.ingredients}</p>
-                        </div>
-                      )}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="flex items-center gap-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Sau
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>
