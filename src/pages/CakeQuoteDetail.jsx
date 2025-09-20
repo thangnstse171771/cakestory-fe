@@ -17,8 +17,13 @@ import {
 import { getCakeQuoteById, getShopQuotesForCakeQuote } from "../api/cakeOrder";
 import { toast } from "react-hot-toast";
 
-const CakeQuoteDetail = () => {
+const CakeQuoteDetail = ({
+  cakeQuoteId: propId = null,
+  cakeQuote: propCakeQuote = null,
+  compact = false,
+}) => {
   const { id } = useParams();
+  const cakeQuoteId = propId ?? id;
   const navigate = useNavigate();
   const { user } = useAuth();
   const [cakeQuote, setCakeQuote] = useState(null);
@@ -30,20 +35,27 @@ const CakeQuoteDetail = () => {
 
   useEffect(() => {
     fetchCakeQuoteDetail();
-  }, [id]);
+  }, [cakeQuoteId]);
 
   const fetchCakeQuoteDetail = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Fetch cake quote details
-      const response = await getCakeQuoteById(id);
-      if (response.success) {
-        setCakeQuote(response.data);
-
-        // Fetch shop quotes for this cake quote
-        const shopQuotesResponse = await getShopQuotesForCakeQuote(id);
+      // If a prop cakeQuote was provided, use it and skip network fetch
+      if (propCakeQuote) {
+        setCakeQuote(propCakeQuote);
+      } else {
+        // Fetch cake quote details
+        const response = await getCakeQuoteById(cakeQuoteId);
+        if (response.success) {
+          setCakeQuote(response.data);
+        } else {
+          setError("Không thể tải chi tiết cake quote");
+        }
+      }
+      // Fetch shop quotes for this cake quote (if we have an id)
+      if (cakeQuoteId) {
+        const shopQuotesResponse = await getShopQuotesForCakeQuote(cakeQuoteId);
         if (shopQuotesResponse.success) {
           const transformedShopQuotes = shopQuotesResponse.data.quotes.map(
             (shopQuote) => ({
@@ -67,8 +79,6 @@ const CakeQuoteDetail = () => {
           );
           setShopQuotes(transformedShopQuotes);
         }
-      } else {
-        setError("Không thể tải chi tiết cake quote");
       }
     } catch (err) {
       console.error("Error fetching cake quote detail:", err);
@@ -150,6 +160,104 @@ const CakeQuoteDetail = () => {
               Quay lại danh sách
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Compact mode: render only Design Info + Shop Quotes (for embedding)
+  if (compact) {
+    const cq = cakeQuote || {};
+    const image = cq.imageDesign || cq.image || "/placeholder-cake.jpg";
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h3 className="text-lg font-semibold mb-4">Thông tin thiết kế</h3>
+          <div className="md:flex gap-6">
+            <div className="md:w-1/3 mb-4 md:mb-0">
+              <img
+                src={image}
+                alt={cq.title}
+                className="w-full h-40 object-cover rounded-lg"
+              />
+            </div>
+            <div className="md:flex-1">
+              <p className="text-sm text-gray-500">Tiêu đề</p>
+              <p className="font-semibold text-gray-800 mb-2">{cq.title}</p>
+              <p className="text-sm text-gray-500">Mô tả</p>
+              <p className="text-gray-700 mb-2">{cq.description}</p>
+              <div className="text-sm text-gray-500">
+                Kích thước:{" "}
+                <span className="text-gray-800">{cq.cake_size}</span>
+              </div>
+              <div className="text-sm text-gray-500">
+                Ngân sách:{" "}
+                <span className="text-gray-800">{cq.budget_range}</span>
+              </div>
+            </div>
+          </div>
+          {cq.special_requirements && (
+            <div className="mt-4 p-3 bg-indigo-50 rounded-md text-indigo-800">
+              {cq.special_requirements}
+            </div>
+          )}
+        </div>
+
+        <div
+          id="shop-quotes-section"
+          className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+        >
+          <h3 className="text-lg font-semibold mb-4">
+            Báo giá từ các tiệm ({shopQuotes.length})
+          </h3>
+          {shopQuotes.length === 0 ? (
+            <div className="text-center text-gray-500 py-6">
+              Chưa có tiệm bánh nào gửi báo giá
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {shopQuotes.map((quote) => (
+                <div
+                  key={quote.id}
+                  className="border rounded-lg p-4 bg-gray-50"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <img
+                      src={quote.shop?.avatar || "/placeholder-shop.jpg"}
+                      alt={quote.shop?.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="font-medium text-gray-800">
+                        {quote.shop?.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {quote.shop?.address}
+                      </div>
+                    </div>
+                    <div className="ml-auto text-sm px-3 py-1 rounded-full border text-gray-700">
+                      {quote.status}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-white p-2 rounded">
+                      {formatCurrency(quote.price)}
+                    </div>
+                    <div className="bg-white p-2 rounded">
+                      {quote.preparationTime}
+                    </div>
+                    <div className="bg-white p-2 rounded">
+                      {formatDate(quote.created_at)}
+                    </div>
+                  </div>
+                  {quote.message && (
+                    <div className="mt-2 text-gray-700">{quote.message}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
