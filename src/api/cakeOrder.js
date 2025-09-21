@@ -181,3 +181,17 @@ export const createCakeOrderFromQuote = async (shopQuoteId, orderData) => {
     throw error;
   }
 };
+
+export const getAcceptedQuotesByShop = async (page = 1, limit = 10) => {
+  try {
+    const response = await axiosInstance.get(
+      `/cake-quotes/accepted-by-shop?page=${page}&limit=${limit}`
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error retrieving accepted quotes:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
