@@ -259,7 +259,7 @@ const CakeQuotes = () => {
 
   // Handle view cake quote details
   const handleViewCakeQuote = (id) => {
-    navigate(`/cake-quotes/${id}`);
+    navigate(`/cake-quotes/my-quotes/${id}`);
   };
 
   // Shop quotes pagination functions

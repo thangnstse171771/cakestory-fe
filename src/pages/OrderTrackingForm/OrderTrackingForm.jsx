@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import ComplaintModal from "../ComplaintManagement/ComplaintModal";
-import CakeQuoteDetailComponent from "../CakeQuoteDetail";
 import { fetchOrderById } from "../../api/axios";
 import {
   fetchMarketplacePostById,
@@ -881,192 +880,154 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
           </div>
 
           {/* Order Meta Info */}
-          {(orderDetail?.__raw?.cake_quote_id ?? order?.cake_quote_id) ==
-          null ? (
-            <div className="p-6 bg-white shadow rounded-2xl mb-6 border border-pink-100">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-3 text-pink-600">
-                <span className="p-2 rounded-full bg-pink-50">
-                  <Package className="h-5 w-5" />
-                </span>
-                Thông tin đơn hàng
-              </h3>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6 text-gray-700">
-                <li>
-                  <span className="font-medium">Mã đơn:</span>{" "}
-                  {orderDetail.orderNumber || "—"}
-                </li>
-                <li>
-                  <span className="font-medium">ID:</span>{" "}
-                  {orderDetail.id || "—"}
-                </li>
-                <li>
-                  <span className="font-medium">Ngày tạo:</span>{" "}
-                  {orderDetail.placedDate
-                    ? new Date(orderDetail.placedDate).toLocaleString("vi-VN")
-                    : "—"}
-                </li>
-                <li>
-                  <span className="font-medium">Trạng thái:</span>{" "}
-                  {statusMap[orderDetail.status]?.label ||
-                    orderDetail.status ||
-                    "—"}
-                </li>
-                <li>
-                  <span className="font-medium">Shop ID:</span>{" "}
-                  {orderDetail?.shop_id || "—"}
-                </li>
-                <li>
-                  <span className="font-medium">Ngày khách hàng đặt giao:</span>{" "}
-                  {orderDetail?.delivery_time
-                    ? (() => {
-                        try {
-                          return new Date(
-                            orderDetail.delivery_time
-                          ).toLocaleString("vi-VN");
-                        } catch {
-                          return String(orderDetail.delivery_time);
-                        }
-                      })()
-                    : "—"}
-                </li>
-                <li className="md:col-span-2">
-                  <span className="font-medium">Ghi chú đơn hàng:</span>{" "}
-                  {orderDetail?.special_instructions || (
-                    <span className="text-gray-400">Không có</span>
-                  )}
-                </li>
-              </ul>
-
-              {/* Cake & Topping Detail */}
-              <div className="mt-6 border-t border-pink-100 pt-4">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-                  🎂 Chi tiết bánh
-                </h3>
-
-                {derivedCakeQuantity && (
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-gray-700">
-                    <li>
-                      <span className="font-medium">Kích thước (Size):</span>{" "}
-                      {orderDetail.size ?? "—"}
-                    </li>
-                    <li>
-                      <span className="font-medium">Số tầng bánh:</span>{" "}
-                      {orderDetail.tier ?? "1 "} (tầng)
-                    </li>
-                    <li>
-                      <span className="font-medium">Đơn giá:</span>{" "}
-                      {derivedCakeUnitPrice
-                        ? Number(derivedCakeUnitPrice).toLocaleString("vi-VN") +
-                          "đ"
-                        : "—"}
-                    </li>
-                    <li>
-                      <span className="font-medium">Số lượng:</span>{" "}
-                      {derivedCakeQuantity}
-                    </li>
-
-                    <li className="sm:col-span-2 font-semibold text-pink-600">
-                      <span className="font-medium">Tổng giá bánh:</span>{" "}
-                      {orderDetail.base_price
-                        ? Number(orderDetail.base_price).toLocaleString(
-                            "vi-VN"
-                          ) + "đ"
-                        : "—"}
-                    </li>
-                  </ul>
+          <div className="p-6 bg-white shadow rounded-2xl mb-6 border border-pink-100">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-3 text-pink-600">
+              <span className="p-2 rounded-full bg-pink-50">
+                <Package className="h-5 w-5" />
+              </span>
+              Thông tin đơn hàng
+            </h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-6 text-gray-700">
+              <li>
+                <span className="font-medium">Mã đơn:</span>{" "}
+                {orderDetail.orderNumber || "—"}
+              </li>
+              <li>
+                <span className="font-medium">ID:</span> {orderDetail.id || "—"}
+              </li>
+              <li>
+                <span className="font-medium">Ngày tạo:</span>{" "}
+                {orderDetail.placedDate
+                  ? new Date(orderDetail.placedDate).toLocaleString("vi-VN")
+                  : "—"}
+              </li>
+              <li>
+                <span className="font-medium">Trạng thái:</span>{" "}
+                {statusMap[orderDetail.status]?.label ||
+                  orderDetail.status ||
+                  "—"}
+              </li>
+              <li>
+                <span className="font-medium">Shop ID:</span>{" "}
+                {orderDetail?.shop_id || "—"}
+              </li>
+              <li>
+                <span className="font-medium">Ngày khách hàng đặt giao:</span>{" "}
+                {orderDetail?.delivery_time
+                  ? (() => {
+                      try {
+                        return new Date(
+                          orderDetail.delivery_time
+                        ).toLocaleString("vi-VN");
+                      } catch {
+                        return String(orderDetail.delivery_time);
+                      }
+                    })()
+                  : "—"}
+              </li>
+              <li className="md:col-span-2">
+                <span className="font-medium">Ghi chú đơn hàng:</span>{" "}
+                {orderDetail?.special_instructions || (
+                  <span className="text-gray-400">Không có</span>
                 )}
-              </div>
+              </li>
+            </ul>
 
-              {/* Toppings */}
-              <div className="mt-6 border-t border-pink-100 pt-4">
-                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
-                  🍓 Chi tiết topping
-                </h3>
+            {/* Cake & Topping Detail */}
+            <div className="mt-6 border-t border-pink-100 pt-4">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
+                🎂 Chi tiết bánh
+              </h3>
 
-                {/* Nếu không có items hoặc mảng rỗng -> hiển thị thông báo */}
-                {!orderDetail.items || orderDetail.items.length === 0 ? (
-                  <div className="text-gray-500">Không có topping</div>
-                ) : (
-                  <ul className="divide-y divide-gray-100">
-                    {orderDetail.items?.map((item, idx) => (
-                      <li
-                        key={idx}
-                        className="flex justify-between items-start py-3"
-                      >
-                        <div>
-                          <p className="font-medium text-gray-800">
-                            {item.name}
-                          </p>
+              {derivedCakeQuantity && (
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6 text-gray-700">
+                  <li>
+                    <span className="font-medium">Kích thước (Size):</span>{" "}
+                    {orderDetail.size ?? "—"}
+                  </li>
+                  <li>
+                    <span className="font-medium">Số tầng bánh:</span>{" "}
+                    {orderDetail.tier ?? "1 "} (tầng)
+                  </li>
+                  <li>
+                    <span className="font-medium">Đơn giá:</span>{" "}
+                    {derivedCakeUnitPrice
+                      ? Number(derivedCakeUnitPrice).toLocaleString("vi-VN") +
+                        "đ"
+                      : "—"}
+                  </li>
+                  <li>
+                    <span className="font-medium">Số lượng:</span>{" "}
+                    {derivedCakeQuantity}
+                  </li>
+
+                  <li className="sm:col-span-2 font-semibold text-pink-600">
+                    <span className="font-medium">Tổng giá bánh:</span>{" "}
+                    {orderDetail.base_price
+                      ? Number(orderDetail.base_price).toLocaleString("vi-VN") +
+                        "đ"
+                      : "—"}
+                  </li>
+                </ul>
+              )}
+            </div>
+
+            {/* Toppings */}
+            <div className="mt-6 border-t border-pink-100 pt-4">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2 text-pink-600">
+                🍓 Chi tiết topping
+              </h3>
+
+              {/* Nếu không có items hoặc mảng rỗng -> hiển thị thông báo */}
+              {!orderDetail.items || orderDetail.items.length === 0 ? (
+                <div className="text-gray-500">Không có topping</div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {orderDetail.items?.map((item, idx) => (
+                    <li
+                      key={idx}
+                      className="flex justify-between items-start py-3"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-800">{item.name}</p>
+                        <p className="text-sm text-gray-600">
+                          Số lượng: x
+                          {item.quantity && Number(item.quantity) > 0
+                            ? item.quantity
+                            : derivedCakeQuantity || 1}
+                        </p>
+                        {Number(item.price) > 0 && (
                           <p className="text-sm text-gray-600">
-                            Số lượng: x
-                            {item.quantity && Number(item.quantity) > 0
-                              ? item.quantity
-                              : derivedCakeQuantity || 1}
+                            Đơn giá:{" "}
+                            {Number(item.price).toLocaleString("vi-VN")}đ
                           </p>
-                          {Number(item.price) > 0 && (
-                            <p className="text-sm text-gray-600">
-                              Đơn giá:{" "}
-                              {Number(item.price).toLocaleString("vi-VN")}đ
-                            </p>
-                          )}
-                        </div>
-                        <span className="font-semibold text-pink-600">
-                          {(
-                            Number(item.price || 0) *
-                            (item.quantity && Number(item.quantity) > 0
-                              ? Number(item.quantity)
-                              : derivedCakeQuantity || 1)
-                          ).toLocaleString("vi-VN")}
-                          đ
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              {/* Total */}
-              <div className="flex justify-between items-center mt-6 p-4 bg-pink-50 rounded-xl font-bold text-lg text-pink-800">
-                <span>Tổng cộng:</span>
-                <span>
-                  {orderDetail.total
-                    ? Number(orderDetail.total).toLocaleString("vi-VN") + "đ"
-                    : "—"}
-                </span>
-              </div>
+                        )}
+                      </div>
+                      <span className="font-semibold text-pink-600">
+                        {(
+                          Number(item.price || 0) *
+                          (item.quantity && Number(item.quantity) > 0
+                            ? Number(item.quantity)
+                            : derivedCakeQuantity || 1)
+                        ).toLocaleString("vi-VN")}
+                        đ
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-          ) : (
-            <div className="p-6 bg-white shadow rounded-2xl mb-6 border border-pink-100">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-3 text-pink-600">
-                <span className="p-2 rounded-full bg-pink-50">
-                  <Package className="h-5 w-5" />
-                </span>
-                Thông tin Cake Quote
-              </h3>
-              <div className="text-gray-700">
-                <Link
-                  to={`/cake-quotes/${
-                    orderDetail?.__raw?.cake_quote_id || order?.cake_quote_id
-                  }`}
-                  className="text-pink-600 font-semibold hover:underline"
-                >
-                  <button className="bg-pink-100 text-pink-600 font-semibold py-2 px-4 rounded-md">
-                    Xem chi tiết Cake Quote
-                  </button>
-                </Link>
 
-                <CakeQuoteDetailComponent
-                  cakeQuoteId={
-                    orderDetail?.__raw?.cake_quote_id || order?.cake_quote_id
-                  }
-                  cakeQuote={
-                    orderDetail?.__raw?.cake_quote || order?.cake_quote
-                  }
-                  compact
-                />
-              </div>
+            {/* Total */}
+            <div className="flex justify-between items-center mt-6 p-4 bg-pink-50 rounded-xl font-bold text-lg text-pink-800">
+              <span>Tổng cộng:</span>
+              <span>
+                {orderDetail.total
+                  ? Number(orderDetail.total).toLocaleString("vi-VN") + "đ"
+                  : "—"}
+              </span>
             </div>
-          )}
+          </div>
 
           {/* Marketplace reference */}
           {(marketplacePost || marketplaceImage) && (

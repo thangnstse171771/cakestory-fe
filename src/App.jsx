@@ -245,6 +245,14 @@ export default function App() {
                 </ParamGuard>
               }
             />
+            <Route
+              path="cake-quotes/my-quotes/:id"
+              element={
+                <ParamGuard>
+                  <CakeQuoteDetail />
+                </ParamGuard>
+              }
+            />
             <Route path="shop-quotes" element={<ShopQuotes />} />
             <Route path="ai-generated-images" element={<AIGeneratedImages />} />
             <Route path="challenge" element={<ChallengeList />} />
