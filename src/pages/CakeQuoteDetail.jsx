@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
   ArrowLeft,
@@ -14,12 +14,17 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { getCakeQuoteById, getShopQuotesForCakeQuote } from "../api/cakeOrder";
+import {
+  getCakeQuoteById,
+  getCakeQuoteByIdFromMyQuotes,
+  getShopQuotesForCakeQuote,
+} from "../api/cakeOrder";
 import { toast } from "react-hot-toast";
 
 const CakeQuoteDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [cakeQuote, setCakeQuote] = useState(null);
   const [shopQuotes, setShopQuotes] = useState([]);
@@ -27,6 +32,9 @@ const CakeQuoteDetail = () => {
   const [quotesPerPage] = useState(5); // Show 5 quotes per page
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Check if we're on the my-quotes route
+  const isMyQuotesRoute = location.pathname.includes("/my-quotes/");
 
   useEffect(() => {
     fetchCakeQuoteDetail();
@@ -37,42 +45,95 @@ const CakeQuoteDetail = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch cake quote details
-      const response = await getCakeQuoteById(id);
+      // Fetch cake quote details using the appropriate API
+      const response = isMyQuotesRoute
+        ? await getCakeQuoteByIdFromMyQuotes(id)
+        : await getCakeQuoteById(id);
       if (response.success) {
-        setCakeQuote(response.data);
+        // Handle different data structures
+        const quoteData = isMyQuotesRoute ? response.data.quote : response.data;
+        setCakeQuote(quoteData);
 
-        // Fetch shop quotes for this cake quote
-        const shopQuotesResponse = await getShopQuotesForCakeQuote(id);
-        if (shopQuotesResponse.success) {
-          const transformedShopQuotes = shopQuotesResponse.data.quotes.map(
-            (shopQuote) => ({
-              id: shopQuote.id,
-              shop: {
-                id: shopQuote.shop?.shop_id || 0,
-                name: shopQuote.shop?.business_name || "Unknown Shop",
-                avatar: shopQuote.shop?.avatar_image || "/placeholder-shop.jpg",
-                address: shopQuote.shop?.business_address || "Unknown",
-                phone: shopQuote.shop?.phone_number || "",
-                rating: shopQuote.shop?.rating || 0,
-              },
-              price: shopQuote.quoted_price,
-              preparationTime: `${shopQuote.preparation_time} giờ`,
-              message: shopQuote.message,
-              ingredients: shopQuote.ingredients_breakdown,
-              status: shopQuote.status,
-              created_at: shopQuote.created_at,
-              accepted_at: shopQuote.accepted_at,
-            })
-          );
+        // Handle shop quotes - for my-quotes API, they're included in the response
+        if (isMyQuotesRoute) {
+          // Shop quotes are already included in the response for my-quotes API
+          const shopQuotesData = quoteData.shopQuotes || [];
+          const transformedShopQuotes = shopQuotesData.map((shopQuote) => ({
+            id: shopQuote.id,
+            shop: {
+              id: shopQuote.shop?.shop_id || 0,
+              name: shopQuote.shop?.business_name || "Unknown Shop",
+              avatar: shopQuote.shop?.avatar_image || "/placeholder-shop.jpg",
+              address: shopQuote.shop?.business_address || "Unknown",
+              phone: shopQuote.shop?.phone_number || "",
+              rating: shopQuote.shop?.rating || 0,
+            },
+            price: shopQuote.quoted_price,
+            preparationTime: `${shopQuote.preparation_time} giờ`,
+            message: shopQuote.message,
+            ingredients: shopQuote.ingredients_breakdown,
+            status: shopQuote.status,
+            created_at: shopQuote.created_at,
+            accepted_at: shopQuote.accepted_at,
+          }));
           setShopQuotes(transformedShopQuotes);
+        } else {
+          // Fetch shop quotes separately for the original API
+          const shopQuotesResponse = await getShopQuotesForCakeQuote(id);
+          if (shopQuotesResponse.success) {
+            const transformedShopQuotes = shopQuotesResponse.data.quotes.map(
+              (shopQuote) => ({
+                id: shopQuote.id,
+                shop: {
+                  id: shopQuote.shop?.shop_id || 0,
+                  name: shopQuote.shop?.business_name || "Unknown Shop",
+                  avatar:
+                    shopQuote.shop?.avatar_image || "/placeholder-shop.jpg",
+                  address: shopQuote.shop?.business_address || "Unknown",
+                  phone: shopQuote.shop?.phone_number || "",
+                  rating: shopQuote.shop?.rating || 0,
+                },
+                price: shopQuote.quoted_price,
+                preparationTime: `${shopQuote.preparation_time} giờ`,
+                message: shopQuote.message,
+                ingredients: shopQuote.ingredients_breakdown,
+                status: shopQuote.status,
+                created_at: shopQuote.created_at,
+                accepted_at: shopQuote.accepted_at,
+              })
+            );
+            setShopQuotes(transformedShopQuotes);
+          }
         }
       } else {
         setError("Không thể tải chi tiết cake quote");
       }
     } catch (err) {
       console.error("Error fetching cake quote detail:", err);
-      setError("Có lỗi xảy ra khi tải dữ liệu");
+
+      // Handle different types of errors with appropriate messages
+      if (err.response) {
+        const status = err.response.status;
+        const errorMessage = err.response.data?.message || "";
+
+        if (status === 404) {
+          setError("Không tìm thấy yêu cầu báo giá này");
+        } else if (status === 403) {
+          setError("Bạn không có quyền xem yêu cầu báo giá này");
+        } else if (status === 401) {
+          setError("Bạn cần đăng nhập để xem chi tiết");
+        } else if (status >= 500) {
+          setError("Lỗi server, vui lòng thử lại sau");
+        } else {
+          setError(errorMessage || "Có lỗi xảy ra khi tải dữ liệu");
+        }
+      } else if (err.request) {
+        setError(
+          "Không thể kết nối đến server, vui lòng kiểm tra kết nối mạng"
+        );
+      } else {
+        setError("Có lỗi xảy ra khi tải dữ liệu");
+      }
     } finally {
       setLoading(false);
     }

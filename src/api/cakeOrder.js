@@ -52,6 +52,18 @@ export const getCakeQuoteById = async (id) => {
   }
 };
 
+export const getCakeQuoteByIdFromMyQuotes = async (id) => {
+  try {
+    const response = await axiosInstance.get(`/cake-quotes/my-quotes/${id}`);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error retrieving cake quote from my-quotes:", error);
+    console.error("Error response:", error.response?.data);
+    throw error;
+  }
+};
+
 export const deleteCakeQuote = async (id) => {
   try {
     const response = await axiosInstance.delete(`/cake-quotes/${id}`);
