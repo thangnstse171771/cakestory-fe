@@ -29,6 +29,7 @@ import {
   getCakeQuotes,
   getCakeQuoteById,
   getShopQuotesForCakeQuote,
+  getAcceptedQuotesByShop,
 } from "../api/cakeOrder";
 import { authAPI } from "../api/auth";
 import { toast } from "react-hot-toast";
@@ -48,6 +49,7 @@ const ShopQuotes = () => {
   const [shopQuotes, setShopQuotes] = useState([]);
   const [pendingQuotes, setPendingQuotes] = useState([]);
   const [quotedQuotes, setQuotedQuotes] = useState([]);
+  const [acceptedQuotes, setAcceptedQuotes] = useState([]);
   const [allUsers, setAllUsers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -65,8 +67,10 @@ const ShopQuotes = () => {
       setShopQuotes(pendingQuotes);
     } else if (selectedTab === "quoted") {
       setShopQuotes(quotedQuotes);
+    } else if (selectedTab === "accepted") {
+      setShopQuotes(acceptedQuotes);
     }
-  }, [selectedTab, pendingQuotes, quotedQuotes]);
+  }, [selectedTab, pendingQuotes, quotedQuotes, acceptedQuotes]);
 
   // Fetch all users to get complete user data
   const fetchAllUsers = async () => {
@@ -110,10 +114,12 @@ const ShopQuotes = () => {
       const usersMap = await fetchAllUsers();
 
       // Fetch both pending and quoted quotes simultaneously
-      const [pendingResponse, quotedResponse] = await Promise.all([
-        getCakeQuotes(currentPage, 50),
-        getMyShopQuotes(currentPage, 50),
-      ]);
+      const [pendingResponse, quotedResponse, acceptedResponse] =
+        await Promise.all([
+          getCakeQuotes(currentPage, 50),
+          getMyShopQuotes(currentPage, 50),
+          getAcceptedQuotesByShop(currentPage, 50),
+        ]);
 
       // Process pending quotes
       if (pendingResponse.success) {
@@ -203,8 +209,18 @@ const ShopQuotes = () => {
         const myQuotes = quotedResponse.data.quotes || [];
         console.log("My shop quotes from API:", myQuotes);
 
+        // Get list of accepted quote IDs to filter them out
+        const acceptedQuoteIds = new Set();
+        if (acceptedResponse.success && acceptedResponse.data.acceptedQuotes) {
+          acceptedResponse.data.acceptedQuotes.forEach(quote => {
+            acceptedQuoteIds.add(quote.id);
+          });
+        }
+
         const transformedQuotedQuotes = await Promise.all(
-          myQuotes.map(async (quote) => {
+          myQuotes
+            .filter(quote => !acceptedQuoteIds.has(quote.cake_quote_id)) // Filter out accepted quotes
+            .map(async (quote) => {
             let cakeQuoteDetails = null;
             try {
               const cakeQuoteResponse = await getCakeQuoteById(
@@ -253,9 +269,51 @@ const ShopQuotes = () => {
         setQuotedQuotes(transformedQuotedQuotes);
       }
 
+      // Process accepted quotes
+      if (acceptedResponse.success) {
+        const acceptedQuotes = acceptedResponse.data.acceptedQuotes || [];
+        console.log("Accepted quotes from API:", acceptedQuotes);
+
+        const transformedAcceptedQuotes = acceptedQuotes.map((quote) => ({
+          id: quote.id,
+          customer: enhanceUserData(quote.user, usersMap),
+          cakeDesign: {
+            id: quote.id,
+            image: quote.imageDesign || "/placeholder-cake.jpg",
+            title: quote.title,
+            description: quote.description,
+            created_at: quote.created_at,
+            deadline: quote.expires_at,
+            budget: `${quote.budget_range} VND`,
+            cake_size: quote.cake_size || "N/A",
+            special_requirements: quote.special_requirements || "N/A",
+          },
+          status: "accepted",
+          myQuote:
+            quote.shopQuotes && quote.shopQuotes[0]
+              ? {
+                  id: quote.shopQuotes[0].id,
+                  price: quote.shopQuotes[0].quoted_price,
+                  estimatedTime: `${quote.shopQuotes[0].preparation_time} giờ`,
+                  message: quote.shopQuotes[0].message,
+                  ingredients_breakdown:
+                    quote.shopQuotes[0].ingredients_breakdown,
+                  accepted_at: quote.shopQuotes[0].accepted_at,
+                }
+              : null,
+          created_at: quote.created_at,
+        }));
+
+        setAcceptedQuotes(transformedAcceptedQuotes);
+      }
+
       // Set pagination from the current tab's response
       const currentResponse =
-        selectedTab === "pending" ? pendingResponse : quotedResponse;
+        selectedTab === "pending"
+          ? pendingResponse
+          : selectedTab === "quoted"
+          ? quotedResponse
+          : acceptedResponse;
       if (currentResponse.success) {
         setPagination(currentResponse.data.pagination);
       }
@@ -544,6 +602,13 @@ const ShopQuotes = () => {
               icon: <CheckCircle className="w-4 h-4" />,
               color: "emerald",
             },
+            {
+              id: "accepted",
+              label: "Khách đã chấp nhận báo giá",
+              count: acceptedQuotes.length,
+              icon: <User className="w-4 h-4" />,
+              color: "blue",
+            },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -746,6 +811,20 @@ const ShopQuotes = () => {
                             </p>
                           </div>
                         )}
+                        {quote.status === "accepted" &&
+                          quote.myQuote.accepted_at && (
+                            <div className="bg-green-50 p-4 rounded-xl mb-6 border border-green-200">
+                              <h6 className="text-sm font-bold text-green-800 mb-2 flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4" />
+                                Thời gian chấp nhận:
+                              </h6>
+                              <p className="text-green-700 leading-relaxed">
+                                {new Date(
+                                  quote.myQuote.accepted_at
+                                ).toLocaleString("vi-VN")}
+                              </p>
+                            </div>
+                          )}
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleViewCakeQuote(quote.id)}
@@ -754,13 +833,15 @@ const ShopQuotes = () => {
                             <Eye className="w-4 h-4 mr-2 inline" />
                             Xem chi tiết
                           </button>
-                          <button
-                            onClick={() => openQuoteModal(quote)}
-                            className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                          >
-                            <Edit3 className="w-4 h-4 mr-2 inline" />
-                            Chỉnh sửa
-                          </button>
+                          {quote.status !== "accepted" && (
+                            <button
+                              onClick={() => openQuoteModal(quote)}
+                              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            >
+                              <Edit3 className="w-4 h-4 mr-2 inline" />
+                              Chỉnh sửa
+                            </button>
+                          )}
                           <button className="px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
                             <MessageCircle className="w-4 h-4 mr-2 inline" />
                             Nhắn tin
@@ -808,12 +889,16 @@ const ShopQuotes = () => {
               <h3 className="text-2xl font-bold text-gray-700 mb-4">
                 {selectedTab === "pending"
                   ? "Không có yêu cầu báo giá mới"
-                  : "Chưa có báo giá nào được gửi"}
+                  : selectedTab === "quoted"
+                  ? "Chưa có báo giá nào được gửi"
+                  : "Chưa có khách hàng nào chấp nhận báo giá"}
               </h3>
               <p className="text-gray-500 mb-6 leading-relaxed">
                 {selectedTab === "pending"
                   ? "Hiện tại không có khách hàng nào đang tìm thợ làm bánh. Hãy kiểm tra lại sau!"
-                  : "Bạn chưa gửi báo giá cho yêu cầu nào. Hãy bắt đầu bằng cách xem các yêu cầu mới!"}
+                  : selectedTab === "quoted"
+                  ? "Bạn chưa gửi báo giá cho yêu cầu nào. Hãy bắt đầu bằng cách xem các yêu cầu mới!"
+                  : "Chưa có khách hàng nào chấp nhận báo giá của bạn. Hãy tiếp tục gửi báo giá chất lượng!"}
               </p>
               {selectedTab === "pending" && (
                 <button
