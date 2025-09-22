@@ -528,6 +528,12 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
     }
   })();
 
+  // Treat cancelled orders as not-eligible for complaints
+  const isCancelledOrder = (() => {
+    const s = (orderDetail?.status || "").toString().toLowerCase();
+    return ["cancelled", "canceled", "cancel"].includes(s);
+  })();
+
   // Countdown for 2-hour window after shipped
   const [remainingMs, setRemainingMs] = useState(null);
 
@@ -589,6 +595,7 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
     canOwnerCustomerActions &&
     !isShopOrdersPage &&
     !hasComplaint &&
+    !isCancelledOrder &&
     (isPastDelivery || (orderDetail?.status === "shipped" && !isExpired));
 
   const handleBackToList = () => {

@@ -259,22 +259,24 @@ export default function ComplaintDetails({ complaint, onBack }) {
   // Use only embedded marketplace post (no external fetch)
   // Attempt extraction from several known locations in complaint/order
   useEffect(() => {
-    if (marketplaceImage) return;
+    if (marketplaceImage) return; // If image is already loaded, exit early
     const candidates = [
+      // List of potential sources for the marketplace post
       order?.marketplace_post,
       order?.marketplacePost,
-      order?.post, // some APIs embed post directly
+      order?.post,
       complaint?.raw?.marketplace_post,
       complaint?.raw?.marketplacePost,
       complaint?.raw?.post,
     ];
     for (const p of candidates) {
+      // Iterate through candidates to find a valid post
       if (p && typeof p === "object" && Object.keys(p).length) {
-        setMarketplacePost(p);
-        const img = extractImageFromMarketplacePost(p);
+        setMarketplacePost(p); // Set the marketplace post
+        const img = extractImageFromMarketplacePost(p); // Extract image from the post
         if (img) {
-          setMarketplaceImage(img);
-          break;
+          setMarketplaceImage(img); // Set the extracted image
+          break; // Exit loop once an image is found
         }
       }
     }
@@ -285,6 +287,27 @@ export default function ComplaintDetails({ complaint, onBack }) {
     marketplacePost,
     marketplaceImage,
   ]);
+
+  // Debug & prefer cakeQuote.imageDesign if present
+  useEffect(() => {
+    const cq =
+      order?.cakeQuote ||
+      order?.cake_quote ||
+      complaint?.raw?.order?.cakeQuote ||
+      complaint?.raw?.order?.cake_quote ||
+      null;
+    // eslint-disable-next-line no-console
+
+    const imageFromCakeQuote =
+      cq?.imageDesign || cq?.image_design || cq?.image || null;
+    // eslint-disable-next-line no-console
+
+    if (imageFromCakeQuote) {
+      setMarketplacePost(cq);
+      setMarketplaceImage(imageFromCakeQuote);
+      setIsLoadingMarketplace(false);
+    }
+  }, [complaint, order, order?.cakeQuote?.id, order?.cakeQuote?.imageDesign]);
 
   // Replace raw status state with normalized status
   const [status, setStatus] = useState(
@@ -427,6 +450,19 @@ export default function ComplaintDetails({ complaint, onBack }) {
   })();
 
   const specialInstructions = order?.special_instructions || "";
+
+  // Normalize CakeQuote from various possible shapes
+  const cakeQuote =
+    order?.cakeQuote ||
+    order?.cake_quote ||
+    complaint?.raw?.order?.cakeQuote ||
+    complaint?.raw?.order?.cake_quote ||
+    null;
+  // Prefer exact API response fields: `description` and `cake_size` on cakeQuote
+  const cakeQuoteDesc =
+    cakeQuote?.description ?? cakeQuote?.desc ?? cakeQuote?.note ?? null;
+  const cakeQuoteSize =
+    cakeQuote?.cake_size ?? cakeQuote?.cakeSize ?? cakeQuote?.size ?? null;
 
   if (!complaint) {
     return (
@@ -838,25 +874,35 @@ export default function ComplaintDetails({ complaint, onBack }) {
                 </div>
 
                 {/* Marketplace Post Image - MOVED TO TOP */}
+                {/* Marketplace / CakeQuote Image Header */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                       <ImageIcon className="h-5 w-5 text-blue-600" />
-                      Ảnh bánh (từ bài đăng bán SP)
+                      Ảnh bánh (từ Cake Quote / Marketplace post)
                     </h3>
-                    {(order?.marketplace_post || order?.post) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMarketplacePost(null);
-                          setMarketplaceImage(null);
-                        }}
-                        className="text-xs px-2 py-1 rounded border border-blue-500 text-blue-600 hover:bg-blue-50"
-                      >
-                        Thử lại trích xuất
-                      </button>
-                    )}
+                    {/* header actions removed - no retry button */}
                   </div>
+
+                  {/* Cake Quote summary (if present) */}
+                  {cakeQuote && (
+                    <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                      <p className="text-sm text-gray-600">
+                        Thông tin Cake Quote
+                      </p>
+                      <h4 className="font-semibold text-gray-800 mt-1">
+                        {cakeQuote.title || `Cake Quote #${cakeQuote.id || ""}`}
+                      </h4>
+                      {cakeQuoteDesc && (
+                        <p className="text-gray-700 mt-2">{cakeQuoteDesc}</p>
+                      )}
+                      {cakeQuoteSize && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Kích thước: {cakeQuoteSize}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {isLoadingMarketplace && (
                     <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg border border-gray-200">
@@ -1121,7 +1167,9 @@ export default function ComplaintDetails({ complaint, onBack }) {
                     <div className="bg-white p-4 rounded-lg border border-gray-200">
                       <p className="text-gray-500 text-xs">Kích thước</p>
                       <p className="font-semibold text-gray-800">
-                        {order.size || "-"}
+                        {cakeQuote
+                          ? cakeQuote?.cake_size || "-"
+                          : order.size || "-"}
                       </p>
                     </div>
 
