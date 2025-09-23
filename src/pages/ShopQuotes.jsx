@@ -212,58 +212,59 @@ const ShopQuotes = () => {
         // Get list of accepted quote IDs to filter them out
         const acceptedQuoteIds = new Set();
         if (acceptedResponse.success && acceptedResponse.data.acceptedQuotes) {
-          acceptedResponse.data.acceptedQuotes.forEach(quote => {
+          acceptedResponse.data.acceptedQuotes.forEach((quote) => {
             acceptedQuoteIds.add(quote.id);
           });
         }
 
         const transformedQuotedQuotes = await Promise.all(
           myQuotes
-            .filter(quote => !acceptedQuoteIds.has(quote.cake_quote_id)) // Filter out accepted quotes
+            .filter((quote) => !acceptedQuoteIds.has(quote.cake_quote_id)) // Filter out accepted quotes
             .map(async (quote) => {
-            let cakeQuoteDetails = null;
-            try {
-              const cakeQuoteResponse = await getCakeQuoteById(
-                quote.cake_quote_id
-              );
-              if (cakeQuoteResponse.success) {
-                cakeQuoteDetails = cakeQuoteResponse.data;
+              let cakeQuoteDetails = null;
+              try {
+                const cakeQuoteResponse = await getCakeQuoteById(
+                  quote.cake_quote_id
+                );
+                if (cakeQuoteResponse.success) {
+                  cakeQuoteDetails = cakeQuoteResponse.data;
+                }
+              } catch (error) {
+                console.error(
+                  `Error fetching cake quote ${quote.cake_quote_id}:`,
+                  error
+                );
               }
-            } catch (error) {
-              console.error(
-                `Error fetching cake quote ${quote.cake_quote_id}:`,
-                error
-              );
-            }
 
-            return {
-              id: quote.cake_quote_id,
-              customer: enhanceUserData(cakeQuoteDetails?.user, usersMap),
-              cakeDesign: {
+              return {
                 id: quote.cake_quote_id,
-                image: cakeQuoteDetails?.imageDesign || "/placeholder-cake.jpg",
-                title: cakeQuoteDetails?.title || "Cake Design",
-                description: cakeQuoteDetails?.description || "",
-                created_at: cakeQuoteDetails?.created_at || quote.created_at,
-                deadline: cakeQuoteDetails?.expires_at || null,
-                budget: `${cakeQuoteDetails?.budget_range || "N/A"} VND`,
-                cake_size: cakeQuoteDetails?.cake_size || "N/A",
-                special_requirements:
-                  cakeQuoteDetails?.special_requirements || "N/A",
-              },
-              status: "quoted",
-              myQuote: {
-                id: quote.id,
-                price: quote.quoted_price,
-                estimatedTime: `${quote.preparation_time} giờ`,
-                message: quote.message,
-                ingredients_breakdown: quote.ingredients_breakdown,
+                customer: enhanceUserData(cakeQuoteDetails?.user, usersMap),
+                cakeDesign: {
+                  id: quote.cake_quote_id,
+                  image:
+                    cakeQuoteDetails?.imageDesign || "/placeholder-cake.jpg",
+                  title: cakeQuoteDetails?.title || "Cake Design",
+                  description: cakeQuoteDetails?.description || "",
+                  created_at: cakeQuoteDetails?.created_at || quote.created_at,
+                  deadline: cakeQuoteDetails?.expires_at || null,
+                  budget: `${cakeQuoteDetails?.budget_range || "N/A"} VND`,
+                  cake_size: cakeQuoteDetails?.cake_size || "N/A",
+                  special_requirements:
+                    cakeQuoteDetails?.special_requirements || "N/A",
+                },
+                status: "quoted",
+                myQuote: {
+                  id: quote.id,
+                  price: quote.quoted_price,
+                  estimatedTime: `${quote.preparation_time} giờ`,
+                  message: quote.message,
+                  ingredients_breakdown: quote.ingredients_breakdown,
+                  created_at: quote.created_at,
+                  validUntil: quote.expires_at,
+                },
                 created_at: quote.created_at,
-                validUntil: quote.expires_at,
-              },
-              created_at: quote.created_at,
-            };
-          })
+              };
+            })
         );
 
         setQuotedQuotes(transformedQuotedQuotes);
@@ -349,7 +350,7 @@ const ShopQuotes = () => {
       case "rejected":
         return "bg-red-100 text-red-800 border-red-200";
       case "completed":
-        return "bg-purple-100 text-purple-800 border-purple-200";
+        return "bg-rose-100 text-rose-800 border-rose-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -501,10 +502,10 @@ const ShopQuotes = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-20 h-20 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto mb-6 shadow-lg"></div>
-          <p className="text-indigo-600 font-semibold text-lg">
+          <div className="w-20 h-20 border-4 border-pink-400 border-t-transparent rounded-full animate-spin mx-auto mb-6 shadow-lg"></div>
+          <p className="text-pink-600 font-semibold text-lg">
             Đang tải danh sách yêu cầu báo giá...
           </p>
         </div>
@@ -514,7 +515,7 @@ const ShopQuotes = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex items-center justify-center">
         <div className="text-center bg-white/80 backdrop-blur-sm p-12 rounded-3xl shadow-2xl border border-white/50 max-w-md mx-auto">
           <AlertCircle className="w-20 h-20 text-red-400 mx-auto mb-6" />
           <h3 className="text-xl font-bold text-gray-800 mb-3">
@@ -523,7 +524,7 @@ const ShopQuotes = () => {
           <p className="text-gray-600 mb-6 leading-relaxed">{error}</p>
           <button
             onClick={fetchShopQuotes}
-            className="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="px-8 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Thử lại
           </button>
@@ -533,17 +534,17 @@ const ShopQuotes = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">
       {/* Header */}
-      <header className="bg-white/95 backdrop-blur-sm border-b border-indigo-100 px-6 py-4 sticky top-0 z-50 shadow-sm">
+      <header className="bg-white/95 backdrop-blur-sm border-b border-pink-100 px-6 py-4 sticky top-0 z-50 shadow-sm">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate(-1)}
-              className="p-2.5 hover:bg-indigo-50 rounded-xl transition-all duration-200 hover:scale-105"
+              className="p-2.5 hover:bg-pink-50 rounded-xl transition-all duration-200 hover:scale-105"
             >
               <svg
-                className="w-5 h-5 text-indigo-600"
+                className="w-5 h-5 text-pink-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -556,11 +557,11 @@ const ShopQuotes = () => {
                 />
               </svg>
             </button>
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-lg">
               <ChefHat className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
                 Quản lý báo giá
               </h1>
               <p className="text-sm text-gray-600">
@@ -571,13 +572,13 @@ const ShopQuotes = () => {
 
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-indigo-400" />
+              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-pink-400" />
               <input
                 type="text"
                 placeholder="Tìm kiếm khách hàng hoặc bánh..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2.5 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-72 bg-white/70 backdrop-blur-sm"
+                className="pl-10 pr-4 py-2.5 border border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent w-72 bg-white/70 backdrop-blur-sm"
               />
             </div>
           </div>
@@ -586,7 +587,7 @@ const ShopQuotes = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Tabs */}
-        <div className="flex gap-1 mb-8 bg-white/60 backdrop-blur-sm p-1.5 rounded-2xl w-fit shadow-sm border border-indigo-100">
+        <div className="flex gap-1 mb-8 bg-white/60 backdrop-blur-sm p-1.5 rounded-2xl w-fit shadow-sm border border-pink-100">
           {[
             {
               id: "pending",
@@ -633,7 +634,7 @@ const ShopQuotes = () => {
               className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-500"
             >
               {/* Customer & Cake Design Header */}
-              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white relative overflow-hidden">
+              <div className="bg-gradient-to-r from-pink-600 to-rose-600 p-6 text-white relative overflow-hidden">
                 <div className="absolute inset-0 bg-black/10"></div>
                 <div className="relative flex items-start gap-6">
                   <div className="relative">
@@ -664,7 +665,7 @@ const ShopQuotes = () => {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6 text-sm text-indigo-100 mb-4">
+                    <div className="flex items-center gap-6 text-sm text-pink-100 mb-4">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4" />
                         <span>@{quote.customer.username}</span>
@@ -677,21 +678,21 @@ const ShopQuotes = () => {
                     <div className="space-y-2">
                       {quote.customer.email &&
                         quote.customer.email !== "N/A" && (
-                          <div className="flex items-center gap-2 text-sm text-indigo-100">
+                          <div className="flex items-center gap-2 text-sm text-pink-100">
                             <Mail className="w-4 h-4" />
                             <span>{quote.customer.email}</span>
                           </div>
                         )}
                       {quote.customer.phone_number &&
                         quote.customer.phone_number !== "Chưa cập nhật" && (
-                          <div className="flex items-center gap-2 text-sm text-indigo-100">
+                          <div className="flex items-center gap-2 text-sm text-pink-100">
                             <Phone className="w-4 h-4" />
                             <span>{quote.customer.phone_number}</span>
                           </div>
                         )}
                       {quote.customer.address &&
                         quote.customer.address !== "Chưa cập nhật" && (
-                          <div className="flex items-center gap-2 text-sm text-indigo-100">
+                          <div className="flex items-center gap-2 text-sm text-pink-100">
                             <MapPin className="w-4 h-4" />
                             <span>{quote.customer.address}</span>
                           </div>
@@ -707,7 +708,7 @@ const ShopQuotes = () => {
                   {/* Cake Design */}
                   <div>
                     <h4 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                      <div className="w-2 h-8 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
+                      <div className="w-2 h-8 bg-gradient-to-b from-pink-500 to-rose-500 rounded-full"></div>
                       Yêu cầu bánh
                     </h4>
                     <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200 shadow-sm">
@@ -836,7 +837,7 @@ const ShopQuotes = () => {
                           {quote.status !== "accepted" && (
                             <button
                               onClick={() => openQuoteModal(quote)}
-                              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-pink-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                             >
                               <Edit3 className="w-4 h-4 mr-2 inline" />
                               Chỉnh sửa
@@ -867,7 +868,7 @@ const ShopQuotes = () => {
                           </button>
                           <button
                             onClick={() => openQuoteModal(quote)}
-                            className="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                            className="px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                           >
                             <Send className="w-5 h-5 mr-2 inline" />
                             Gửi báo giá
@@ -885,7 +886,7 @@ const ShopQuotes = () => {
         {filteredQuotes.length === 0 && (
           <div className="text-center py-20">
             <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-12 max-w-lg mx-auto shadow-xl border border-white/50">
-              <Search className="w-24 h-24 text-indigo-300 mx-auto mb-8" />
+              <Search className="w-24 h-24 text-pink-300 mx-auto mb-8" />
               <h3 className="text-2xl font-bold text-gray-700 mb-4">
                 {selectedTab === "pending"
                   ? "Không có yêu cầu báo giá mới"
@@ -903,7 +904,7 @@ const ShopQuotes = () => {
               {selectedTab === "pending" && (
                 <button
                   onClick={fetchShopQuotes}
-                  className="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="px-8 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Làm mới danh sách
                 </button>
@@ -917,7 +918,7 @@ const ShopQuotes = () => {
       {showQuoteModal && selectedRequest && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-white/50">
-            <div className="flex items-center justify-between p-8 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+            <div className="flex items-center justify-between p-8 border-b border-gray-200 bg-gradient-to-r from-pink-600 to-rose-600 text-white">
               <h3 className="text-2xl font-bold">
                 {selectedRequest.myQuote ? "Chỉnh sửa báo giá" : "Gửi báo giá"}
               </h3>
@@ -945,7 +946,7 @@ const ShopQuotes = () => {
                   <img
                     src={selectedRequest.customer.avatar}
                     alt={selectedRequest.customer.name}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-200"
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-pink-200"
                   />
                   <div>
                     <h4 className="font-bold text-gray-900 text-xl">
@@ -987,7 +988,7 @@ const ShopQuotes = () => {
                       onChange={(e) =>
                         setQuoteForm({ ...quoteForm, price: e.target.value })
                       }
-                      className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                      className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                       placeholder="500000"
                     />
                   </div>
@@ -1004,7 +1005,7 @@ const ShopQuotes = () => {
                           preparation_time: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                      className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                       placeholder="24"
                     />
                   </div>
@@ -1020,7 +1021,7 @@ const ShopQuotes = () => {
                       setQuoteForm({ ...quoteForm, message: e.target.value })
                     }
                     rows={4}
-                    className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                     placeholder="Mô tả chi tiết về báo giá của bạn..."
                   />
                 </div>
@@ -1038,7 +1039,7 @@ const ShopQuotes = () => {
                       })
                     }
                     rows={3}
-                    className="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                    className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                     placeholder="Liệt kê các nguyên liệu sẽ sử dụng..."
                   />
                 </div>
@@ -1067,7 +1068,7 @@ const ShopQuotes = () => {
                     ? handleUpdateQuote
                     : handleCreateQuote
                 }
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {selectedRequest.myQuote ? "Cập nhật báo giá" : "Gửi báo giá"}
               </button>
