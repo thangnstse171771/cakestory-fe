@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import ComplaintModal from "../ComplaintManagement/ComplaintModal";
-import CakeQuoteDetailComponent from "../CakeQuoteDetail";
+import CakeQuoteOrderDetail from "../CakeQuoteOrderDetails";
 import { fetchOrderById } from "../../api/axios";
 import {
   fetchMarketplacePostById,
@@ -1062,15 +1062,17 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
                   </button>
                 </Link>
 
-                <CakeQuoteDetailComponent
-                  cakeQuoteId={
-                    orderDetail?.__raw?.cake_quote_id || order?.cake_quote_id
-                  }
-                  cakeQuote={
-                    orderDetail?.__raw?.cake_quote || order?.cake_quote
-                  }
-                  compact
-                />
+                <div className="mt-4">
+                  <CakeQuoteOrderDetail
+                    cakeQuoteId={
+                      orderDetail?.__raw?.cake_quote_id || order?.cake_quote_id
+                    }
+                    cakeQuote={
+                      orderDetail?.__raw?.cake_quote || order?.cake_quote
+                    }
+                    compact={true}
+                  />
+                </div>
               </div>
             </div>
           )}

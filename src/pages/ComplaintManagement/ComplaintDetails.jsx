@@ -926,9 +926,6 @@ export default function ComplaintDetails({ complaint, onBack }) {
                             e.target.style.display = "none";
                           }}
                         />
-                        <div className="absolute bottom-2 right-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                          Marketplace Post
-                        </div>
                       </div>
                     </div>
                   )}
