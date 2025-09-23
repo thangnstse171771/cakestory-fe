@@ -103,7 +103,7 @@ const CakeQuoteOrder = ({ isOpen, onClose, cakeQuote }) => {
 
         {cakeQuote ? (
           <div className="space-y-3">
-            <p>ID: {cakeQuote.id}</p>
+            {/* <p>ID: {cakeQuote.id}</p> */}
             <p>
               <strong>Tiệm:</strong> {cakeQuote.shop?.name}
             </p>
