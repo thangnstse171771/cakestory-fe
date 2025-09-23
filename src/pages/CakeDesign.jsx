@@ -83,6 +83,20 @@ const CakeDesign = () => {
   // Wallet states
   const [balance, setBalance] = useState(0);
   const [showBalanceWarning, setShowBalanceWarning] = useState(false);
+
+  // Cake quote form states
+  const [showCakeQuoteForm, setShowCakeQuoteForm] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    cake_size: "",
+    special_requirements: "",
+    budget_range: 500000,
+    expires_at: "",
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const navigate = useNavigate();
   const { user } = useAuth(); // Get current user
 
@@ -933,14 +947,25 @@ Trang trí: ${
                 type: "image/png",
               });
               formData.append("design_image", imageFile);
-              formData.append("description", String(fullDescription + "\n\nMô tả AI sẽ được gửi:\n" + aiPromptDescription));
+              formData.append(
+                "description",
+                String(
+                  fullDescription +
+                    "\n\nMô tả AI sẽ được gửi:\n" +
+                    aiPromptDescription
+                )
+              );
               formData.append("is_public", "true");
               formData.append("ai_generated", "");
               // Add AI prompt for immediate processing
               formData.append("ai_prompt", String(aiPromptDescription));
 
               console.log("Auto-uploading to API:", {
-                description: String(fullDescription + "\n\nMô tả AI sẽ được gửi:\n" + aiPromptDescription),
+                description: String(
+                  fullDescription +
+                    "\n\nMô tả AI sẽ được gửi:\n" +
+                    aiPromptDescription
+                ),
                 ai_prompt: String(aiPromptDescription),
                 is_public: "true",
                 ai_generated: "",
@@ -1075,7 +1100,7 @@ Trang trí: ${
     // Ghép mô tả tự do của người dùng và thông tin bổ sung (nếu có)
     const userDesc = description?.trim();
     const additionalInfo = [];
-    
+
     if (wishMessage?.trim()) {
       additionalInfo.push(`Câu chúc: "${wishMessage.trim()}"`);
     }
@@ -1089,7 +1114,7 @@ Trang trí: ${
     if (eventDate?.trim()) {
       additionalInfo.push(`Ngày sự kiện: ${eventDate.trim()}`);
     }
-    
+
     let fullUserDescription = "";
     if (userDesc) {
       fullUserDescription += userDesc;
@@ -1100,7 +1125,7 @@ Trang trí: ${
       }
       fullUserDescription += additionalInfo.join(", ");
     }
-    
+
     if (fullUserDescription) {
       return `${fullUserDescription}. ${prompt}`.trim();
     }
@@ -1210,27 +1235,133 @@ Trang trí: ${
       return;
     }
 
+    // Open cake quote form instead of creating immediately
+    setShowCakeQuoteForm(true);
+
+    // Pre-fill form data with default values
+    setFormData({
+      title: `Birthday Cake for 20 People`,
+      description:
+        selectedAIImage.description ||
+        "Looking for a chocolate birthday cake with custom decorations",
+      cake_size: `${diameter} inch`,
+      special_requirements:
+        selectedFlavors.length > 0
+          ? `Gluten-free, no nuts, ${selectedFlavors.join(", ")} flavor`
+          : "Gluten-free, no nuts",
+      budget_range: 500000,
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0], // 30 days from now, format YYYY-MM-DD
+    });
+  };
+
+  // Handle form input changes
+  const handleFormChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // Clear error for this field when user types
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+  };
+
+  // Validate form data
+  const validateForm = () => {
+    const errors = {};
+
+    // Title validation
+    if (!formData.title.trim()) {
+      errors.title = "Tiêu đề không được để trống";
+    } else if (formData.title.trim().length < 5) {
+      errors.title = "Tiêu đề phải có ít nhất 5 ký tự";
+    } else if (formData.title.trim().length > 100) {
+      errors.title = "Tiêu đề không được quá 100 ký tự";
+    }
+
+    // Description validation
+    if (!formData.description.trim()) {
+      errors.description = "Mô tả không được để trống";
+    } else if (formData.description.trim().length < 10) {
+      errors.description = "Mô tả phải có ít nhất 10 ký tự";
+    } else if (formData.description.trim().length > 500) {
+      errors.description = "Mô tả không được quá 500 ký tự";
+    }
+
+    // Cake size validation
+    if (!formData.cake_size.trim()) {
+      errors.cake_size = "Kích thước bánh không được để trống";
+    } else if (formData.cake_size.trim().length < 2) {
+      errors.cake_size = "Kích thước bánh không hợp lệ";
+    } else if (formData.cake_size.trim().length > 50) {
+      errors.cake_size = "Kích thước bánh không được quá 50 ký tự";
+    }
+
+    // Budget validation
+    if (!formData.budget_range || formData.budget_range <= 0) {
+      errors.budget_range = "Ngân sách phải lớn hơn 0";
+    } else if (formData.budget_range < 50000) {
+      errors.budget_range = "Ngân sách tối thiểu là 50,000 VND";
+    } else if (formData.budget_range > 50000000) {
+      errors.budget_range = "Ngân sách tối đa là 50,000,000 VND";
+    }
+
+    // Special requirements validation (optional but if provided, check length)
+    if (
+      formData.special_requirements.trim() &&
+      formData.special_requirements.trim().length > 300
+    ) {
+      errors.special_requirements = "Yêu cầu đặc biệt không được quá 300 ký tự";
+    }
+
+    // Expires at validation (optional but if provided, must be future date)
+    if (formData.expires_at) {
+      const selectedDate = new Date(formData.expires_at);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (selectedDate < today) {
+        errors.expires_at = "Hạn cuối phải là ngày trong tương lai";
+      }
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle form submit
+  const handleSubmitCakeQuote = async () => {
+    if (!selectedAIImage) {
+      toast.error("Không tìm thấy ảnh AI");
+      return;
+    }
+
+    // Validate form
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra và sửa các lỗi trong form");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      // Prepare cake quote data
+      // Prepare cake quote data exactly as requested format
       const cakeQuoteData = {
-        title: `Bánh từ thiết kế AI - ${new Date().toLocaleDateString(
-          "vi-VN"
-        )}`,
-        description:
-          selectedAIImage.description ||
-          "Bánh được tạo từ AI với thiết kế tùy chỉnh",
+        title: formData.title.trim(),
+        description: formData.description.trim(),
         imageDesign: selectedAIImage.ai_generated,
-        cake_size: `${diameter}cm x ${height}cm${
-          design.shape !== "Round" ? ` x ${width}cm` : ""
-        }`,
-        special_requirements:
-          selectedFlavors.length > 0
-            ? `Hương vị: ${selectedFlavors.join(", ")}`
-            : "",
-        budget_range: 500000, // Default budget, can be customized later
-        expires_at: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ).toISOString(), // 30 days from now
+        cake_size: formData.cake_size.trim(),
+        special_requirements: formData.special_requirements.trim(),
+        budget_range: parseInt(formData.budget_range),
+        expires_at: formData.expires_at
+          ? new Date(formData.expires_at + "T23:59:59Z").toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       };
 
       console.log("Creating cake quote:", cakeQuoteData);
@@ -1240,12 +1371,34 @@ Trang trí: ${
 
       toast.success("Đã tạo yêu cầu tìm thợ làm bánh thành công!");
 
+      // Close form and image modal
+      setShowCakeQuoteForm(false);
+      setShowImageModal(false);
+      setSelectedAIImage(null);
+
       // Navigate to cake quotes page
       navigate("/cake-quotes");
     } catch (error) {
       console.error("Error creating cake quote:", error);
       toast.error("Có lỗi xảy ra khi tạo yêu cầu tìm thợ làm bánh");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  // Close cake quote form
+  const closeCakeQuoteForm = () => {
+    setShowCakeQuoteForm(false);
+    setFormData({
+      title: "",
+      description: "",
+      cake_size: "",
+      special_requirements: "",
+      budget_range: 500000,
+      expires_at: "",
+    });
+    setFormErrors({});
+    setIsSubmitting(false);
   };
 
   // Handle edit AI image
@@ -3644,6 +3797,388 @@ Trang trí: ${
                     className="flex-1 px-4 py-2 bg-red-600 text-white rounded"
                   >
                     Xóa
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cake Quote Form Modal */}
+        {showCakeQuoteForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              {/* Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-200 px-8 py-6 rounded-t-2xl shadow-sm">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg mr-4">
+                      <svg
+                        className="w-6 h-6 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-800">
+                        Tạo yêu cầu tìm thợ làm bánh
+                      </h3>
+                      <p className="text-gray-600 text-sm mt-1">
+                        Điền thông tin để tìm thợ làm bánh phù hợp nhất
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeCakeQuoteForm}
+                    disabled={isSubmitting}
+                    className="text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg p-2 transition-all duration-200 disabled:opacity-50"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Form Content */}
+              <div className="px-8 py-6 space-y-8 bg-gradient-to-br from-gray-50 to-white">
+                {/* Title */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Tiêu đề yêu cầu <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleFormChange("title", e.target.value)}
+                    className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-green-100 focus:border-green-400 bg-white shadow-sm ${
+                      formErrors.title
+                        ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    placeholder="e.g. Birthday Cake for 20 People"
+                  />
+                  {formErrors.title && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {formErrors.title}
+                    </p>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Mô tả chi tiết <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) =>
+                      handleFormChange("description", e.target.value)
+                    }
+                    rows="4"
+                    className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-green-100 focus:border-green-400 bg-white shadow-sm resize-none ${
+                      formErrors.description
+                        ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    placeholder="e.g. Looking for a chocolate birthday cake with custom decorations"
+                  />
+                  {formErrors.description && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {formErrors.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* Two columns layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Cake Size */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">
+                      Kích thước bánh <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.cake_size}
+                      onChange={(e) =>
+                        handleFormChange("cake_size", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-green-100 focus:border-green-400 bg-white shadow-sm ${
+                        formErrors.cake_size
+                          ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                      placeholder="e.g. 8 inch, 25cm, 10x8 inch"
+                    />
+                    {formErrors.cake_size && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        {formErrors.cake_size}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Budget Range */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">
+                      Ngân sách (VND) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.budget_range}
+                      onChange={(e) =>
+                        handleFormChange(
+                          "budget_range",
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                      min="50000"
+                      max="50000000"
+                      step="10000"
+                      className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-green-100 focus:border-green-400 bg-white shadow-sm ${
+                        formErrors.budget_range
+                          ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                      placeholder="500000"
+                    />
+                    {formErrors.budget_range && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        {formErrors.budget_range}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Từ 50,000 - 50,000,000 VND
+                    </p>
+                  </div>
+                </div>
+
+                {/* Special Requirements */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Yêu cầu đặc biệt
+                    <span className="text-gray-400 font-normal ml-2">
+                      (Tùy chọn)
+                    </span>
+                  </label>
+                  <textarea
+                    value={formData.special_requirements}
+                    onChange={(e) =>
+                      handleFormChange("special_requirements", e.target.value)
+                    }
+                    rows="3"
+                    className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-green-100 focus:border-green-400 bg-white shadow-sm resize-none ${
+                      formErrors.special_requirements
+                        ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                    placeholder="e.g. Gluten-free, no nuts, sugar-free, specific flavors"
+                  />
+                  {formErrors.special_requirements && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {formErrors.special_requirements}
+                    </p>
+                  )}
+                </div>
+
+                {/* Expires At */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Hạn cuối nhận báo giá
+                    <span className="text-gray-400 font-normal ml-2">
+                      (Tùy chọn)
+                    </span>
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.expires_at}
+                    onChange={(e) =>
+                      handleFormChange("expires_at", e.target.value)
+                    }
+                    min={new Date().toISOString().split("T")[0]}
+                    className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-green-100 focus:border-green-400 bg-white shadow-sm ${
+                      formErrors.expires_at
+                        ? "border-red-400 focus:border-red-400 focus:ring-red-100"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  />
+                  {formErrors.expires_at && (
+                    <p className="text-red-500 text-sm mt-1 flex items-center">
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {formErrors.expires_at}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Để trống sẽ tự động đặt hạn 30 ngày từ hôm nay
+                  </p>
+                </div>
+
+                {/* Image Preview - Enhanced */}
+                {selectedAIImage && (
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-gray-800 mb-3">
+                      Hình ảnh tham khảo
+                    </label>
+                    <div className="relative group">
+                      <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 transition-all duration-200">
+                        <div className="relative overflow-hidden rounded-lg shadow-lg">
+                          <img
+                            src={selectedAIImage.ai_generated}
+                            alt="Cake Design Reference"
+                            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute top-2 right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+                            <svg
+                              className="w-3 h-3 inline mr-1"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            AI Generated
+                          </div>
+                        </div>
+                        <div className="mt-3 text-center">
+                          <p className="text-sm text-gray-600 font-medium">
+                            Thiết kế AI làm tham khảo
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Thợ làm bánh sẽ dựa trên hình này để báo giá
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="sticky bottom-0 bg-gradient-to-r from-gray-50 to-white px-8 py-6 rounded-b-2xl border-t border-gray-200 shadow-lg">
+                <div className="flex gap-4 justify-end">
+                  <button
+                    onClick={closeCakeQuoteForm}
+                    disabled={isSubmitting}
+                    className="px-8 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    onClick={handleSubmitCakeQuote}
+                    disabled={isSubmitting}
+                    className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Đang tạo yêu cầu...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                          />
+                        </svg>
+                        Tạo yêu cầu
+                      </div>
+                    )}
                   </button>
                 </div>
               </div>
