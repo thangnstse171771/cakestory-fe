@@ -159,14 +159,23 @@ const CakeQuoteDetail = ({
 
   const getStatusColor = (status) => {
     switch (status) {
+      case "active":
+      case "open":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "pending":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "quoted":
+        return "bg-purple-100 text-purple-800 border-purple-200";
       case "accepted":
         return "bg-green-100 text-green-800 border-green-200";
+      case "completed":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200";
       case "rejected":
         return "bg-red-100 text-red-800 border-red-200";
-      case "completed":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "closed":
+        return "bg-gray-100 text-gray-800 border-gray-200";
+      case "expired":
+        return "bg-orange-100 text-orange-800 border-orange-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -580,8 +589,25 @@ const CakeQuoteDetail = ({
                     )}`}
                   >
                     {cakeQuote.status === "active" && "Đang hoạt động"}
+                    {cakeQuote.status === "open" && "Đang tìm thợ"}
+                    {cakeQuote.status === "pending" && "Đang chờ báo giá"}
+                    {cakeQuote.status === "quoted" && "Đã có báo giá"}
+                    {cakeQuote.status === "accepted" && "Đã chấp nhận báo giá"}
+                    {cakeQuote.status === "completed" && "Đã hoàn thành"}
                     {cakeQuote.status === "closed" && "Đã đóng"}
                     {cakeQuote.status === "expired" && "Đã hết hạn"}
+                    {cakeQuote.status === "rejected" && "Đã từ chối"}
+                    {![
+                      "active",
+                      "open",
+                      "pending",
+                      "quoted",
+                      "accepted",
+                      "completed",
+                      "closed",
+                      "expired",
+                      "rejected",
+                    ].includes(cakeQuote.status) && "Không xác định"}
                   </span>
                 </div>
 

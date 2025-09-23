@@ -252,7 +252,8 @@ const ShopQuotes = () => {
                   special_requirements:
                     cakeQuoteDetails?.special_requirements || "N/A",
                 },
-                status: "quoted",
+                status:
+                  cakeQuoteDetails?.status === "closed" ? "closed" : "quoted",
                 myQuote: {
                   id: quote.id,
                   price: quote.quoted_price,
@@ -263,6 +264,7 @@ const ShopQuotes = () => {
                   validUntil: quote.expires_at,
                 },
                 created_at: quote.created_at,
+                originalCakeQuoteStatus: cakeQuoteDetails?.status, // Keep original status for reference
               };
             })
         );
@@ -334,7 +336,13 @@ const ShopQuotes = () => {
       quote.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       quote.cakeDesign.title.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = quote.status === selectedTab;
+    let matchesStatus = false;
+    if (selectedTab === "quoted") {
+      // In "quoted" tab, show both "quoted" and "closed" status quotes
+      matchesStatus = quote.status === "quoted" || quote.status === "closed";
+    } else {
+      matchesStatus = quote.status === selectedTab;
+    }
 
     return matchesSearch && matchesStatus;
   });
@@ -351,6 +359,8 @@ const ShopQuotes = () => {
         return "bg-red-100 text-red-800 border-red-200";
       case "completed":
         return "bg-rose-100 text-rose-800 border-rose-200";
+      case "closed":
+        return "bg-gray-100 text-gray-800 border-gray-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -368,6 +378,8 @@ const ShopQuotes = () => {
         return <XCircle className="w-4 h-4" />;
       case "completed":
         return <CheckCircle className="w-4 h-4" />;
+      case "closed":
+        return <XCircle className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
     }
@@ -662,6 +674,8 @@ const ShopQuotes = () => {
                           {quote.status === "accepted" && "Đã chấp nhận"}
                           {quote.status === "rejected" && "Đã từ chối"}
                           {quote.status === "completed" && "Hoàn thành"}
+                          {quote.status === "closed" &&
+                            "Shop khác đã được chọn"}
                         </span>
                       </div>
                     </div>
@@ -834,19 +848,16 @@ const ShopQuotes = () => {
                             <Eye className="w-4 h-4 mr-2 inline" />
                             Xem chi tiết
                           </button>
-                          {quote.status !== "accepted" && (
-                            <button
-                              onClick={() => openQuoteModal(quote)}
-                              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-pink-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                            >
-                              <Edit3 className="w-4 h-4 mr-2 inline" />
-                              Chỉnh sửa
-                            </button>
-                          )}
-                          <button className="px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200">
-                            <MessageCircle className="w-4 h-4 mr-2 inline" />
-                            Nhắn tin
-                          </button>
+                          {quote.status !== "accepted" &&
+                            quote.status !== "closed" && (
+                              <button
+                                onClick={() => openQuoteModal(quote)}
+                                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-pink-600 text-white rounded-xl font-bold hover:from-blue-600 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                              >
+                                <Edit3 className="w-4 h-4 mr-2 inline" />
+                                Chỉnh sửa
+                              </button>
+                            )}
                         </div>
                       </div>
                     ) : (

@@ -82,25 +82,9 @@ const CakeQuotes = () => {
           (quote) => quote.user_id === user.id
         );
 
-        // Calculate pagination for filtered results
-        const quotesPerPage = 5;
-        const totalFilteredQuotes = userQuotes.length;
-        const totalPages = Math.ceil(totalFilteredQuotes / quotesPerPage);
-
-        // If current page is beyond available pages, reset to page 1
-        let adjustedCurrentPage = currentPage;
-        if (currentPage > totalPages && totalPages > 0) {
-          adjustedCurrentPage = 1;
-          setCurrentPage(1);
-        }
-
-        const startIndex = (adjustedCurrentPage - 1) * quotesPerPage;
-        const endIndex = startIndex + quotesPerPage;
-        const paginatedUserQuotes = userQuotes.slice(startIndex, endIndex);
-
-        // Transform API data to match UI expectations
-        const transformedQuotes = await Promise.all(
-          paginatedUserQuotes.map(async (quote) => {
+        // First, transform all quotes to get their UI status
+        const allTransformedQuotes = await Promise.all(
+          userQuotes.map(async (quote) => {
             // Fetch shop quotes for each cake quote
             let shopQuotes = [];
             try {
@@ -166,13 +150,35 @@ const CakeQuotes = () => {
           })
         );
 
-        setCakeQuotes(transformedQuotes);
+        // Filter by selected tab BEFORE pagination
+        const filteredByTab = allTransformedQuotes.filter(
+          (quote) => quote.status === selectedTab
+        );
 
-        // Calculate tab counts based on all user quotes (not just current page)
-        const allActiveCount = userQuotes.filter(
+        // Calculate pagination for filtered results
+        const quotesPerPage = 5;
+        const totalFilteredQuotes = filteredByTab.length;
+        const totalPages = Math.ceil(totalFilteredQuotes / quotesPerPage);
+
+        // If current page is beyond available pages, reset to page 1
+        let adjustedCurrentPage = currentPage;
+        if (currentPage > totalPages && totalPages > 0) {
+          adjustedCurrentPage = 1;
+          setCurrentPage(1);
+        }
+
+        // Paginate the filtered results
+        const startIndex = (adjustedCurrentPage - 1) * quotesPerPage;
+        const endIndex = startIndex + quotesPerPage;
+        const paginatedQuotes = filteredByTab.slice(startIndex, endIndex);
+
+        setCakeQuotes(paginatedQuotes);
+
+        // Calculate tab counts based on all transformed quotes
+        const allActiveCount = allTransformedQuotes.filter(
           (q) => q.status === "active"
         ).length;
-        const allCompletedCount = userQuotes.filter(
+        const allCompletedCount = allTransformedQuotes.filter(
           (q) => q.status === "completed"
         ).length;
         setTabCounts({
@@ -200,16 +206,14 @@ const CakeQuotes = () => {
     }
   };
 
-  // Filter quotes based on search and status
+  // Filter quotes based on search only (status filtering is now done in fetchCakeQuotes)
   const filteredQuotes = cakeQuotes.filter((quote) => {
     const matchesSearch =
       quote.cakeDesign.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       quote.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       quote.user?.username?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = quote.status === selectedTab;
-
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   const getStatusColor = (status) => {
@@ -264,13 +268,36 @@ const CakeQuotes = () => {
 
   // Shop quotes pagination functions
   const getShopQuotesForPage = (quotes, cakeQuoteId) => {
+    // Filter quotes based on selected tab
+    let filteredShopQuotes = quotes;
+    if (selectedTab === "completed") {
+      // In "Đã nhận báo giá" tab, only show accepted quotes
+      filteredShopQuotes = quotes.filter(
+        (quote) => quote.status === "accepted"
+      );
+    }
+
     const currentPage = shopQuotesPages[cakeQuoteId] || 1;
     const startIndex = (currentPage - 1) * quotesPerPage;
     const endIndex = startIndex + quotesPerPage;
-    return quotes.slice(startIndex, endIndex);
+    return filteredShopQuotes.slice(startIndex, endIndex);
   };
 
-  const getTotalShopQuotesPages = (quotesLength) => {
+  const getTotalShopQuotesPages = (quotes) => {
+    // Filter quotes based on selected tab
+    let filteredShopQuotes = quotes;
+    if (selectedTab === "completed" && Array.isArray(quotes)) {
+      // In "Đã nhận báo giá" tab, only count accepted quotes
+      filteredShopQuotes = quotes.filter(
+        (quote) => quote.status === "accepted"
+      );
+    }
+
+    const quotesLength = Array.isArray(filteredShopQuotes)
+      ? filteredShopQuotes.length
+      : typeof quotes === "number"
+      ? quotes
+      : 0;
     return Math.ceil(quotesLength / quotesPerPage);
   };
 
@@ -429,7 +456,7 @@ const CakeQuotes = () => {
               }`}
             >
               {tab.icon}
-              {tab.label} ({tab.count})
+              {tab.label}
             </button>
           ))}
         </div>
@@ -585,7 +612,7 @@ const CakeQuotes = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h4 className="text-xl font-bold text-gray-800 flex items-center gap-3">
                       <div className="w-2 h-8 bg-gradient-to-b from-emerald-500 to-green-500 rounded-full"></div>
-                      Báo giá từ tiệm bánh ({cakeQuote.quotes.length})
+                      Báo giá từ tiệm bánh
                     </h4>
                   </div>
 
@@ -715,10 +742,6 @@ const CakeQuotes = () => {
                                     Đặt hàng
                                   </button>
                                 )}
-                                <button className="px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 flex items-center gap-2">
-                                  <MessageCircle className="w-4 h-4" />
-                                  Nhắn tin
-                                </button>
                               </div>
                             </div>
                           </div>
@@ -727,7 +750,7 @@ const CakeQuotes = () => {
                     )}
 
                     {/* Shop Quotes Pagination */}
-                    {getTotalShopQuotesPages(cakeQuote.quotes.length) > 1 && (
+                    {getTotalShopQuotesPages(cakeQuote.quotes) > 1 && (
                       <div className="flex justify-center items-center gap-2 pt-6 border-t border-gray-200">
                         <button
                           onClick={() =>
@@ -783,7 +806,7 @@ const CakeQuotes = () => {
                           }
                           disabled={
                             (shopQuotesPages[cakeQuote.id] || 1) ===
-                            getTotalShopQuotesPages(cakeQuote.quotes.length)
+                            getTotalShopQuotesPages(cakeQuote.quotes)
                           }
                           className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                         >
