@@ -3268,99 +3268,119 @@ Trang trí: ${
         {/* AI Image View Modal */}
         {showImageModal && selectedAIImage && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-gradient-to-br from-black/60 via-purple-900/40 to-pink-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 closeImageModal();
               }
             }}
           >
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
+            <div className="bg-white/95 backdrop-blur-xl rounded-3xl max-w-5xl w-full max-h-[95vh] overflow-hidden shadow-2xl border border-white/20 transform animate-in zoom-in-95 duration-300">
               {/* Modal Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-gray-800 flex items-center">
-                  <span className="w-3 h-6 bg-gradient-to-b from-purple-400 to-pink-400 rounded-full mr-3"></span>
-                  Ảnh AI được tạo
-                </h3>
+              <div className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 via-pink-50 to-indigo-50 border-b border-purple-100/50 backdrop-blur-sm">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">
+                      Ảnh AI được tạo
+                    </h3>
+                    <p className="text-sm text-purple-600/70 mt-1">
+                      Thiết kế bánh độc đáo được tạo bởi trí tuệ nhân tạo
+                    </p>
+                  </div>
+                </div>
                 <button
                   onClick={closeImageModal}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-3 hover:bg-white/80 rounded-2xl transition-all duration-200 group hover:scale-105 hover:shadow-lg"
                 >
-                  <svg
-                    className="w-6 h-6 text-gray-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  <X className="w-6 h-6 text-gray-600 group-hover:text-gray-800 transition-colors" />
                 </button>
               </div>
 
               {/* Modal Content */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="p-6 overflow-y-auto max-h-[calc(95vh-100px)] bg-gradient-to-br from-white via-purple-50/20 to-pink-50/20">
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                   {/* Image Section */}
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <img
-                        src={selectedAIImage.ai_generated}
-                        alt="AI Generated Cake Full Size"
-                        className="w-full h-auto max-h-[50vh] lg:max-h-[60vh] object-contain rounded-lg shadow-lg"
-                        onError={(e) => {
-                          e.target.src = "/placeholder-cake.jpg";
-                        }}
-                      />
-                      <div className="absolute top-2 right-2 bg-purple-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                        AI Generated
+                  <div className="space-y-6">
+                    <div className="relative group overflow-hidden rounded-3xl bg-gradient-to-br from-purple-100 via-pink-50 to-indigo-100 p-6 shadow-xl">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-indigo-500/5"></div>
+                      <div className="relative overflow-hidden rounded-2xl shadow-2xl">
+                        <img
+                          src={selectedAIImage.ai_generated}
+                          alt="AI Generated Cake Full Size"
+                          className="w-full h-auto max-h-[55vh] xl:max-h-[65vh] object-contain rounded-2xl transition-all duration-500 group-hover:scale-[1.02]"
+                          onError={(e) => {
+                            e.target.src = "/placeholder-cake.jpg";
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent rounded-2xl"></div>
+                        <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-2xl text-sm font-bold shadow-lg backdrop-blur-sm">
+                          <Sparkles className="w-4 h-4 inline mr-2" />
+                          AI Generated
+                        </div>
+                        <div className="absolute bottom-4 left-4 right-4">
+                          <div className="bg-white/90 backdrop-blur-md rounded-xl p-3 shadow-lg border border-white/20">
+                            <p className="text-xs text-gray-600 font-medium">
+                              ✨ Được tạo bởi trí tuệ nhân tạo tiên tiến
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
                     {/* Image Actions */}
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={openEditModal}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 text-center"
+                        className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 text-white rounded-2xl font-bold hover:from-blue-600 hover:via-purple-600 hover:to-indigo-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                       >
-                        <svg
-                          className="w-4 h-4 mr-2 inline"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                        Chỉnh sửa
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                          Chỉnh sửa
+                        </div>
                       </button>
+
                       <button
                         onClick={handleCreateCakeQuote}
-                        className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all duration-200 text-center"
+                        className="group relative overflow-hidden px-6 py-4 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 text-white rounded-2xl font-bold hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                       >
-                        <svg
-                          className="w-4 h-4 mr-2 inline"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                          />
-                        </svg>
-                        Tìm người làm bánh
+                        <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                            />
+                          </svg>
+                          Tìm thợ làm bánh
+                        </div>
                       </button>
+
                       <button
                         onClick={() => {
                           if (navigator.share) {
@@ -3371,66 +3391,92 @@ Trang trí: ${
                             });
                           }
                         }}
-                        className="px-4 py-2 border border-purple-300 text-purple-600 rounded-lg font-medium hover:bg-purple-50 transition-colors"
+                        className="group px-6 py-4 bg-white border-2 border-purple-200 text-purple-600 rounded-2xl font-bold hover:bg-purple-50 hover:border-purple-300 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02]"
                       >
-                        <svg
-                          className="w-4 h-4 mr-2 inline"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                          />
-                        </svg>
-                        Chia sẻ
+                        <div className="flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                            />
+                          </svg>
+                          Chia sẻ
+                        </div>
                       </button>
+
                       <a
                         href={selectedAIImage.ai_generated}
                         download={`ai-cake-${selectedAIImage.id}.jpg`}
-                        className="px-4 py-2 border border-purple-300 text-purple-600 rounded-lg font-medium hover:bg-purple-50 transition-colors"
+                        className="group px-6 py-4 bg-white border-2 border-indigo-200 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] flex items-center justify-center"
                       >
-                        <svg
-                          className="w-4 h-4 mr-2 inline"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
+                        <Download className="w-5 h-5 mr-2" />
                         Tải xuống
                       </a>
                     </div>
                   </div>
 
                   {/* Description Section */}
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
-                        <span className="w-2 h-4 bg-purple-500 rounded-full mr-2"></span>
-                        Mô tả chi tiết
-                      </h4>
-                      <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  <div className="space-y-6">
+                    {/* Main Description Card */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-purple-100/50">
+                      <div className="flex items-center mb-4">
+                        <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                          <svg
+                            className="w-5 h-5 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                        </div>
+                        <h4 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          Mô tả chi tiết
+                        </h4>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-50/80 to-pink-50/80 border border-purple-200/50 rounded-2xl p-6 shadow-inner">
+                        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">
                           {selectedAIImage.description}
                         </p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs text-gray-500 mb-1">
-                          Ngày tạo
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200/50 rounded-2xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-md">
+                            <svg
+                              className="w-4 h-4 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div className="text-xs font-bold text-blue-600 bg-blue-200/50 px-2 py-1 rounded-lg">
+                            NGÀY TẠO
+                          </div>
                         </div>
-                        <div className="text-sm font-medium text-gray-800">
+                        <div className="text-sm font-bold text-gray-800 leading-tight">
                           {new Date(
                             selectedAIImage.created_at
                           ).toLocaleDateString("vi-VN", {
@@ -3442,31 +3488,99 @@ Trang trí: ${
                           })}
                         </div>
                       </div>
-                      <div className="bg-white border border-gray-200 rounded-lg p-3">
-                        <div className="text-xs text-gray-500 mb-1">
-                          Trạng thái
+
+                      <div className="bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200/50 rounded-2xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-md">
+                            <svg
+                              className="w-4 h-4 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                          </div>
+                          <div className="text-xs font-bold text-green-600 bg-green-200/50 px-2 py-1 rounded-lg">
+                            TRẠNG THÁI
+                          </div>
                         </div>
-                        <div className="text-sm font-medium text-green-600 flex items-center">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                          Hoàn thành
+                        <div className="flex items-center">
+                          <div className="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse shadow-lg"></div>
+                          <span className="text-sm font-bold text-gray-800">
+                            Hoàn thành
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    {/* AI Prompt used */}
+                    {/* AI Prompt Card */}
                     {selectedAIImage.ai_prompt && (
-                      <div>
-                        <h4 className="text-md font-semibold text-gray-800 mb-3 flex items-center">
-                          <span className="w-2 h-4 bg-pink-500 rounded-full mr-2"></span>
-                          Prompt AI đã sử dụng
-                        </h4>
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                          <p className="text-sm text-gray-600 leading-relaxed">
-                            {selectedAIImage.ai_prompt}
-                          </p>
+                      <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-xl border border-pink-100/50">
+                        <div className="flex items-center mb-4">
+                          <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center mr-4 shadow-lg">
+                            <svg
+                              className="w-5 h-5 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"
+                              />
+                            </svg>
+                          </div>
+                          <h4 className="text-xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                            Prompt AI đã sử dụng
+                          </h4>
+                        </div>
+                        <div className="bg-gradient-to-br from-gray-50/80 to-slate-50/80 border border-gray-200/50 rounded-2xl p-6 shadow-inner">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-2 h-2 bg-pink-500 rounded-full mt-2 flex-shrink-0"></div>
+                            <p className="text-sm text-gray-700 leading-relaxed">
+                              {selectedAIImage.ai_prompt}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}
+
+                    {/* Additional Info Card */}
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-100 rounded-2xl p-6 border border-amber-200/50 shadow-lg">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md">
+                          <svg
+                            className="w-4 h-4 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                        </div>
+                        <h5 className="text-lg font-bold text-amber-800">
+                          Thông tin thêm
+                        </h5>
+                      </div>
+                      <p className="text-sm text-amber-700 leading-relaxed">
+                        💡 Hình ảnh này được tạo bằng công nghệ AI tiên tiến.
+                        Bạn có thể sử dụng nó làm tham khảo để tìm kiếm thợ làm
+                        bánh hoặc chỉnh sửa theo ý muốn.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
