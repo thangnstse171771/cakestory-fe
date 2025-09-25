@@ -928,8 +928,9 @@ const ShopQuotes = () => {
       {/* Quote Modal */}
       {showQuoteModal && selectedRequest && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-white/50">
-            <div className="flex items-center justify-between p-8 border-b border-gray-200 bg-gradient-to-r from-pink-600 to-rose-600 text-white">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl max-w-4xl w-full max-h-[95vh] flex flex-col shadow-2xl border border-white/50">
+            {/* Fixed Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-t-3xl flex-shrink-0">
               <h3 className="text-2xl font-bold">
                 {selectedRequest.myQuote ? "Chỉnh sửa báo giá" : "Gửi báo giá"}
               </h3>
@@ -950,36 +951,39 @@ const ShopQuotes = () => {
               </button>
             </div>
 
-            <div className="p-8 overflow-y-auto max-h-[calc(90vh-180px)]">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
               {/* Customer & Cake Info */}
-              <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 mb-8 border border-gray-200">
+              <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-5 mb-6 border border-gray-200">
                 <div className="flex items-center gap-4 mb-4">
                   <img
                     src={selectedRequest.customer.avatar}
                     alt={selectedRequest.customer.name}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-pink-200"
+                    className="w-14 h-14 rounded-xl object-cover border-2 border-pink-200"
                   />
                   <div>
-                    <h4 className="font-bold text-gray-900 text-xl">
+                    <h4 className="font-bold text-gray-900 text-lg">
                       {selectedRequest.customer.name}
                     </h4>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 text-sm">
                       {selectedRequest.customer.location}
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="bg-white p-4 rounded-xl border border-gray-200">
-                    <span className="text-gray-500 font-medium">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-white p-3 rounded-lg border border-gray-200">
+                    <span className="text-gray-500 font-medium text-sm">
                       Bánh yêu cầu:
                     </span>
-                    <div className="font-bold text-gray-900 text-lg">
+                    <div className="font-bold text-gray-900">
                       {selectedRequest.cakeDesign.title}
                     </div>
                   </div>
-                  <div className="bg-white p-4 rounded-xl border border-gray-200">
-                    <span className="text-gray-500 font-medium">Deadline:</span>
-                    <div className="font-bold text-red-700 text-lg">
+                  <div className="bg-white p-3 rounded-lg border border-gray-200">
+                    <span className="text-gray-500 font-medium text-sm">
+                      Ngày hết hạn:
+                    </span>
+                    <div className="font-bold text-red-700">
                       {formatDate(selectedRequest.cakeDesign.deadline)}
                     </div>
                   </div>
@@ -987,10 +991,10 @@ const ShopQuotes = () => {
               </div>
 
               {/* Quote Form */}
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-3">
+                    <label className="block text-sm font-bold text-gray-800 mb-2">
                       Giá báo (VND) *
                     </label>
                     <input
@@ -999,12 +1003,12 @@ const ShopQuotes = () => {
                       onChange={(e) =>
                         setQuoteForm({ ...quoteForm, price: e.target.value })
                       }
-                      className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                      className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm"
                       placeholder="500000"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-bold text-gray-800 mb-3">
+                    <label className="block text-sm font-bold text-gray-800 mb-2">
                       Thời gian chuẩn bị (giờ) *
                     </label>
                     <input
@@ -1016,14 +1020,14 @@ const ShopQuotes = () => {
                           preparation_time: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                      className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm"
                       placeholder="24"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-3">
+                  <label className="block text-sm font-bold text-gray-800 mb-2">
                     Thông điệp cho khách hàng *
                   </label>
                   <textarea
@@ -1031,14 +1035,14 @@ const ShopQuotes = () => {
                     onChange={(e) =>
                       setQuoteForm({ ...quoteForm, message: e.target.value })
                     }
-                    rows={4}
-                    className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                    rows={3}
+                    className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm resize-none"
                     placeholder="Mô tả chi tiết về báo giá của bạn..."
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-3">
+                  <label className="block text-sm font-bold text-gray-800 mb-2">
                     Chi tiết nguyên liệu
                   </label>
                   <textarea
@@ -1049,15 +1053,16 @@ const ShopQuotes = () => {
                         ingredients_breakdown: e.target.value,
                       })
                     }
-                    rows={3}
-                    className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                    rows={2}
+                    className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent bg-white/90 backdrop-blur-sm text-sm resize-none"
                     placeholder="Liệt kê các nguyên liệu sẽ sử dụng..."
                   />
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-4 p-8 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            {/* Fixed Footer */}
+            <div className="flex gap-4 p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white rounded-b-3xl flex-shrink-0">
               <button
                 onClick={() => {
                   setShowQuoteModal(false);
@@ -1069,9 +1074,9 @@ const ShopQuotes = () => {
                     ingredients_breakdown: "",
                   });
                 }}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
+                className="flex-1 px-6 py-4 border-2 border-gray-300 text-gray-600 rounded-xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200"
               >
-                Hủy
+                Hủy bỏ
               </button>
               <button
                 onClick={
@@ -1079,7 +1084,7 @@ const ShopQuotes = () => {
                     ? handleUpdateQuote
                     : handleCreateQuote
                 }
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="flex-1 px-6 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {selectedRequest.myQuote ? "Cập nhật báo giá" : "Gửi báo giá"}
               </button>
