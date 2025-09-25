@@ -3591,19 +3591,59 @@ Trang trí: ${
         {/* Edit AI Image Modal */}
         {showEditModal && selectedAIImage && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-gradient-to-br from-black/60 via-blue-900/40 to-purple-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 closeEditModal();
               }
             }}
           >
-            <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl">
-              <div className="p-6">
-                <div className="text-center mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="bg-white/95 backdrop-blur-xl rounded-3xl max-w-3xl w-full shadow-2xl border border-white/20 max-h-[95vh] overflow-y-auto">
+              {/* Header */}
+              <div className="sticky top-0 bg-gradient-to-r from-blue-50 via-purple-50 to-indigo-50 p-6 rounded-t-3xl border-b border-blue-100/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-14 h-14 bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
+                      <svg
+                        className="w-7 h-7 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                        Chỉnh sửa ảnh AI
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Mô tả thay đổi để tạo phiên bản mới của thiết kế bánh
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closeEditModal}
+                    disabled={isEditing}
+                    className="p-3 hover:bg-white/80 rounded-2xl transition-all duration-200 group hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X className="w-6 h-6 text-gray-600 group-hover:text-gray-800 transition-colors" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-6">
+                {/* Current Image Preview */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-5 shadow-lg border border-gray-100">
+                  <h4 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
                     <svg
-                      className="w-8 h-8 text-white"
+                      className="w-5 h-5 mr-3 text-purple-500"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -3612,101 +3652,170 @@ Trang trí: ${
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
-                    Chỉnh sửa ảnh AI
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Nhập prompt mới để chỉnh sửa ảnh bánh hiện tại. Hệ thống sẽ
-                    giữ nguyên ngữ cảnh bánh và áp dụng các thay đổi của bạn.
-                  </p>
-                </div>
-
-                {/* Current Image Preview */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                    Ảnh hiện tại:
+                    Ảnh hiện tại
                   </h4>
-                  <div className="relative">
+                  <div className="relative overflow-hidden rounded-xl shadow-lg group">
                     <img
                       src={selectedAIImage.ai_generated}
                       alt="Current AI Generated Cake"
-                      className="w-full h-48 object-contain rounded-lg border border-gray-200"
+                      className="w-full h-56 object-contain bg-gradient-to-br from-gray-50 to-gray-100 transition-transform duration-300 group-hover:scale-105"
                     />
+                    <div className="absolute top-3 right-3 bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">
+                      Bản gốc
+                    </div>
                   </div>
                 </div>
 
                 {/* Edit Prompt Input */}
                 <div className="mb-4">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Prompt chỉnh sửa:
+                  <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                    <svg
+                      className="w-4 h-4 mr-2 text-blue-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                    Mô tả thay đổi bạn muốn:
                   </label>
+
+                  {/* Helpful hints */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                    <p className="text-xs text-blue-700 font-medium mb-2">
+                      💡 Gợi ý viết prompt hiệu quả:
+                    </p>
+                    <ul className="text-xs text-blue-600 space-y-1">
+                      <li>• Mô tả cụ thể: "Thêm hoa hồng đỏ trên đỉnh bánh"</li>
+                      <li>
+                        • Thay đổi màu sắc: "Đổi màu kem thành xanh pastel"
+                      </li>
+                      <li>
+                        • Thêm decoration: "Rắc chocolate chips xung quanh"
+                      </li>
+                      <li>
+                        • Thay đổi style: "Làm bánh theo phong cách vintage"
+                      </li>
+                    </ul>
+                  </div>
+
                   <textarea
                     value={editPrompt}
                     onChange={(e) => setEditPrompt(e.target.value)}
-                    placeholder="Ví dụ: Thêm chocolate sprinkles trên bề mặt, thay đổi màu frosting thành xanh dương..."
-                    className="w-full h-24 p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    maxLength={500}
+                    placeholder="Ví dụ: Thêm những bông hoa hồng màu hồng trên đỉnh bánh, thay đổi màu kem từ trắng sang màu xanh pastel nhẹ, và rắc thêm chocolate sprinkles xung quanh cạnh bánh..."
+                    className="w-full h-32 p-4 border-2 border-gray-300 rounded-xl resize-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-sm leading-relaxed transition-all duration-200 hover:border-gray-400"
+                    maxLength={1000}
+                    rows={6}
                   />
-                  <div className="text-xs text-gray-400 mt-1 text-right">
-                    {editPrompt.length}/500 ký tự
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="text-xs text-gray-500">
+                      <span className="font-medium">Mẹo:</span> Mô tả chi tiết
+                      sẽ cho kết quả tốt hơn
+                    </div>
+                    <div
+                      className={`text-xs font-medium ${
+                        editPrompt.length > 900
+                          ? "text-red-500"
+                          : editPrompt.length > 750
+                          ? "text-yellow-600"
+                          : "text-gray-400"
+                      }`}
+                    >
+                      {editPrompt.length}/1000 ký tự
+                    </div>
                   </div>
                 </div>
 
                 {/* Original Description */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                    Mô tả gốc (để tham khảo):
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 border border-amber-200/50">
+                  <h4 className="text-lg font-bold text-amber-800 mb-4 flex items-center">
+                    <svg
+                      className="w-5 h-5 mr-3 text-amber-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    Mô tả gốc (tham khảo)
                   </h4>
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                    <p className="text-sm text-gray-600 leading-relaxed">
+                  <div className="bg-white/80 backdrop-blur-sm border border-amber-200 rounded-xl p-4 shadow-sm">
+                    <p className="text-sm text-gray-700 leading-relaxed">
                       {selectedAIImage.description}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                {/* Cost Information */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-200/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                        <DollarSign className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-green-800">
+                          Chi phí chỉnh sửa
+                        </p>
+                        <p className="text-xs text-green-600">
+                          Tạo ảnh mới dựa trên thay đổi
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-green-700">
+                        {AI_GENERATION_COST.toLocaleString()} VND
+                      </p>
+                      <p className="text-xs text-green-600">
+                        Sẽ trừ từ ví của bạn
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="sticky bottom-0 bg-gradient-to-r from-gray-50 to-white p-6 rounded-b-3xl border-t border-gray-200/50 shadow-lg">
+                <div className="flex gap-4">
                   <button
                     onClick={closeEditModal}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
+                    className="flex-1 px-6 py-4 border-2 border-gray-300 text-gray-700 rounded-2xl font-bold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     disabled={isEditing}
                   >
-                    Hủy
+                    Hủy bỏ
                   </button>
                   <button
                     onClick={handleEditAIImage}
                     disabled={isEditing || !editPrompt.trim()}
-                    className={`flex-1 px-4 py-3 rounded-lg font-medium text-white transition-all duration-200 ${
+                    className={`flex-1 px-6 py-4 rounded-2xl font-bold text-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none ${
                       isEditing || !editPrompt.trim()
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-lg hover:shadow-xl"
+                        ? "bg-gray-400 cursor-not-allowed shadow-none"
+                        : "bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-500 hover:from-blue-600 hover:via-purple-600 hover:to-indigo-600"
                     }`}
                   >
                     {isEditing ? (
                       <div className="flex items-center justify-center">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Đang chỉnh sửa...
+                        <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                        Đang tạo ảnh mới...
                       </div>
                     ) : (
-                      <>
-                        <svg
-                          className="w-4 h-4 mr-2 inline"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                          />
-                        </svg>
-                        Chỉnh sửa ảnh
-                      </>
+                      <div className="flex items-center justify-center">
+                        <Sparkles className="w-5 h-5 mr-3" />
+                        Tạo ảnh mới ({AI_GENERATION_COST.toLocaleString()} VND)
+                      </div>
                     )}
                   </button>
                 </div>
