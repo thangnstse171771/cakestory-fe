@@ -522,8 +522,6 @@ const CreateMarketplacePost = ({
                   <Field
                     type="number"
                     name="required_time"
-                    min="0"
-                    max="30"
                     step="1" 
                     placeholder="Nhập số giờ cần đặt trước (tối đa 750 giờ - 30 ngày)"
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-pink-500 focus:ring-4 focus:ring-pink-100 transition-all duration-300"
