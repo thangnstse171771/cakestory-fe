@@ -53,6 +53,7 @@ const ShopQuotes = () => {
   const [allUsers, setAllUsers] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasShop, setHasShop] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
 
@@ -109,17 +110,36 @@ const ShopQuotes = () => {
     try {
       setLoading(true);
       setError(null);
+      setHasShop(true); // Reset shop status
 
       // Fetch users data first
       const usersMap = await fetchAllUsers();
 
-      // Fetch both pending and quoted quotes simultaneously
-      const [pendingResponse, quotedResponse, acceptedResponse] =
-        await Promise.all([
-          getCakeQuotes(currentPage, 50),
-          getMyShopQuotes(currentPage, 50),
-          getAcceptedQuotesByShop(currentPage, 50),
-        ]);
+      // First, try to fetch shop quotes to check if user has a shop
+      let quotedResponse;
+      try {
+        quotedResponse = await getMyShopQuotes(currentPage, 50);
+        // If this succeeds, user has a shop
+        setHasShop(true);
+      } catch (shopError) {
+        console.error("Error checking shop status:", shopError);
+        // Check if the error indicates no shop
+        if (shopError.response?.status === 404 || 
+            shopError.response?.status === 403 || 
+            shopError.message?.toLowerCase().includes('shop') || 
+            shopError.response?.data?.message?.toLowerCase().includes('shop')) {
+          setHasShop(false);
+          return; // Exit early if no shop
+        }
+        // If it's a different error, continue and handle later
+        quotedResponse = { success: false, data: { quotes: [] } };
+      }
+
+      // Fetch other quotes simultaneously
+      const [pendingResponse, acceptedResponse] = await Promise.all([
+        getCakeQuotes(currentPage, 50),
+        getAcceptedQuotesByShop(currentPage, 50),
+      ]);
 
       // Process pending quotes
       if (pendingResponse.success) {
@@ -322,13 +342,28 @@ const ShopQuotes = () => {
       }
     } catch (err) {
       console.error("Error fetching shop quotes:", err);
-      setError("Có lỗi xảy ra khi tải dữ liệu");
+      
+      // Check if the error is related to not having a shop
+      if (err.response?.status === 404 || err.response?.status === 403 || 
+          err.message?.toLowerCase().includes('shop') || 
+          err.response?.data?.message?.toLowerCase().includes('shop')) {
+        setHasShop(false);
+      } else {
+        setError("Có lỗi xảy ra khi tải dữ liệu");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const fetchShopQuotes = fetchAllQuotes; // For backward compatibility
+
+  // Function to retry loading (for when user comes back after creating shop)
+  const retryLoading = () => {
+    setHasShop(true);
+    setError(null);
+    fetchAllQuotes();
+  };
 
   // Filter quotes based on search and status
   const filteredQuotes = shopQuotes.filter((quote) => {
@@ -525,6 +560,79 @@ const ShopQuotes = () => {
     );
   }
 
+  // Show shop creation guide if user doesn't have a shop
+  if (!hasShop) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex items-center justify-center">
+        <div className="text-center bg-white/80 backdrop-blur-sm p-12 rounded-3xl shadow-2xl border border-white/50 max-w-2xl mx-auto">
+          <div className="w-24 h-24 bg-gradient-to-br from-pink-500 to-rose-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg">
+            <ChefHat className="w-12 h-12 text-white" />
+          </div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-4">
+            Tạo Shop Của Bạn
+          </h2>
+          <p className="text-gray-600 mb-8 leading-relaxed text-lg">
+            Bạn cần tạo shop trước khi có thể nhận và quản lý các yêu cầu báo giá từ khách hàng. 
+            Hãy tạo shop ngay để bắt đầu kinh doanh bánh kem của bạn!
+          </p>
+          
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl mb-8 border border-blue-200">
+            <h3 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2">
+              <Star className="w-5 h-5" />
+              Lợi ích khi có shop:
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+              <div className="flex items-center gap-3 text-blue-700">
+                <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                <span>Nhận yêu cầu báo giá từ khách hàng</span>
+              </div>
+              <div className="flex items-center gap-3 text-blue-700">
+                <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                <span>Quản lý đơn hàng chuyên nghiệp</span>
+              </div>
+              <div className="flex items-center gap-3 text-blue-700">
+                <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                <span>Hiển thị sản phẩm trên marketplace</span>
+              </div>
+              <div className="flex items-center gap-3 text-blue-700">
+                <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                <span>Xây dựng thương hiệu cá nhân</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => navigate('/marketplace/create-shop')}
+              className="px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Tạo Shop Ngay
+            </button>
+            <button
+              onClick={() => navigate(-1)}
+              className="px-8 py-4 border-2 border-pink-300 text-pink-600 rounded-xl font-bold hover:bg-pink-50 hover:border-pink-400 transition-all duration-200"
+            >
+              Quay lại
+            </button>
+          </div>
+          
+          <div className="mt-6 p-4 bg-gray-50 rounded-xl border">
+            <p className="text-sm text-gray-600 mb-3">
+              Bạn đã có shop? Hãy kiểm tra lại:
+            </p>
+            <button
+              onClick={retryLoading}
+              className="px-6 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-all duration-200 text-sm"
+            >
+              Kiểm tra lại
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50 flex items-center justify-center">
@@ -535,7 +643,7 @@ const ShopQuotes = () => {
           </h3>
           <p className="text-gray-600 mb-6 leading-relaxed">{error}</p>
           <button
-            onClick={fetchShopQuotes}
+            onClick={retryLoading}
             className="px-8 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-semibold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Thử lại
