@@ -124,10 +124,12 @@ const ShopQuotes = () => {
       } catch (shopError) {
         console.error("Error checking shop status:", shopError);
         // Check if the error indicates no shop
-        if (shopError.response?.status === 404 || 
-            shopError.response?.status === 403 || 
-            shopError.message?.toLowerCase().includes('shop') || 
-            shopError.response?.data?.message?.toLowerCase().includes('shop')) {
+        if (
+          shopError.response?.status === 404 ||
+          shopError.response?.status === 403 ||
+          shopError.message?.toLowerCase().includes("shop") ||
+          shopError.response?.data?.message?.toLowerCase().includes("shop")
+        ) {
           setHasShop(false);
           return; // Exit early if no shop
         }
@@ -342,11 +344,14 @@ const ShopQuotes = () => {
       }
     } catch (err) {
       console.error("Error fetching shop quotes:", err);
-      
+
       // Check if the error is related to not having a shop
-      if (err.response?.status === 404 || err.response?.status === 403 || 
-          err.message?.toLowerCase().includes('shop') || 
-          err.response?.data?.message?.toLowerCase().includes('shop')) {
+      if (
+        err.response?.status === 404 ||
+        err.response?.status === 403 ||
+        err.message?.toLowerCase().includes("shop") ||
+        err.response?.data?.message?.toLowerCase().includes("shop")
+      ) {
         setHasShop(false);
       } else {
         setError("Có lỗi xảy ra khi tải dữ liệu");
@@ -572,10 +577,11 @@ const ShopQuotes = () => {
             Tạo Shop Của Bạn
           </h2>
           <p className="text-gray-600 mb-8 leading-relaxed text-lg">
-            Bạn cần tạo shop trước khi có thể nhận và quản lý các yêu cầu báo giá từ khách hàng. 
-            Hãy tạo shop ngay để bắt đầu kinh doanh bánh kem của bạn!
+            Bạn cần tạo shop trước khi có thể nhận và quản lý các yêu cầu báo
+            giá từ khách hàng. Hãy tạo shop ngay để bắt đầu kinh doanh bánh kem
+            của bạn!
           </p>
-          
+
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-2xl mb-8 border border-blue-200">
             <h3 className="text-xl font-bold text-blue-800 mb-3 flex items-center gap-2">
               <Star className="w-5 h-5" />
@@ -603,7 +609,7 @@ const ShopQuotes = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => navigate('/marketplace/create-shop')}
+              onClick={() => navigate("/marketplace/create-shop")}
               className="px-8 py-4 bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
@@ -616,7 +622,7 @@ const ShopQuotes = () => {
               Quay lại
             </button>
           </div>
-          
+
           <div className="mt-6 p-4 bg-gray-50 rounded-xl border">
             <p className="text-sm text-gray-600 mb-3">
               Bạn đã có shop? Hãy kiểm tra lại:
