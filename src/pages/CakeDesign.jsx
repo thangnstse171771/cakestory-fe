@@ -3777,7 +3777,7 @@ Trang trí: ${
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-green-700">
-                        {AI_GENERATION_COST.toLocaleString()} VND
+                        500 VND
                       </p>
                       <p className="text-xs text-green-600">
                         Sẽ trừ từ ví của bạn
@@ -3814,7 +3814,7 @@ Trang trí: ${
                     ) : (
                       <div className="flex items-center justify-center">
                         <Sparkles className="w-5 h-5 mr-3" />
-                        Tạo ảnh mới ({AI_GENERATION_COST.toLocaleString()} VND)
+                        Tạo ảnh mới (500 VND)
                       </div>
                     )}
                   </button>
