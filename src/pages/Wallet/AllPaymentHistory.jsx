@@ -1200,7 +1200,7 @@ const AllPaymentHistory = () => {
                         transaction.originalOrderId ||
                         transaction.orderRaw?.id ||
                         transaction.orderRaw?.order_id;
-                      if (orderId) navigate(`/order-tracking-user/${orderId}`);
+                      if (orderId) navigate(`/order-tracking/${orderId}`);
                       return;
                     }
                   };
