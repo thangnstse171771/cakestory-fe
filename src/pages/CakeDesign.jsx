@@ -97,6 +97,11 @@ const CakeDesign = () => {
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Error modal state
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [errorTitle, setErrorTitle] = useState("");
+
   const navigate = useNavigate();
   const { user } = useAuth(); // Get current user
 
@@ -413,22 +418,26 @@ const CakeDesign = () => {
     }
   }, [aiGeneratedImages.length, pendingAIGeneration, currentPage]);
 
-  // Handle ESC key to close image modal
+  // Handle ESC key to close modals
   useEffect(() => {
     const handleEscKey = (event) => {
-      if (event.key === "Escape" && showImageModal) {
-        closeImageModal();
+      if (event.key === "Escape") {
+        if (showErrorModal) {
+          closeErrorModal();
+        } else if (showImageModal) {
+          closeImageModal();
+        }
       }
     };
 
-    if (showImageModal) {
+    if (showImageModal || showErrorModal) {
       document.addEventListener("keydown", handleEscKey);
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscKey);
     };
-  }, [showImageModal]);
+  }, [showImageModal, showErrorModal]);
 
   // Helper function to get image paths based on design selections
   const getImagePath = () => {
@@ -1290,8 +1299,8 @@ Trang trí: ${
       errors.description = "Mô tả không được để trống";
     } else if (formData.description.trim().length < 10) {
       errors.description = "Mô tả phải có ít nhất 10 ký tự";
-    } else if (formData.description.trim().length > 500) {
-      errors.description = "Mô tả không được quá 500 ký tự";
+    } else if (formData.description.trim().length > 2000) {
+      errors.description = "Mô tả không được quá 2000 ký tự";
     }
 
     // Cake size validation
@@ -1380,7 +1389,24 @@ Trang trí: ${
       navigate("/cake-quotes");
     } catch (error) {
       console.error("Error creating cake quote:", error);
-      toast.error("Có lỗi xảy ra khi tạo yêu cầu tìm thợ làm bánh");
+
+      // Check for specific error about needing to complete at least one order first
+      if (
+        error?.response?.data?.message ===
+        "You must complete at least one cake order before creating a quote request. Please purchase a cake first to unlock this feature."
+      ) {
+        setErrorTitle("Yêu cầu hoàn thành đơn hàng");
+        setErrorMessage(
+          "Bạn phải hoàn thành ít nhất một đơn hàng bánh trước khi tạo yêu cầu tìm thợ làm bánh. Vui lòng mua bánh trước để mở khóa tính năng này."
+        );
+        setShowErrorModal(true);
+      } else {
+        setErrorTitle("Lỗi tạo yêu cầu");
+        setErrorMessage(
+          "Có lỗi xảy ra khi tạo yêu cầu tìm thợ làm bánh. Vui lòng thử lại."
+        );
+        setShowErrorModal(true);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1399,6 +1425,13 @@ Trang trí: ${
     });
     setFormErrors({});
     setIsSubmitting(false);
+  };
+
+  // Close error modal
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage("");
+    setErrorTitle("");
   };
 
   // Handle edit AI image
@@ -2026,10 +2059,10 @@ Trang trí: ${
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Mô tả chi tiết về thiết kế bánh của bạn (tùy chọn)..."
                     className="w-full h-16 p-2 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-pink-500 focus:border-transparent text-xs transition-all"
-                    maxLength={500}
+                    maxLength={2000}
                   />
                   <div className="text-xs text-gray-400 mt-1 text-right">
-                    {description.length}/500 ký tự
+                    {description.length}/2000 ký tự
                   </div>
                 </div>
 
@@ -4116,6 +4149,7 @@ Trang trí: ${
                       handleFormChange("description", e.target.value)
                     }
                     rows="4"
+                    maxLength={2000}
                     className={`w-full px-4 py-3 border-2 rounded-xl transition-all duration-200 focus:ring-4 focus:ring-green-100 focus:border-green-400 bg-white shadow-sm resize-none ${
                       formErrors.description
                         ? "border-red-400 focus:border-red-400 focus:ring-red-100"
@@ -4123,6 +4157,9 @@ Trang trí: ${
                     }`}
                     placeholder="e.g. Looking for a chocolate birthday cake with custom decorations"
                   />
+                  <div className="text-sm text-gray-500 mt-1 text-right">
+                    {formData.description.length}/2000 ký tự
+                  </div>
                   {formErrors.description && (
                     <p className="text-red-500 text-sm mt-1 flex items-center">
                       <svg
@@ -4409,6 +4446,54 @@ Trang trí: ${
           </div>
         )}
       </div>
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-2">
+                  <svg
+                    className="w-6 h-6 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Title */}
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-3">
+                {errorTitle}
+              </h3>
+
+              {/* Message */}
+              <p className="text-gray-600 text-center mb-6 leading-relaxed">
+                {errorMessage}
+              </p>
+
+              {/* Action Button */}
+              <div className="flex justify-center">
+                <button
+                  onClick={closeErrorModal}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
