@@ -26,6 +26,7 @@ import {
   fetchShopByUserId,
   fetchShopOrders,
   fetchWalletBalance, // unified balance endpoint
+  fetchWalletTransactionsByUserId,
 } from "../../api/axios";
 
 // Helper: robust parse amount strings to number (keep decimals, drop thousand separators and currency symbols)
@@ -289,15 +290,31 @@ const AllPaymentHistory = () => {
         }
       }
 
+      // Build promises: always fetch wallet history + withdraws.
+      // If we have a userId, also fetch the unified wallet transactions for that user (contains ai_generation, order_payment, refunds...)
       const promises = [fetchWalletHistory(), fetchWithdrawHistory()];
-      if (userId) promises.push(fetchCakeOrdersByUserId(userId));
+      if (userId) {
+        promises.push(fetchWalletTransactionsByUserId(userId));
+        promises.push(fetchCakeOrdersByUserId(userId));
+      }
       if (shopId) promises.push(fetchShopOrders(shopId));
       const results = await Promise.allSettled(promises);
-      // unpack results respecting order
+
+      // map results in stable order
       let depositResponse = results[0];
       let withdrawResponse = results[1];
-      let ordersResponse = userId ? results[2] : null;
-      let shopOrdersResponse = shopId ? results[results.length - 1] : null;
+      let walletTxResponse = null;
+      let ordersResponse = null;
+      let shopOrdersResponse = null;
+      let idx = 2;
+      if (userId) {
+        walletTxResponse = results[idx++];
+        ordersResponse = results[idx++];
+      }
+      if (shopId) {
+        shopOrdersResponse = results[idx++];
+      }
+
       let allTransactions = [];
       // deposits
       if (depositResponse?.status === "fulfilled") {
@@ -318,14 +335,20 @@ const AllPaymentHistory = () => {
           "hoàn thành",
           "thành công",
         ];
+        // Keep normal deposit records but exclude AI generation charges to avoid duplicates
         const processedDeposits = deposits
-          .filter((d) =>
-            completedStatuses.includes(
-              String(d.status || "")
-                .toLowerCase()
-                .trim()
-            )
-          )
+          .filter((d) => {
+            const status = String(d.status || "")
+              .toLowerCase()
+              .trim();
+            const txType = String(d.transaction_type || d.type || "")
+              .toLowerCase()
+              .trim();
+            // exclude AI generation transactions here; they'll be handled separately below
+            return (
+              completedStatuses.includes(status) && txType !== "ai_generation"
+            );
+          })
           .map((d) => ({
             ...d,
             id: d.id,
@@ -337,6 +360,52 @@ const AllPaymentHistory = () => {
             actor: "user",
           }));
         allTransactions.push(...processedDeposits);
+
+        // Note: AI-generation transactions will be taken from the unified wallet transactions endpoint
+        // (fetchWalletTransactionsByUserId) when available to avoid duplicates and capture order_payment / refund entries.
+      }
+
+      // wallet transactions (raw) -> extract ai_generation from walletTxResponse (if we fetched it)
+      if (walletTxResponse?.status === "fulfilled") {
+        let walletTx = [];
+        const data = walletTxResponse.value;
+        if (Array.isArray(data)) walletTx = data;
+        else if (Array.isArray(data?.transactions))
+          walletTx = data.transactions;
+        else if (Array.isArray(data?.data)) walletTx = data.data;
+        else if (data && typeof data === "object") {
+          const arr = Object.values(data).find((v) => Array.isArray(v));
+          if (Array.isArray(arr)) walletTx = arr;
+        }
+
+        const aiTx = walletTx.filter(
+          (t) =>
+            String(t.transaction_type || t.type || "")
+              .toLowerCase()
+              .trim() === "ai_generation"
+        );
+
+        const processedAi = aiTx.map((d) => ({
+          ...d,
+          id:
+            d.id ??
+            d.transaction_id ??
+            `ai-${Math.random().toString(36).slice(2, 9)}`,
+          type: "ai_generation",
+          transactionType: "Phí sử dụng AI",
+          icon: <ArrowUpRight className="w-4 h-4 text-red-500" />,
+          amountPrefix: "-",
+          amountColor: "text-red-600",
+          amount: toNumber(d.amount),
+          status: d.status || "completed",
+          created_at: d.created_at || d.createdAt,
+          description: d.description || d.note || "Trừ tiền sử dụng AI",
+          actor: "user",
+          fromWallet: d.fromWallet || null,
+          toWallet: d.toWallet || null,
+        }));
+
+        if (processedAi.length) allTransactions.push(...processedAi);
       }
       // withdrawals
       if (withdrawResponse?.status === "fulfilled") {
