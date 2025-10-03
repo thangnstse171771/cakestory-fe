@@ -876,6 +876,20 @@ export default function OrderTrackingForm({ order, onUpdateStatus }) {
                   <span className="text-gray-400">Chưa cập nhật</span>
                 )}
               </li>
+              <li>
+                <span className="font-medium">Ngày khách hàng đặt giao:</span>{" "}
+                {orderDetail?.delivery_time
+                  ? (() => {
+                      try {
+                        return new Date(
+                          orderDetail.delivery_time
+                        ).toLocaleString("vi-VN");
+                      } catch {
+                        return String(orderDetail.delivery_time);
+                      }
+                    })()
+                  : "—"}
+              </li>
               <li className="sm:col-span-2">
                 <span className="font-medium">Địa chỉ:</span>{" "}
                 {orderDetail.customerAddress ||
